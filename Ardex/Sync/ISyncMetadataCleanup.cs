@@ -2,6 +2,9 @@
 
 namespace Ardex.Sync
 {
+    /// <summary>
+    /// Provides methods for cleaning up sync metadata.
+    /// </summary>
     public interface ISyncMetadataCleanup<TChange>
     {
         /// <summary>

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -13,9 +14,9 @@ namespace Ardex.Sync.Providers
     /// Sync provider implementation which works with
     /// sync repositories and change history metadata.
     /// </summary>
-    public class ChangeSyncRepositoryProvider<TEntity> :
-        ISyncProvider<Dictionary<SyncID, Timestamp>, Change<TEntity>>,
-        ISyncMetadataCleanup<Change<TEntity>>
+    public class ChangeRepositorySyncProvider<TEntity> :
+        ISyncProvider<Dictionary<SyncID, Timestamp>, Change<IChangeHistory, TEntity>>,
+        ISyncMetadataCleanup<Change<IChangeHistory, TEntity>>
     {
         /// <summary>
         /// Gets this sync node's unique identifier.
@@ -49,7 +50,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        public ChangeSyncRepositoryProvider(
+        public ChangeRepositorySyncProvider(
             SyncID replicaID,
             ISyncRepository<TEntity> repository,
             ISyncRepository<IChangeHistory> changeHistory,
@@ -64,7 +65,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public SyncResult AcceptChanges(SyncID replicaID, IEnumerable<Change<TEntity>> delta, CancellationToken ct)
+        public SyncResult AcceptChanges(SyncID replicaID, IEnumerable<Change<IChangeHistory, TEntity>> delta, CancellationToken ct)
         {
             // TODO: conflicts.
 
@@ -136,7 +137,7 @@ namespace Ardex.Sync.Providers
                     }
 
                     // Write remote change history entry.
-                    ChangeHistoryUtil.WriteRemoteChangeHistory(
+                    ChangeTrackingUtil.WriteRemoteChangeHistory(
                         this.ChangeHistory,
                         change.Entity,
                         change.ChangeHistory.ReplicaID,
@@ -164,7 +165,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Reports changes since the last reported timestamp for each node.
         /// </summary>
-        public IEnumerable<Change<TEntity>> ResolveDelta(Dictionary<SyncID, Timestamp> timestampsByReplica, int batchSize, CancellationToken ct)
+        public IEnumerable<Change<IChangeHistory, TEntity>> ResolveDelta(Dictionary<SyncID, Timestamp> timestampsByReplica, /*int batchSize,*/ CancellationToken ct)
         {
             var changes = this.ChangeHistory
                 .Where(ch =>
@@ -177,16 +178,16 @@ namespace Ardex.Sync.Providers
                     this.Repository.AsEnumerable(),
                     ch => ch.UniqueID,
                     this.UniqueIdMapping.Get,
-                    (ch, entity) => new Change<TEntity>(ch, entity))
+                    (ch, entity) => new Change<IChangeHistory, TEntity>(ch, entity))
                 // Ensure that the oldest changes for each replica are sync first.
                 .OrderBy(c => c.ChangeHistory.Timestamp)
                 .AsEnumerable();
 
-            // Limit batch size if we have to.
-            if (batchSize != 0)
-            {
-                changes = changes.Take(batchSize);
-            }
+            //// Limit batch size if we have to.
+            //if (batchSize != 0)
+            //{
+            //    changes = changes.Take(batchSize);
+            //}
 
             return changes;
         }
@@ -224,7 +225,7 @@ namespace Ardex.Sync.Providers
         /// Performs change history cleanup if necessary.
         /// Ensures that only the latest value for each node is kept.
         /// </summary>
-        public void CleanUpSyncMetadata(IEnumerable<Change<TEntity>> changes)
+        public void CleanUpSyncMetadata(IEnumerable<Change<IChangeHistory, TEntity>> appliedDelta)
         {
             if (!this.CleanUpMetadataAfterSync)
                 return;
@@ -235,7 +236,7 @@ namespace Ardex.Sync.Providers
 
             try
             {
-                var lastCommittedTimestampByReplica = this.LastSeenTimestampByReplica(changes.Select(c => c.ChangeHistory));
+                var lastCommittedTimestampByReplica = this.LastSeenTimestampByReplica(appliedDelta.Select(c => c.ChangeHistory));
                 var snapshot = this.ChangeHistory.AsUnsafeEnumerable().ToList();
 
                 foreach (var changeHistory in snapshot)

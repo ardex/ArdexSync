@@ -75,14 +75,14 @@ namespace Ardex.TestClient
                     var uniqueIdMapping = new UniqueIdMapping<Dummy>(d => d.DummyID);
 
                     // Link entity repos with their change history repos.
-                    new ChangeTrackingFactory(serverID).InstallChangeTracking(repo1, changeHistory1, uniqueIdMapping);
-                    new ChangeTrackingFactory(client1ID).InstallChangeTracking(repo2, changeHistory2, uniqueIdMapping);
-                    new ChangeTrackingFactory(client2ID).InstallChangeTracking(repo3, changeHistory3, uniqueIdMapping);
+                    new ChangeTrackingFactory(serverID).InstallExclusiveChangeTracking(repo1, changeHistory1, uniqueIdMapping);
+                    new ChangeTrackingFactory(client1ID).InstallExclusiveChangeTracking(repo2, changeHistory2, uniqueIdMapping);
+                    new ChangeTrackingFactory(client2ID).InstallExclusiveChangeTracking(repo3, changeHistory3, uniqueIdMapping);
 
                     // Sync providers.
-                    var server = new ChangeSyncRepositoryProvider<Dummy>(serverID, repo1, changeHistory1, uniqueIdMapping);
-                    var client1 = new ChangeSyncRepositoryProvider<Dummy>(client1ID, repo2, changeHistory2, uniqueIdMapping) { CleanUpMetadataAfterSync = true };
-                    var client2 = new ChangeSyncRepositoryProvider<Dummy>(client2ID, repo3, changeHistory3, uniqueIdMapping) { CleanUpMetadataAfterSync = true };
+                    var server = new ChangeRepositorySyncProvider<Dummy>(serverID, repo1, changeHistory1, uniqueIdMapping);
+                    var client1 = new ChangeRepositorySyncProvider<Dummy>(client1ID, repo2, changeHistory2, uniqueIdMapping) { CleanUpMetadataAfterSync = true };
+                    var client2 = new ChangeRepositorySyncProvider<Dummy>(client2ID, repo3, changeHistory3, uniqueIdMapping) { CleanUpMetadataAfterSync = true };
 
                     
                     // Chain sync operations to produce an upload/download chain.
@@ -101,12 +101,10 @@ namespace Ardex.TestClient
                         client1ToClient2,
                         client2ToClient1 })
                     {
-                        op.BatchSize = 100;
-
                         // Change filter: emulate serialization/deserialization.
                         // This is not necessary in real-world scenarios.
-                        op.Filter = new SyncFilter<Change<Dummy>>(
-                            changes => changes.Select(c => new Change<Dummy>(new ChangeHistory(c.ChangeHistory), c.Entity.Clone())));
+                        op.Filter = new SyncFilter<Change<IChangeHistory, Dummy>>(
+                            changes => changes.Select(c => new Change<IChangeHistory, Dummy>(new ChangeHistory(c.ChangeHistory), c.Entity.Clone())));
                     }
 
                     // Chain uploads and downloads to produce complete sync sessions.
@@ -252,7 +250,7 @@ namespace Ardex.TestClient
                 var timestampMapping = new TimestampMapping<DummyPermission>(d => d.Timestamp);
 
                 // Simulate network service.
-                var server = new TimestampSyncDelegateSource<DummyPermission>(new SyncID("Server"), (lastSeenTimestamp, ct) =>
+                var server = new TimestampDelegateSyncSource<DummyPermission>(new SyncID("Server"), (lastSeenTimestamp, ct) =>
                 {
                     // Network delay.
                     Thread.Sleep(500);
@@ -263,15 +261,13 @@ namespace Ardex.TestClient
                         .ToArray();
                 });
 
-                var client1 = new TimestampSyncRepositoryProvider<DummyPermission>(new SyncID("Client 1"), repo2, uniqueIdMapping, timestampMapping);
-                var client2 = new TimestampSyncRepositoryProvider<DummyPermission>(new SyncID("Client 2"), repo3, uniqueIdMapping, timestampMapping);
+                var client1 = new TimestampRepositorySyncProvider<DummyPermission>(new SyncID("Client 1"), repo2, uniqueIdMapping, timestampMapping);
+                var client2 = new TimestampRepositorySyncProvider<DummyPermission>(new SyncID("Client 2"), repo3, uniqueIdMapping, timestampMapping);
                 var filter = new SyncFilter<DummyPermission>(changes => changes.Select(c => c.Clone()));
                 var client1Sync = SyncOperation.Create(server, client1);
                 var client2Sync = SyncOperation.Create(server, client2);
 
-                client1Sync.BatchSize = 100;
                 client1Sync.Filter = filter;
-                client2Sync.BatchSize = 100;
                 client2Sync.Filter = filter;
 
                 var dummyPermissionID = 1;

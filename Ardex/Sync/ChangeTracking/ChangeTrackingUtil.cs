@@ -8,7 +8,7 @@ namespace Ardex.Sync.ChangeTracking
     /// <summary>
     /// Simplifies working with change history repositories.
     /// </summary>
-    internal static class ChangeHistoryUtil
+    internal static class ChangeTrackingUtil
     {
         /// <summary>
         /// Resolves the next available timestamp value
@@ -40,9 +40,9 @@ namespace Ardex.Sync.ChangeTracking
 
             try
             {
-                var timestamp = ChangeHistoryUtil.ResolveNextTimestamp(changeHistory, replicaID);
+                var timestamp = ChangeTrackingUtil.ResolveNextTimestamp(changeHistory, replicaID);
 
-                ChangeHistoryUtil.WriteChangeHistoryUnsafe(changeHistory, entity, replicaID, timestamp, uniqueIdMapping, action);
+                ChangeTrackingUtil.WriteChangeHistoryUnsafe(changeHistory, entity, replicaID, timestamp, uniqueIdMapping, action);
             }
             finally
             {
@@ -67,7 +67,7 @@ namespace Ardex.Sync.ChangeTracking
 
             try
             {
-                ChangeHistoryUtil.WriteChangeHistoryUnsafe(changeHistory, entity, replicaID, timestamp, uniqueIdMapping, action);
+                ChangeTrackingUtil.WriteChangeHistoryUnsafe(changeHistory, entity, replicaID, timestamp, uniqueIdMapping, action);
             }
             finally
             {

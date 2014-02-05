@@ -5,12 +5,12 @@ namespace Ardex.Sync.Providers.ChangeBased
     /// <summary>
     /// Links the change history entry to its actual entity.
     /// </summary>
-    public class Change<TEntity>
+    public class Change<TChangeHistory, TEntity>
     {
         /// <summary>
         /// Gets the ChangeHistory specified when this instance was created.
         /// </summary>
-        public IChangeHistory ChangeHistory { get; private set; }
+        public TChangeHistory ChangeHistory { get; private set; }
 
         /// <summary>
         /// Gets the entity specified when this instance was created.
@@ -20,7 +20,7 @@ namespace Ardex.Sync.Providers.ChangeBased
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        public Change(IChangeHistory changeHistory, TEntity entity)
+        public Change(TChangeHistory changeHistory, TEntity entity)
         {
             this.ChangeHistory = changeHistory;
             this.Entity = entity;

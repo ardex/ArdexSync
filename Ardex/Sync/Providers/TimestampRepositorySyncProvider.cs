@@ -8,7 +8,12 @@ using Ardex.Sync.PropertyMapping;
 
 namespace Ardex.Sync.Providers
 {
-    public class TimestampSyncRepositoryProvider<TEntity> : ISyncProvider<Timestamp, TEntity>
+    /// <summary>
+    /// Timestamp-based sync provider which
+    /// uses a repository for producing
+    /// and accepting change delta.
+    /// </summary>
+    public class TimestampRepositorySyncProvider<TEntity> : ISyncProvider<Timestamp, TEntity>
     {
         /// <summary>
         /// Unique identifier of this replica.
@@ -33,7 +38,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        public TimestampSyncRepositoryProvider(
+        public TimestampRepositorySyncProvider(
             SyncID replicaID,
             ISyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> uniqueIdMapping,
@@ -49,17 +54,17 @@ namespace Ardex.Sync.Providers
             this.TimestampMapping = timestampMapping;
         }
 
-        public IEnumerable<TEntity> ResolveDelta(Timestamp lastSeenTimestamp, int batchSize, CancellationToken ct)
+        public IEnumerable<TEntity> ResolveDelta(Timestamp lastSeenTimestamp, /*int batchSize,*/ CancellationToken ct)
         {
             var changes = this.Repository
                 .Where(e => lastSeenTimestamp == null || this.TimestampMapping.Get(e) > lastSeenTimestamp)
                 .OrderBy(e => this.TimestampMapping.Get(e))
                 .AsEnumerable();
 
-            if (batchSize != 0)
-            {
-                changes = changes.Take(batchSize);
-            }
+            //if (batchSize != 0)
+            //{
+            //    changes = changes.Take(batchSize);
+            //}
 
             return changes;
         }
