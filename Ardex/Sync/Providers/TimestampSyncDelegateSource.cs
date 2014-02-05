@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-namespace Ardex.Sync.TimestampBased
+namespace Ardex.Sync.Providers
 {
     /// <summary>
     /// Timestamp-based sync provider which uses

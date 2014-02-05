@@ -1,6 +1,6 @@
 ﻿using System;
 
-using Ardex.Sync.EntityMapping;
+using Ardex.Sync.PropertyMapping;
 
 namespace Ardex.Sync.ChangeTracking
 {

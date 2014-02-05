@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-using Ardex.Sync.EntityMapping;
+using Ardex.Sync.PropertyMapping;
 
 namespace Ardex.Sync.ChangeTracking
 {

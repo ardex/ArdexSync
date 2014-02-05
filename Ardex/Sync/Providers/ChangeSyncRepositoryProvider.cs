@@ -4,9 +4,10 @@ using System.Linq;
 using System.Threading;
 
 using Ardex.Sync.ChangeTracking;
-using Ardex.Sync.EntityMapping;
+using Ardex.Sync.PropertyMapping;
+using Ardex.Sync.Providers.ChangeBased;
 
-namespace Ardex.Sync.ChangeBased
+namespace Ardex.Sync.Providers
 {
     /// <summary>
     /// Sync provider implementation which works with

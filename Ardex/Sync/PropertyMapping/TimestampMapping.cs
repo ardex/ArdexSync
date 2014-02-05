@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Ardex.Sync.EntityMapping
+namespace Ardex.Sync.PropertyMapping
 {
     /// <summary>
     /// Provides mapping for entity members essential to two-way synchronisation.

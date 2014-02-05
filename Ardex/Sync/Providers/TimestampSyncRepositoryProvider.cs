@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
-using Ardex.Sync.EntityMapping;
+using Ardex.Sync.PropertyMapping;
 
-namespace Ardex.Sync.TimestampBased
+namespace Ardex.Sync.Providers
 {
     public class TimestampSyncRepositoryProvider<TEntity> : ISyncProvider<Timestamp, TEntity>
     {

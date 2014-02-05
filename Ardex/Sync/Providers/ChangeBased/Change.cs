@@ -1,6 +1,6 @@
 ﻿using Ardex.Sync.ChangeTracking;
 
-namespace Ardex.Sync.ChangeBased
+namespace Ardex.Sync.Providers.ChangeBased
 {
     /// <summary>
     /// Links the change history entry to its actual entity.

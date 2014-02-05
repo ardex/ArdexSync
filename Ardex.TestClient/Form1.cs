@@ -11,10 +11,10 @@ using System.Windows.Forms;
 using Ardex.Collections;
 
 using Ardex.Sync;
-using Ardex.Sync.ChangeBased;
 using Ardex.Sync.ChangeTracking;
-using Ardex.Sync.EntityMapping;
-using Ardex.Sync.TimestampBased;
+using Ardex.Sync.PropertyMapping;
+using Ardex.Sync.Providers;
+using Ardex.Sync.Providers.ChangeBased;
 
 namespace Ardex.TestClient
 {
