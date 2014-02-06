@@ -86,7 +86,7 @@ namespace Ardex.Sync.ChangeTracking
             Action<TEntity, ChangeHistoryAction> localChangeHistoryFactory)
         {
             repository.EntityInserted += e => localChangeHistoryFactory(e, ChangeHistoryAction.Insert);
-            repository.EntityInserted += e => localChangeHistoryFactory(e, ChangeHistoryAction.Update);
+            repository.EntityUpdated += e => localChangeHistoryFactory(e, ChangeHistoryAction.Update);
             repository.EntityDeleted += e => localChangeHistoryFactory(e, ChangeHistoryAction.Delete);
         }
     }
