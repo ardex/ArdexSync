@@ -30,15 +30,26 @@ namespace Ardex.Sync.ChangeTracking
         /// One change history repository is used exclusively by one data repository.
         /// </summary>
         public void InstallExclusiveChangeTracking<TEntity>(
-            ISyncRepositoryWithChangeTracking<TEntity, IChangeHistory> repository,
+            ISyncRepository<TEntity> repository,
             ISyncRepository<IChangeHistory> changeHistory,
             UniqueIdMapping<TEntity> uniqueIdMapping)
         {
             this.InstallCustomChangeTracking(
                 repository,
-                changeHistory,
                 (entity, action) =>
                 {
+                    // Todo: do properly.
+                    var lastChangeEntry = changeHistory
+                        .AsUnsafeEnumerable()
+                        .Where(c => c.UniqueID == uniqueIdMapping.Get(entity))
+                        .OrderBy(c => c.ChangeHistoryID)
+                        .LastOrDefault();
+
+                    if (lastChangeEntry != null && lastChangeEntry.ReplicaID != this.ReplicaID)
+                    {
+                        return;
+                    }
+
                     var ch = (IChangeHistory)new ChangeHistory();
 
                     // Resolve pk.
@@ -53,25 +64,7 @@ namespace Ardex.Sync.ChangeTracking
                     ch.Timestamp = ChangeTrackingUtil.ResolveNextTimestamp(changeHistory, this.ReplicaID);
                     ch.UniqueID = uniqueIdMapping.Get(entity);
 
-                    return ch;
-                },
-                (entity, remoteChangeHistory) =>
-                {
-                    var ch = (IChangeHistory)new ChangeHistory();
-
-                    // Resolve pk.
-                    ch.ChangeHistoryID = changeHistory
-                        .AsUnsafeEnumerable()
-                        .Select(c => c.ChangeHistoryID)
-                        .DefaultIfEmpty()
-                        .Max() + 1;
-
-                    ch.Action = remoteChangeHistory.Action;
-                    ch.ReplicaID = remoteChangeHistory.ReplicaID;
-                    ch.Timestamp = remoteChangeHistory.Timestamp;
-                    ch.UniqueID = remoteChangeHistory.UniqueID;
-
-                    return ch;
+                    changeHistory.DirectInsert(ch);
                 });
         }
 
@@ -81,44 +74,20 @@ namespace Ardex.Sync.ChangeTracking
         /// One change history repository is used by multiple data repositories.
         /// </summary>
         public void InstallSharedChangeTracking<TEntity>(SyncID articleID,
-            ISyncRepositoryWithChangeTracking<TEntity, ISharedChangeHistory> repository,
+            ISyncRepository<TEntity> repository,
             ISyncRepository<ISharedChangeHistory> changeHistory,
             UniqueIdMapping<TEntity> uniqueIdMapping)
         {
             throw new NotImplementedException();
         }
 
-        public void InstallCustomChangeTracking<TEntity, TChangeHistory>(
-            ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory> repository,
-            ISyncRepository<TChangeHistory> changeHistory,
-            Func<TEntity, ChangeHistoryAction, TChangeHistory> localChangeHistoryFactory,
-            Func<TEntity, TChangeHistory, TChangeHistory> remoteChangeHistoryFactory)
+        public void InstallCustomChangeTracking<TEntity>(
+            ISyncRepository<TEntity> repository,
+            Action<TEntity, ChangeHistoryAction> localChangeHistoryFactory)
         {
-            if (repository.ProcessRemoteChangeHistoryEntry != null)
-            {
-                throw new InvalidOperationException(
-                    "Unable to install change history link: repository already provisioned for change tracking.");
-            }
-
-            repository.EntityInserted += e => changeHistory.DirectInsert(localChangeHistoryFactory(e, ChangeHistoryAction.Insert));
-            repository.EntityInserted += e => changeHistory.DirectInsert(localChangeHistoryFactory(e, ChangeHistoryAction.Update));
-            repository.EntityDeleted += e => changeHistory.DirectInsert(localChangeHistoryFactory(e, ChangeHistoryAction.Delete));
-
-            repository.ProcessRemoteChangeHistoryEntry = (entity, remoteChangeHistory) =>
-            {
-                changeHistory.ObtainExclusiveLock();
-
-                try
-                {
-                    var ch = remoteChangeHistoryFactory(entity, remoteChangeHistory);
-
-                    changeHistory.DirectInsert(ch);
-                }
-                finally
-                {
-                    changeHistory.ReleaseExclusiveLock();
-                }
-            };
+            repository.EntityInserted += e => localChangeHistoryFactory(e, ChangeHistoryAction.Insert);
+            repository.EntityInserted += e => localChangeHistoryFactory(e, ChangeHistoryAction.Update);
+            repository.EntityDeleted += e => localChangeHistoryFactory(e, ChangeHistoryAction.Delete);
         }
     }
 }

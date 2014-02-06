@@ -26,7 +26,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Entity storage.
         /// </summary>
-        public ISyncRepositoryWithChangeTracking<TEntity, IChangeHistory> Repository { get; private set; }
+        public ISyncRepository<TEntity> Repository { get; private set; }
 
         /// <summary>
         /// Change history storage.
@@ -52,7 +52,7 @@ namespace Ardex.Sync.Providers
         /// </summary>
         public ChangeRepositorySyncProvider(
             SyncID replicaID,
-            ISyncRepositoryWithChangeTracking<TEntity, IChangeHistory> repository,
+            ISyncRepository<TEntity> repository,
             ISyncRepository<IChangeHistory> changeHistory,
             UniqueIdMapping<TEntity> uniqueIdMapping)
         {
@@ -82,8 +82,21 @@ namespace Ardex.Sync.Providers
 
                 // We need to ensure that all changes are processed in such
                 // an order that if we fail, we'll be able to resume later.
-                foreach (var change in delta /*.OrderBy(c => c.ChangeHistory.Timestamp )*/ )
+                foreach (var change in delta.OrderBy(c => c.ChangeHistory.Timestamp))
                 {
+                    // Pre-populate local change history.
+                    var ch = (IChangeHistory)new ChangeHistory();
+
+                    ch.ChangeHistoryID = this.ChangeHistory
+                        .Select(c => c.ChangeHistoryID)
+                        .DefaultIfEmpty()
+                        .Max() + 1;
+
+                    ch.Action = change.ChangeHistory.Action;
+                    ch.ReplicaID = change.ChangeHistory.ReplicaID;
+                    ch.Timestamp = change.ChangeHistory.Timestamp;
+                    ch.UniqueID = change.ChangeHistory.UniqueID;
+
                     ct.ThrowIfCancellationRequested();
 
                     var changeUniqueID = this.UniqueIdMapping.Get(change.Entity);
@@ -136,11 +149,11 @@ namespace Ardex.Sync.Providers
                         inserts.Add(change);
                     }
 
-                    // Write remote change history entry.
-                    if (this.Repository.ProcessRemoteChangeHistoryEntry != null)
-                    {
-                        this.Repository.ProcessRemoteChangeHistoryEntry(change.Entity, change.ChangeHistory);
-                    }
+                    //// Write remote change history entry.
+                    //if (this.Repository.ProcessRemoteChangeHistoryEntry != null)
+                    //{
+                    //    this.Repository.ProcessRemoteChangeHistoryEntry(change.Entity, change.ChangeHistory);
+                    //}
                 }
 
                 ct.ThrowIfCancellationRequested();

@@ -45,9 +45,7 @@
     <Compile Include="ChangeTracking\ChangeTrackingUtil.cs" />
     <Compile Include="ChangeTracking\IChangeHistory.cs" />
     <Compile Include="ChangeTracking\ISharedChangeHistory.cs" />
-    <Compile Include="ChangeTracking\ISyncRepositoryWithChangeTracking.cs" />
     <Compile Include="ChangeTracking\SharedChangeHistory.cs" />
-    <Compile Include="ChangeTracking\SyncRepositoryWithChangeTracking.cs" />
     <Compile Include="ISyncMetadataCleanup.cs" />
     <Compile Include="ISyncProvider.cs" />
     <Compile Include="ISyncRepository.cs" />
