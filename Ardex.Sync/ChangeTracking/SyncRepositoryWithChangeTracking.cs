@@ -29,8 +29,8 @@ namespace Ardex.Sync.ChangeTracking
         /// <summary>
         /// Generates change history entries.
         /// </summary>
-        Action<TEntity, ChangeHistoryAction> ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory>.LocalChangeHistoryFactory { get; set; }
-        Action<TEntity, TChangeHistory> ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory>.RemoteChangeHistoryFactory { get; set; }
+        Action<TEntity, ChangeHistoryAction> ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory>.CreateChangeHistoryEntry { get; set; }
+        Action<TEntity, TChangeHistory> ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory>.ProcessRemoteChangeHistoryEntry { get; set; }
 
         /// <summary>
         /// Inserts the given entity and creates change tracking entries.
@@ -39,7 +39,7 @@ namespace Ardex.Sync.ChangeTracking
         {
             var repo = this.AsSyncRepository();
 
-            if (repo.LocalChangeHistoryFactory == null)
+            if (repo.CreateChangeHistoryEntry == null)
             {
                 throw new InvalidOperationException("Insert tracking has not been set up.");
             }
@@ -51,7 +51,7 @@ namespace Ardex.Sync.ChangeTracking
                 repo.DirectInsert(entity);
 
                 // Generate change history.
-                repo.LocalChangeHistoryFactory(entity, ChangeHistoryAction.Insert);
+                repo.CreateChangeHistoryEntry(entity, ChangeHistoryAction.Insert);
             }
             finally
             {
@@ -66,7 +66,7 @@ namespace Ardex.Sync.ChangeTracking
         {
             var repo = this.AsSyncRepository();
 
-            if (repo.LocalChangeHistoryFactory == null)
+            if (repo.CreateChangeHistoryEntry == null)
             {
                 throw new InvalidOperationException("Update tracking has not been set up.");
             }
@@ -78,7 +78,7 @@ namespace Ardex.Sync.ChangeTracking
                 repo.DirectUpdate(entity);
 
                 // Generate change history.
-                repo.LocalChangeHistoryFactory(entity, ChangeHistoryAction.Update);
+                repo.CreateChangeHistoryEntry(entity, ChangeHistoryAction.Update);
             }
             finally
             {
@@ -93,7 +93,7 @@ namespace Ardex.Sync.ChangeTracking
         {
             var repo = this.AsSyncRepository();
 
-            if (repo.LocalChangeHistoryFactory == null)
+            if (repo.CreateChangeHistoryEntry == null)
             {
                 throw new InvalidOperationException("Delete tracking has not been set up.");
             }
@@ -105,7 +105,7 @@ namespace Ardex.Sync.ChangeTracking
                 repo.DirectDelete(entity);
 
                 // Generate change history.
-                repo.LocalChangeHistoryFactory(entity, ChangeHistoryAction.Delete);
+                repo.CreateChangeHistoryEntry(entity, ChangeHistoryAction.Delete);
             }
             finally
             {
@@ -121,10 +121,5 @@ namespace Ardex.Sync.ChangeTracking
         {
             return this;
         }
-
-        //// Change tracking provisions.
-        //Action<TChangeHistory> ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory>.TrackInsert { get; set; }
-        //Action<TChangeHistory> ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory>.TrackUpdate { get; set; }
-        //Action<TChangeHistory> ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory>.TrackDelete { get; set; }
     }
 }

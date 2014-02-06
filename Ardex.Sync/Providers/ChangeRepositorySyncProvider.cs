@@ -137,9 +137,9 @@ namespace Ardex.Sync.Providers
                     }
 
                     // Write remote change history entry.
-                    if (this.Repository.RemoteChangeHistoryFactory != null)
+                    if (this.Repository.ProcessRemoteChangeHistoryEntry != null)
                     {
-                        this.Repository.RemoteChangeHistoryFactory(change.Entity, change.ChangeHistory);
+                        this.Repository.ProcessRemoteChangeHistoryEntry(change.Entity, change.ChangeHistory);
                     }
                 }
 

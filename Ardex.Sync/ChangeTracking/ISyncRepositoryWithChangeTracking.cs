@@ -4,16 +4,21 @@ using Ardex.Sync.Providers.ChangeBased;
 
 namespace Ardex.Sync.ChangeTracking
 {
+    /// <summary>
+    /// Contract for a repository which
+    /// supports locking and change tracking.
+    /// </summary>
     public interface ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory> : ISyncRepository<TEntity>
     {
         /// <summary>
-        /// Generates change history entries for local changes.
+        /// Creates a change history entry in response
+        /// to a locally-triggered entity change.
         /// </summary>
-        Action<TEntity, ChangeHistoryAction> LocalChangeHistoryFactory { get; set; }
+        Action<TEntity, ChangeHistoryAction> CreateChangeHistoryEntry { get; set; }
 
         /// <summary>
-        /// Produces a change history from an equivalent remote entry.
+        /// Processes the remote change history entry.
         /// </summary>
-        Action<TEntity, TChangeHistory> RemoteChangeHistoryFactory { get; set; }
+        Action<TEntity, TChangeHistory> ProcessRemoteChangeHistoryEntry { get; set; }
     }
 }

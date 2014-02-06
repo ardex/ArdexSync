@@ -94,14 +94,14 @@ namespace Ardex.Sync.ChangeTracking
             Func<TEntity, ChangeHistoryAction, TChangeHistory> localChangeHistoryFactory,
             Func<TEntity, TChangeHistory, TChangeHistory> remoteChangeHistoryFactory)
         {
-            if (repository.LocalChangeHistoryFactory != null ||
-                repository.RemoteChangeHistoryFactory != null)
+            if (repository.CreateChangeHistoryEntry != null ||
+                repository.ProcessRemoteChangeHistoryEntry != null)
             {
                 throw new InvalidOperationException(
                     "Unable to install change history link: repository already provisioned for change tracking.");
             }
 
-            repository.LocalChangeHistoryFactory = (entity, action) =>
+            repository.CreateChangeHistoryEntry = (entity, action) =>
             {
                 changeHistory.ObtainExclusiveLock();
 
@@ -117,7 +117,7 @@ namespace Ardex.Sync.ChangeTracking
                 }
             };
 
-            repository.RemoteChangeHistoryFactory = (entity, remoteChangeHistory) =>
+            repository.ProcessRemoteChangeHistoryEntry = (entity, remoteChangeHistory) =>
             {
                 changeHistory.ObtainExclusiveLock();
 
