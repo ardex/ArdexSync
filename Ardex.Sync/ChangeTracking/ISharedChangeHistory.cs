@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Ardex.Sync.ChangeTracking
+﻿namespace Ardex.Sync.ChangeTracking
 {
+    /// <summary>
+    /// Change history entry which tracks
+    /// changes in multiple articles.
+    /// </summary>
     public interface ISharedChangeHistory : IChangeHistory
     {
         /// <summary>
-        /// Unique ID of the change article that
+        /// Unique ID of the sync article that
         /// this change history entry relates to.
         /// </summary>
         SyncID ArticleID { get; set; }

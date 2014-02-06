@@ -115,7 +115,7 @@ namespace Ardex.Sync.ChangeTracking
     public enum ChangeHistoryAction
     {
         Insert,
-        Update
-        // Delete not supported because f@#k delete.
+        Update,
+        Delete
     }
 }

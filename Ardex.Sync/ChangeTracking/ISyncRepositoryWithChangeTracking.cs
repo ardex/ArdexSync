@@ -1,12 +1,19 @@
 ﻿using System;
 
+using Ardex.Sync.Providers.ChangeBased;
+
 namespace Ardex.Sync.ChangeTracking
 {
-    public interface ISyncRepositoryWithChangeTracking<TEntity> : ISyncRepository<TEntity>
+    public interface ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory> : ISyncRepository<TEntity>
     {
-        // Change tracking provisions.
-        Action<TEntity> TrackInsert { get; set; }
-        Action<TEntity> TrackUpdate { get; set; }
-        Action<TEntity> TrackDelete { get; set; }
+        /// <summary>
+        /// Generates change history entries for local changes.
+        /// </summary>
+        Action<TEntity, ChangeHistoryAction> LocalChangeHistoryFactory { get; set; }
+
+        /// <summary>
+        /// Produces a change history from an equivalent remote entry.
+        /// </summary>
+        Action<TEntity, TChangeHistory> RemoteChangeHistoryFactory { get; set; }
     }
 }

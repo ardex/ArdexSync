@@ -26,7 +26,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Entity storage.
         /// </summary>
-        public ISyncRepository<TEntity> Repository { get; private set; }
+        public ISyncRepositoryWithChangeTracking<TEntity, IChangeHistory> Repository { get; private set; }
 
         /// <summary>
         /// Change history storage.
@@ -52,7 +52,7 @@ namespace Ardex.Sync.Providers
         /// </summary>
         public ChangeRepositorySyncProvider(
             SyncID replicaID,
-            ISyncRepository<TEntity> repository,
+            ISyncRepositoryWithChangeTracking<TEntity, IChangeHistory> repository,
             ISyncRepository<IChangeHistory> changeHistory,
             UniqueIdMapping<TEntity> uniqueIdMapping)
         {
@@ -82,7 +82,7 @@ namespace Ardex.Sync.Providers
 
                 // We need to ensure that all changes are processed in such
                 // an order that if we fail, we'll be able to resume later.
-                foreach (var change in delta.OrderBy(c => c.ChangeHistory.Timestamp))
+                foreach (var change in delta /*.OrderBy(c => c.ChangeHistory.Timestamp )*/ )
                 {
                     ct.ThrowIfCancellationRequested();
 
@@ -137,13 +137,10 @@ namespace Ardex.Sync.Providers
                     }
 
                     // Write remote change history entry.
-                    ChangeTrackingUtil.WriteRemoteChangeHistory(
-                        this.ChangeHistory,
-                        change.Entity,
-                        change.ChangeHistory.ReplicaID,
-                        change.ChangeHistory.Timestamp,
-                        this.UniqueIdMapping,
-                        change.ChangeHistory.Action);
+                    if (this.Repository.RemoteChangeHistoryFactory != null)
+                    {
+                        this.Repository.RemoteChangeHistoryFactory(change.Entity, change.ChangeHistory);
+                    }
                 }
 
                 ct.ThrowIfCancellationRequested();

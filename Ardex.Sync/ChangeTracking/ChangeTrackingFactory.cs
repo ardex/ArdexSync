@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Linq;
 
+using Ardex.Sync.Providers.ChangeBased;
 using Ardex.Sync.PropertyMapping;
 
 namespace Ardex.Sync.ChangeTracking
@@ -28,26 +30,49 @@ namespace Ardex.Sync.ChangeTracking
         /// One change history repository is used exclusively by one data repository.
         /// </summary>
         public void InstallExclusiveChangeTracking<TEntity>(
-            ISyncRepositoryWithChangeTracking<TEntity> repository, ISyncRepository<IChangeHistory> changeHistory, UniqueIdMapping<TEntity> uniqueIdMapping)
+            ISyncRepositoryWithChangeTracking<TEntity, IChangeHistory> repository,
+            ISyncRepository<IChangeHistory> changeHistory,
+            UniqueIdMapping<TEntity> uniqueIdMapping)
         {
-            if (repository.TrackInsert != null ||
-                repository.TrackUpdate != null ||
-                repository.TrackDelete != null)
-            {
-                throw new InvalidOperationException(
-                    "Unable to install change history link: repository already provisioned for change tracking.");
-            }
+            this.InstallCustomChangeTracking(
+                repository,
+                changeHistory,
+                (entity, action) =>
+                {
+                    var ch = (IChangeHistory)new ChangeHistory();
 
-            repository.TrackInsert = entity => ChangeTrackingUtil.WriteLocalChangeHistory(
-                changeHistory, entity, this.ReplicaID, uniqueIdMapping, ChangeHistoryAction.Insert);
+                    // Resolve pk.
+                    ch.ChangeHistoryID = changeHistory
+                        .AsUnsafeEnumerable()
+                        .Select(c => c.ChangeHistoryID)
+                        .DefaultIfEmpty()
+                        .Max() + 1;
 
-            repository.TrackUpdate = entity => ChangeTrackingUtil.WriteLocalChangeHistory(
-                changeHistory, entity, this.ReplicaID, uniqueIdMapping, ChangeHistoryAction.Update);
+                    ch.Action = action;
+                    ch.ReplicaID = this.ReplicaID;
+                    ch.Timestamp = ChangeTrackingUtil.ResolveNextTimestamp(changeHistory, this.ReplicaID);
+                    ch.UniqueID = uniqueIdMapping.Get(entity);
 
-            // We are intentionally leaving out the delete.
-            // It's up to the repository to detect that it's
-            // not hooked up, and throw the exception.
-            //repository.TrackDelete = entity => { throw new NotImplementedException(); };
+                    return ch;
+                },
+                (entity, remoteChangeHistory) =>
+                {
+                    var ch = (IChangeHistory)new ChangeHistory();
+
+                    // Resolve pk.
+                    ch.ChangeHistoryID = changeHistory
+                        .AsUnsafeEnumerable()
+                        .Select(c => c.ChangeHistoryID)
+                        .DefaultIfEmpty()
+                        .Max() + 1;
+
+                    ch.Action = remoteChangeHistory.Action;
+                    ch.ReplicaID = remoteChangeHistory.ReplicaID;
+                    ch.Timestamp = remoteChangeHistory.Timestamp;
+                    ch.UniqueID = remoteChangeHistory.UniqueID;
+
+                    return ch;
+                });
         }
 
         /// <summary>
@@ -55,10 +80,62 @@ namespace Ardex.Sync.ChangeTracking
         /// a change history repository which tracks multiple articles.
         /// One change history repository is used by multiple data repositories.
         /// </summary>
-        public void InstallSharedChangeTracking<TEntitiy>(
-            ISyncRepositoryWithChangeTracking<TEntitiy> repository, ISyncRepository<ISharedChangeHistory> changeHistory, UniqueIdMapping<TEntitiy> uniqueIdMapping)
+        public void InstallSharedChangeTracking<TEntity>(SyncID articleID,
+            ISyncRepositoryWithChangeTracking<TEntity, ISharedChangeHistory> repository,
+            ISyncRepository<ISharedChangeHistory> changeHistory,
+            UniqueIdMapping<TEntity> uniqueIdMapping)
         {
             throw new NotImplementedException();
+        }
+
+        public void InstallCustomChangeTracking<TEntity, TChangeHistory>(
+            ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory> repository,
+            ISyncRepository<TChangeHistory> changeHistory,
+            Func<TEntity, ChangeHistoryAction, TChangeHistory> localChangeHistoryFactory,
+            Func<TEntity, TChangeHistory, TChangeHistory> remoteChangeHistoryFactory)
+        {
+            if (repository.LocalChangeHistoryFactory != null ||
+                repository.RemoteChangeHistoryFactory != null)
+            {
+                throw new InvalidOperationException(
+                    "Unable to install change history link: repository already provisioned for change tracking.");
+            }
+
+            repository.LocalChangeHistoryFactory = (entity, action) =>
+            {
+                changeHistory.ObtainExclusiveLock();
+
+                try
+                {
+                    var ch = localChangeHistoryFactory(entity, action);
+
+                    changeHistory.DirectInsert(ch);
+                }
+                finally
+                {
+                    changeHistory.ReleaseExclusiveLock();
+                }
+            };
+
+            repository.RemoteChangeHistoryFactory = (entity, remoteChangeHistory) =>
+            {
+                changeHistory.ObtainExclusiveLock();
+
+                try
+                {
+                    var ch = remoteChangeHistoryFactory(entity, remoteChangeHistory);
+
+                    changeHistory.DirectInsert(ch);
+                }
+                finally
+                {
+                    changeHistory.ReleaseExclusiveLock();
+                }
+            };
+
+            // We are intentionally leaving out the delete.
+            // It's up to the repository to detect that it's
+            // not hooked up, and throw the exception.
         }
     }
 }

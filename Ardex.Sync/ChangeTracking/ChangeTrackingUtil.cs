@@ -14,7 +14,7 @@ namespace Ardex.Sync.ChangeTracking
         /// Resolves the next available timestamp value
         /// for this node without taking out any locks.
         /// </summary>
-        public static Timestamp ResolveNextTimestamp(ISyncRepository<IChangeHistory> changeHistory, SyncID replicaID)
+        public static Timestamp ResolveNextTimestamp<T>(ISyncRepository<T> changeHistory, SyncID replicaID) where T : IChangeHistory
         {
             var timestamp = changeHistory
                 .AsUnsafeEnumerable()
@@ -26,81 +26,54 @@ namespace Ardex.Sync.ChangeTracking
             return timestamp == null ? new Timestamp(1) : ++timestamp;
         }
 
-        /// <summary>
-        /// Creates the necessary ChangeHistory entries.
-        /// </summary>
-        public static void WriteLocalChangeHistory<TEntity>(
-            ISyncRepository<IChangeHistory> changeHistory,
-            TEntity entity,
-            SyncID replicaID,
-            UniqueIdMapping<TEntity> uniqueIdMapping,
-            ChangeHistoryAction action)
-        {
-            changeHistory.ObtainExclusiveLock();
+        //public static void WriteChangeHistory<TEntity, TChangeHistory>(
+        //    ISyncRepositoryWithChangeTracking<TEntity, TChangeHistory> repository,
+        //    ISyncRepository<TChangeHistory> changeHistory,
+        //    Func<TChangeHistory, TChangeHistory> changeHistoryFactory)
+        //{
+        //    if (repository.TrackInsert != null ||
+        //        repository.TrackUpdate != null ||
+        //        repository.TrackDelete != null)
+        //    {
+        //        throw new InvalidOperationException(
+        //            "Unable to install change history link: repository already provisioned for change tracking.");
+        //    }
 
-            try
-            {
-                var timestamp = ChangeTrackingUtil.ResolveNextTimestamp(changeHistory, replicaID);
+        //    repository.TrackInsert = entity =>
+        //    {
+        //        changeHistory.ObtainExclusiveLock();
 
-                ChangeTrackingUtil.WriteChangeHistoryUnsafe(changeHistory, entity, replicaID, timestamp, uniqueIdMapping, action);
-            }
-            finally
-            {
-                changeHistory.ReleaseExclusiveLock();
-            }
-        }
+        //        try
+        //        {
+        //            var ch = changeHistoryFactory(entity);
 
-        /// <summary>
-        /// Creates the necessary ChangeHistory entries.
-        /// </summary>
-        public static void WriteRemoteChangeHistory<TEntity>(
-            ISyncRepository<IChangeHistory> changeHistory,
-            TEntity entity,
-            SyncID replicaID,
-            Timestamp timestamp,
-            UniqueIdMapping<TEntity> uniqueIdMapping,
-            ChangeHistoryAction action)
-        {
-            if (timestamp == null) throw new ArgumentNullException("timestamp");
+        //            changeHistory.Insert(ch);
+        //        }
+        //        finally
+        //        {
+        //            changeHistory.ReleaseExclusiveLock();
+        //        }
+        //    };
 
-            changeHistory.ObtainExclusiveLock();
+        //    repository.TrackUpdate = entity =>
+        //    {
+        //        changeHistory.ObtainExclusiveLock();
 
-            try
-            {
-                ChangeTrackingUtil.WriteChangeHistoryUnsafe(changeHistory, entity, replicaID, timestamp, uniqueIdMapping, action);
-            }
-            finally
-            {
-                changeHistory.ReleaseExclusiveLock();
-            }
-        }
+        //        try
+        //        {
+        //            var ch = changeHistoryFactory(entity);
 
-        /// <summary>
-        /// Creates the necessary ChangeHistory entries without taking out any locks.
-        /// </summary>
-        private static void WriteChangeHistoryUnsafe<TEntity>(
-            ISyncRepository<IChangeHistory> changeHistory,
-            TEntity entity,
-            SyncID replicaID,
-            Timestamp timestamp,
-            UniqueIdMapping<TEntity> uniqueIdMapping,
-            ChangeHistoryAction action)
-        {
-            var ch = (IChangeHistory)new ChangeHistory();
+        //            changeHistory.Insert(ch);
+        //        }
+        //        finally
+        //        {
+        //            changeHistory.ReleaseExclusiveLock();
+        //        }
+        //    };
 
-            // Auto-generate PK.
-            ch.ChangeHistoryID = changeHistory
-                .AsUnsafeEnumerable()
-                .Select(c => c.ChangeHistoryID)
-                .DefaultIfEmpty()
-                .Max() + 1;
-
-            ch.ReplicaID = replicaID;
-            ch.UniqueID = uniqueIdMapping.Get(entity);
-            ch.Timestamp = timestamp;
-            ch.Action = action;
-
-            changeHistory.DirectInsert(ch);
-        }
+        //    // We are intentionally leaving out the delete.
+        //    // It's up to the repository to detect that it's
+        //    // not hooked up, and throw the exception.
+        //}
     }
 }

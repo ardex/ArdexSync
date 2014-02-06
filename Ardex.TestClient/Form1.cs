@@ -62,9 +62,9 @@ namespace Ardex.TestClient
                     var client2ID = new SyncID("Client 2");
 
                     // In-memory storage.
-                    var repo1 = new SyncRepositoryWithChangeTracking<Dummy>(dx1.Dummies);
-                    var repo2 = new SyncRepositoryWithChangeTracking<Dummy>(dx2.Dummies);
-                    var repo3 = new SyncRepositoryWithChangeTracking<Dummy>(dx3.Dummies);
+                    var repo1 = new SyncRepositoryWithChangeTracking<Dummy, IChangeHistory>(dx1.Dummies);
+                    var repo2 = new SyncRepositoryWithChangeTracking<Dummy, IChangeHistory>(dx2.Dummies);
+                    var repo3 = new SyncRepositoryWithChangeTracking<Dummy, IChangeHistory>(dx3.Dummies);
 
                     // Change history storage.
                     var changeHistory1 = new SyncRepository<IChangeHistory>(dx1.ChangeHistory);
