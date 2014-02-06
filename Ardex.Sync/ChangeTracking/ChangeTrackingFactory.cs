@@ -94,28 +94,15 @@ namespace Ardex.Sync.ChangeTracking
             Func<TEntity, ChangeHistoryAction, TChangeHistory> localChangeHistoryFactory,
             Func<TEntity, TChangeHistory, TChangeHistory> remoteChangeHistoryFactory)
         {
-            if (repository.CreateChangeHistoryEntry != null ||
-                repository.ProcessRemoteChangeHistoryEntry != null)
+            if (repository.ProcessRemoteChangeHistoryEntry != null)
             {
                 throw new InvalidOperationException(
                     "Unable to install change history link: repository already provisioned for change tracking.");
             }
 
-            repository.CreateChangeHistoryEntry = (entity, action) =>
-            {
-                changeHistory.ObtainExclusiveLock();
-
-                try
-                {
-                    var ch = localChangeHistoryFactory(entity, action);
-
-                    changeHistory.DirectInsert(ch);
-                }
-                finally
-                {
-                    changeHistory.ReleaseExclusiveLock();
-                }
-            };
+            repository.EntityInserted += e => changeHistory.DirectInsert(localChangeHistoryFactory(e, ChangeHistoryAction.Insert));
+            repository.EntityInserted += e => changeHistory.DirectUpdate(localChangeHistoryFactory(e, ChangeHistoryAction.Update));
+            repository.EntityDeleted += e => changeHistory.DirectDelete(localChangeHistoryFactory(e, ChangeHistoryAction.Delete));
 
             repository.ProcessRemoteChangeHistoryEntry = (entity, remoteChangeHistory) =>
             {
@@ -132,10 +119,6 @@ namespace Ardex.Sync.ChangeTracking
                     changeHistory.ReleaseExclusiveLock();
                 }
             };
-
-            // We are intentionally leaving out the delete.
-            // It's up to the repository to detect that it's
-            // not hooked up, and throw the exception.
         }
     }
 }
