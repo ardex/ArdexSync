@@ -3,6 +3,9 @@ using Ardex.Collections;
 
 namespace Ardex.Sync
 {
+    /// <summary>
+    /// IRepository with exclusive locking support.
+    /// </summary>
     public interface ISyncRepository<TEntity> : IRepository<TEntity>
     {
         /// <summary>
