@@ -72,6 +72,9 @@ namespace Ardex.Sync.Providers
             // Critical region protected with exclusive lock.
             this.Repository.ObtainExclusiveLock();
 
+            // Disable change tracking (which relies on events).
+            this.Repository.SuppressChangeTracking = true;
+
             try
             {
                 var type = typeof(TEntity);
@@ -84,19 +87,6 @@ namespace Ardex.Sync.Providers
                 // an order that if we fail, we'll be able to resume later.
                 foreach (var change in delta.OrderBy(c => c.ChangeHistory.Timestamp))
                 {
-                    // Pre-populate local change history.
-                    var ch = (IChangeHistory)new ChangeHistory();
-
-                    ch.ChangeHistoryID = this.ChangeHistory
-                        .Select(c => c.ChangeHistoryID)
-                        .DefaultIfEmpty()
-                        .Max() + 1;
-
-                    ch.Action = change.ChangeHistory.Action;
-                    ch.ReplicaID = change.ChangeHistory.ReplicaID;
-                    ch.Timestamp = change.ChangeHistory.Timestamp;
-                    ch.UniqueID = change.ChangeHistory.UniqueID;
-
                     ct.ThrowIfCancellationRequested();
 
                     var changeUniqueID = this.UniqueIdMapping.Get(change.Entity);
@@ -149,11 +139,30 @@ namespace Ardex.Sync.Providers
                         inserts.Add(change);
                     }
 
-                    //// Write remote change history entry.
-                    //if (this.Repository.ProcessRemoteChangeHistoryEntry != null)
-                    //{
-                    //    this.Repository.ProcessRemoteChangeHistoryEntry(change.Entity, change.ChangeHistory);
-                    //}
+                    // Write remote change history entry to local change history.
+                    this.ChangeHistory.ObtainExclusiveLock();
+
+                    try
+                    {
+                        var ch = (IChangeHistory)new ChangeHistory();
+
+                        ch.ChangeHistoryID = this.ChangeHistory
+                            .AsUnsafeEnumerable()
+                            .Select(c => c.ChangeHistoryID)
+                            .DefaultIfEmpty()
+                            .Max() + 1;
+
+                        ch.Action = change.ChangeHistory.Action;
+                        ch.ReplicaID = change.ChangeHistory.ReplicaID;
+                        ch.Timestamp = change.ChangeHistory.Timestamp;
+                        ch.UniqueID = change.ChangeHistory.UniqueID;
+
+                        this.ChangeHistory.DirectInsert(ch);
+                    }
+                    finally
+                    {
+                        this.ChangeHistory.ReleaseExclusiveLock();
+                    }
                 }
 
                 ct.ThrowIfCancellationRequested();
@@ -168,6 +177,7 @@ namespace Ardex.Sync.Providers
             }
             finally
             {
+                this.Repository.SuppressChangeTracking = false;
                 this.Repository.ReleaseExclusiveLock();
             }
         }

@@ -8,6 +8,8 @@ namespace Ardex.Sync
     /// </summary>
     public interface ISyncRepository<TEntity> : IRepository<TEntity>
     {
+        bool SuppressChangeTracking { get; set; }
+
         /// <summary>
         /// Locks the repository so that no Insert,
         /// Update, Delete operations can be performed.
@@ -26,17 +28,17 @@ namespace Ardex.Sync
         IEnumerable<TEntity> AsUnsafeEnumerable();
 
         /// <summary>
-        /// Performs the insert without any locking or change tracking.
+        /// Performs the insert without any locking.
         /// </summary>
         void DirectInsert(TEntity entity);
 
         /// <summary>
-        /// Performs the update without any locking or change tracking.
+        /// Performs the update without any locking.
         /// </summary>
         void DirectUpdate(TEntity entity);
 
         /// <summary>
-        /// Performs the delete without any locking or change tracking.
+        /// Performs the delete without any locking.
         /// </summary>
         void DirectDelete(TEntity entity);
     }

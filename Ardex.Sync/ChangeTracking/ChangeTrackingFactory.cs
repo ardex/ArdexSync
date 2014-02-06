@@ -38,18 +38,6 @@ namespace Ardex.Sync.ChangeTracking
                 repository,
                 (entity, action) =>
                 {
-                    // Todo: do properly.
-                    var lastChangeEntry = changeHistory
-                        .AsUnsafeEnumerable()
-                        .Where(c => c.UniqueID == uniqueIdMapping.Get(entity))
-                        .OrderBy(c => c.ChangeHistoryID)
-                        .LastOrDefault();
-
-                    if (lastChangeEntry != null && lastChangeEntry.ReplicaID != this.ReplicaID)
-                    {
-                        return;
-                    }
-
                     var ch = (IChangeHistory)new ChangeHistory();
 
                     // Resolve pk.
@@ -83,11 +71,25 @@ namespace Ardex.Sync.ChangeTracking
 
         public void InstallCustomChangeTracking<TEntity>(
             ISyncRepository<TEntity> repository,
-            Action<TEntity, ChangeHistoryAction> localChangeHistoryFactory)
+            Action<TEntity, ChangeHistoryAction> localChangeHandler)
         {
-            repository.EntityInserted += e => localChangeHistoryFactory(e, ChangeHistoryAction.Insert);
-            repository.EntityUpdated += e => localChangeHistoryFactory(e, ChangeHistoryAction.Update);
-            repository.EntityDeleted += e => localChangeHistoryFactory(e, ChangeHistoryAction.Delete);
+            repository.EntityInserted += e =>
+            {
+                if (!repository.SuppressChangeTracking)
+                    localChangeHandler(e, ChangeHistoryAction.Insert);
+            };
+
+            repository.EntityUpdated += e =>
+            {
+                if (!repository.SuppressChangeTracking)
+                    localChangeHandler(e, ChangeHistoryAction.Update);
+            };
+
+            repository.EntityDeleted += e =>
+            {
+                if (!repository.SuppressChangeTracking)
+                    localChangeHandler(e, ChangeHistoryAction.Delete);
+            };
         }
     }
 }

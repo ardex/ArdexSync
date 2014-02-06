@@ -16,6 +16,8 @@ namespace Ardex.Sync
         /// </summary>
         private readonly ReaderWriterLockSlim __lock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
 
+        public bool ISyncRepository<TEntity>.SuppressChangeTracking { get; set; }
+
         /// <summary>
         /// Gets the number of entities in the respository.
         /// </summary>
@@ -39,30 +41,6 @@ namespace Ardex.Sync
                 return count;
             }
         }
-
-        ///// <summary>
-        ///// Gets the entity at the specified index.
-        ///// </summary>
-        //public override TEntity this[int index]
-        //{
-        //    get
-        //    {
-        //        TEntity obj;
-
-        //        __lock.EnterReadLock();
-
-        //        try
-        //        {
-        //            obj = base[index];
-        //        }
-        //        finally
-        //        {
-        //            __lock.ExitReadLock();
-        //        }
-
-        //        return obj;
-        //    }
-        //}
 
         /// <summary>
         /// Default constructor.
