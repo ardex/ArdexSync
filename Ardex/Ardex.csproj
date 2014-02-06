@@ -53,31 +53,6 @@
     <Compile Include="Collections\ListRepository.cs" />
     <Compile Include="Collections\ProxyRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Sync\ChangeTracking\ISharedChangeHistory.cs" />
-    <Compile Include="Sync\ChangeTracking\SharedChangeHistory.cs" />
-    <Compile Include="Sync\Providers\ChangeRepositorySyncProvider.cs" />
-    <Compile Include="Sync\Providers\ChangeBased\Change.cs" />
-    <Compile Include="Sync\ChangeTracking\ChangeHistory.cs" />
-    <Compile Include="Sync\ChangeTracking\ChangeTrackingUtil.cs" />
-    <Compile Include="Sync\ChangeTracking\IChangeHistory.cs" />
-    <Compile Include="Sync\ChangeTracking\ISyncRepositoryWithChangeTracking.cs" />
-    <Compile Include="Sync\ChangeTracking\ChangeTrackingFactory.cs" />
-    <Compile Include="Sync\ChangeTracking\SyncRepositoryWithChangeTracking.cs" />
-    <Compile Include="Sync\ISyncProvider.cs" />
-    <Compile Include="Sync\ISyncSource.cs" />
-    <Compile Include="Sync\ISyncTarget.cs" />
-    <Compile Include="Sync\ISyncMetadataCleanup.cs" />
-    <Compile Include="Sync\SyncID.cs" />
-    <Compile Include="Sync\SyncFilter.cs" />
-    <Compile Include="Sync\PropertyMapping\TimestampMapping.cs" />
-    <Compile Include="Sync\PropertyMapping\UniqueIdMapping.cs" />
-    <Compile Include="Sync\ISyncRepository.cs" />
-    <Compile Include="Sync\Providers\TimestampDelegateSyncSource.cs" />
-    <Compile Include="Sync\SyncOperation.cs" />
-    <Compile Include="Sync\SyncRepository.cs" />
-    <Compile Include="Sync\SyncResult.cs" />
-    <Compile Include="Sync\Timestamp.cs" />
-    <Compile Include="Sync\Providers\TimestampRepositorySyncProvider.cs" />
     <Compile Include="Util\Dates.cs" />
     <Compile Include="Util\DelegateTimer.cs" />
     <Compile Include="Util\EntityConversion.cs" />
@@ -86,9 +61,7 @@
     <Compile Include="Util\Text.cs" />
     <Compile Include="Util\TimestampUtil.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Sync\__Exclude\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -90,6 +90,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Ardex.Sync\Ardex.Sync.csproj">
+      <Project>{63119e8b-cfe9-4b83-9bb2-3180063f7727}</Project>
+      <Name>Ardex.Sync</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Ardex\Ardex.csproj">
       <Project>{b5d19187-5443-4f78-8a91-3543b0387018}</Project>
       <Name>Ardex</Name>

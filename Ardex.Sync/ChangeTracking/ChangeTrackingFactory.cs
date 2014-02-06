@@ -25,6 +25,7 @@ namespace Ardex.Sync.ChangeTracking
         /// <summary>
         /// Creates links necessary for change tracking to work with
         /// a change history repository which tracks a single article.
+        /// One change history repository is used exclusively by one data repository.
         /// </summary>
         public void InstallExclusiveChangeTracking<TEntity>(
             ISyncRepositoryWithChangeTracking<TEntity> repository, ISyncRepository<IChangeHistory> changeHistory, UniqueIdMapping<TEntity> uniqueIdMapping)
@@ -46,12 +47,13 @@ namespace Ardex.Sync.ChangeTracking
             // We are intentionally leaving out the delete.
             // It's up to the repository to detect that it's
             // not hooked up, and throw the exception.
-            //repository.TrackedDelete = entity => { throw new NotImplementedException(); };
+            //repository.TrackDelete = entity => { throw new NotImplementedException(); };
         }
 
         /// <summary>
         /// Creates links necessary for change tracking to work with
         /// a change history repository which tracks multiple articles.
+        /// One change history repository is used by multiple data repositories.
         /// </summary>
         public void InstallSharedChangeTracking<TEntitiy>(
             ISyncRepositoryWithChangeTracking<TEntitiy> repository, ISyncRepository<ISharedChangeHistory> changeHistory, UniqueIdMapping<TEntitiy> uniqueIdMapping)
