@@ -14,7 +14,7 @@ namespace Ardex.Sync.ChangeTracking
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public SyncRepositoryWithChangeTracking(Func<TEntity, ChangeHistoryAction, TChangeHistory> ChangeHistoryFactory) : base() { }
+        public SyncRepositoryWithChangeTracking() : base() { }
 
         /// <summary>
         /// Initialises a new instance wrapping the given repository.
