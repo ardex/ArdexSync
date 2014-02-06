@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 
 namespace Ardex.Sync.Providers
@@ -27,16 +26,9 @@ namespace Ardex.Sync.Providers
             this.GetChanges = getChanges;
         }
 
-        public IEnumerable<TEntity> ResolveDelta(Timestamp lastSeenTimestamp, /*int batchSize,*/ CancellationToken ct)
+        public IEnumerable<TEntity> ResolveDelta(Timestamp lastSeenTimestamp, CancellationToken ct)
         {
-            var changes = this.GetChanges(lastSeenTimestamp, ct);
-
-            //if (batchSize != 0)
-            //{
-            //    changes = changes.Take(batchSize);
-            //}
-
-            return changes;
+            return this.GetChanges(lastSeenTimestamp, ct);
         }
     }
 }

@@ -162,7 +162,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Reports changes since the last reported timestamp for each node.
         /// </summary>
-        public IEnumerable<Change<IChangeHistory, TEntity>> ResolveDelta(Dictionary<SyncID, Timestamp> timestampsByReplica, /*int batchSize,*/ CancellationToken ct)
+        public IEnumerable<Change<IChangeHistory, TEntity>> ResolveDelta(Dictionary<SyncID, Timestamp> timestampsByReplica, CancellationToken ct)
         {
             var changes = this.ChangeHistory
                 .Where(ch =>
@@ -180,12 +180,6 @@ namespace Ardex.Sync.Providers
                 .OrderBy(c => c.ChangeHistory.Timestamp)
                 .AsEnumerable();
 
-            //// Limit batch size if we have to.
-            //if (batchSize != 0)
-            //{
-            //    changes = changes.Take(batchSize);
-            //}
-
             return changes;
         }
 
@@ -200,18 +194,18 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Returns last seen timestamp value for each known node.
         /// </summary>
-        private Dictionary<SyncID, Timestamp> LastSeenTimestampByReplica(IEnumerable<IChangeHistory> changeHistoryCol)
+        private Dictionary<SyncID, Timestamp> LastSeenTimestampByReplica(IEnumerable<IChangeHistory> changeHistory)
         {
             var dict = new Dictionary<SyncID, Timestamp>();
 
-            foreach (var changeHistory in changeHistoryCol)
+            foreach (var ch in changeHistory)
             {
                 var lastSeenTimestamp = default(Timestamp);
 
-                if (!dict.TryGetValue(changeHistory.ReplicaID, out lastSeenTimestamp) ||
-                    changeHistory.Timestamp > lastSeenTimestamp)
+                if (!dict.TryGetValue(ch.ReplicaID, out lastSeenTimestamp) ||
+                    ch.Timestamp > lastSeenTimestamp)
                 {
-                    dict[changeHistory.ReplicaID] = changeHistory.Timestamp;
+                    dict[ch.ReplicaID] = ch.Timestamp;
                 }
             }
 

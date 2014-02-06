@@ -22,13 +22,6 @@ namespace Ardex.Sync
         /// </summary>
         public ISyncTarget<TAnchor, TChange> Target { get; private set; }
 
-        ///// <summary>
-        ///// Allows limiting the maximum number of 
-        ///// changes returned by the sync source.
-        ///// The default value is 0 (unlimited).
-        ///// </summary>
-        //public int BatchSize { get; set; }
-
         /// <summary>
         /// Optional filter applied to the change
         /// delta returned by the source. Filters
@@ -45,9 +38,6 @@ namespace Ardex.Sync
         {
             this.Source = source;
             this.Target = target;
-
-            // Defaults.
-            //this.BatchSize = 0; // Unlimited.
         }
 
         /// <summary>
@@ -59,7 +49,7 @@ namespace Ardex.Sync
             var anchor = this.Target.LastAnchor();
             ct.ThrowIfCancellationRequested();
 
-            var delta = this.Source.ResolveDelta(anchor, /*this.BatchSize,*/ ct);
+            var delta = this.Source.ResolveDelta(anchor, ct);
             ct.ThrowIfCancellationRequested();
 
             if (this.Filter != null)
