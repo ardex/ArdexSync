@@ -58,5 +58,10 @@ namespace Ardex.Sync
         {
             return !left.Equals(right);
         }
+
+        public static implicit operator SyncID(string str)
+        {
+            return new SyncID(str);
+        }
     }
 }

@@ -16,7 +16,7 @@ namespace Ardex.Sync.ChangeTracking
         /// <summary>
         /// Unique identifier of the entity that was affected by the change.
         /// </summary>
-        string UniqueID { get; set; }
+        SyncID UniqueID { get; set; }
 
         /// <summary>
         /// ID of the node (local or remote) which made the change.

@@ -1,103 +1,9 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Ardex.Sync
 {
-    /// <summary>
-    /// Basic sync operation implementation.
-    /// </summary>
-    public class SyncOperation<TAnchor, TChange> : SyncOperation
-    {
-        /// <summary>
-        /// Sync operation source or provider.
-        /// Resolves the change delta in a differential sync operation
-        /// based on anchor info provided by the sync target.
-        /// </summary>
-        public ISyncSource<TAnchor, TChange> Source { get; private set; }
-
-        /// <summary>
-        /// Sync operation target or provider.
-        /// Produces anchor info for the
-        /// source and accepts changes.
-        /// </summary>
-        public ISyncTarget<TAnchor, TChange> Target { get; private set; }
-
-        ///// <summary>
-        ///// Allows limiting the maximum number of 
-        ///// changes returned by the sync source.
-        ///// The default value is 0 (unlimited).
-        ///// </summary>
-        //public int BatchSize { get; set; }
-
-        /// <summary>
-        /// Optional filter applied to the change
-        /// delta returned by the source. Filters
-        /// and/or transforms the changes before
-        /// they are accepted by the target.
-        /// </summary>
-        public SyncFilter<TChange> Filter { get; set; }
-
-        /// <summary>
-        /// Creates a new SyncOperation instance.
-        /// Consider using SyncOperation.Create for convenience.
-        /// </summary>
-        public SyncOperation(ISyncSource<TAnchor, TChange> source, ISyncTarget<TAnchor, TChange> target)
-        {
-            this.Source = source;
-            this.Target = target;
-
-            // Defaults.
-            //this.BatchSize = 0; // Unlimited.
-        }
-
-        /// <summary>
-        /// Differential synchronisation implementation.
-        /// </summary>
-        protected override SyncResult SynchroniseDiff(CancellationToken ct)
-        {
-            // Determine 
-            var anchor = this.Target.LastAnchor();
-            ct.ThrowIfCancellationRequested();
-
-            var delta = this.Source.ResolveDelta(anchor, /*this.BatchSize,*/ ct);
-            ct.ThrowIfCancellationRequested();
-
-            if (this.Filter != null)
-            {
-                delta = this.Filter(delta);
-                ct.ThrowIfCancellationRequested();
-            }
-
-            // See if either source or target support metadata cleanup.
-            var sourceCleanup = this.Source as ISyncMetadataCleanup<TChange>;
-            var targetCleanup = this.Target as ISyncMetadataCleanup<TChange>;
-
-            if (sourceCleanup != null || targetCleanup != null)
-            {
-                // Materialise changes since they will
-                // need to be iterated over multiple times.
-                delta = delta.ToArray();
-                ct.ThrowIfCancellationRequested();
-            }
-
-            // Accept changes.
-            var result = this.Target.AcceptChanges(this.Source.ReplicaID, delta, ct);
-            ct.ThrowIfCancellationRequested();
-
-            // Source sync metdatata cleanup.
-            if (sourceCleanup != null) sourceCleanup.CleanUpSyncMetadata(delta);
-            ct.ThrowIfCancellationRequested();
-
-            // Target sync metdatata cleanup.
-            if (targetCleanup != null) targetCleanup.CleanUpSyncMetadata(delta);
-            ct.ThrowIfCancellationRequested();
-
-            return result;
-        }
-    }
-
     /// <summary>
     /// Base class for differential sync operations.
     /// </summary>
@@ -108,10 +14,10 @@ namespace Ardex.Sync
         /// <summary>
         /// Creates a sync operation with the given source and target.
         /// </summary>
-        public static SyncOperation<TAnchor, TChange> Create<TAnchor, TChange>(
+        public static BasicSyncOperation<TAnchor, TChange> Create<TAnchor, TChange>(
             ISyncSource<TAnchor, TChange> source, ISyncTarget<TAnchor, TChange> target)
         {
-            return new SyncOperation<TAnchor, TChange>(source, target);
+            return new BasicSyncOperation<TAnchor, TChange>(source, target);
         }
 
         /// <summary>

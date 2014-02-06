@@ -15,6 +15,11 @@ namespace Ardex.Sync.ChangeTracking
         public int ChangeHistoryID { get; set; }
 
         /// <summary>
+        /// Unique identifier of the entity that was affected by the change.
+        /// </summary>
+        public string UniqueID { get; set; }
+
+        /// <summary>
         /// ID of the replica (local or remote) which made the change.
         /// </summary>
         public string ReplicaID { get; set; }
@@ -23,11 +28,6 @@ namespace Ardex.Sync.ChangeTracking
         /// Replica-generated timestamp for the change.
         /// </summary>
         public string Timestamp { get; set; }
-
-        /// <summary>
-        /// Unique identifier of the entity that was affected by the change.
-        /// </summary>
-        public string UniqueID { get; set; }
 
         /// <summary>
         /// Type of change.
@@ -45,6 +45,18 @@ namespace Ardex.Sync.ChangeTracking
             set
             {
                 this.ReplicaID = value.ToString();
+            }
+        }
+
+        SyncID IChangeHistory.UniqueID
+        {
+            get
+            {
+                return new SyncID(this.UniqueID);
+            }
+            set
+            {
+                this.UniqueID = value.ToString();
             }
         }
 
