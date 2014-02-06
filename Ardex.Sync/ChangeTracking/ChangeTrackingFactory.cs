@@ -101,8 +101,8 @@ namespace Ardex.Sync.ChangeTracking
             }
 
             repository.EntityInserted += e => changeHistory.DirectInsert(localChangeHistoryFactory(e, ChangeHistoryAction.Insert));
-            repository.EntityInserted += e => changeHistory.DirectUpdate(localChangeHistoryFactory(e, ChangeHistoryAction.Update));
-            repository.EntityDeleted += e => changeHistory.DirectDelete(localChangeHistoryFactory(e, ChangeHistoryAction.Delete));
+            repository.EntityInserted += e => changeHistory.DirectInsert(localChangeHistoryFactory(e, ChangeHistoryAction.Update));
+            repository.EntityDeleted += e => changeHistory.DirectInsert(localChangeHistoryFactory(e, ChangeHistoryAction.Delete));
 
             repository.ProcessRemoteChangeHistoryEntry = (entity, remoteChangeHistory) =>
             {
