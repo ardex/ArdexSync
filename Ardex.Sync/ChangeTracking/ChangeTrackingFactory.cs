@@ -29,12 +29,14 @@ namespace Ardex.Sync.ChangeTracking
         /// a change history repository which tracks a single article.
         /// One change history repository is used exclusively by one data repository.
         /// </summary>
-        public void InstallExclusiveChangeTracking<TEntity>(
+        public RepositoryChangeTracking<TEntity, IChangeHistory> InstallExclusiveChangeTracking<TEntity>(
             ISyncRepository<TEntity> repository,
             ISyncRepository<IChangeHistory> changeHistory,
             UniqueIdMapping<TEntity> uniqueIdMapping)
         {
-            this.InstallCustomChangeTracking(
+            var changeTracking = new RepositoryChangeTracking<TEntity, IChangeHistory>(repository, changeHistory);
+
+            return this.InstallCustomChangeTracking(
                 repository,
                 (entity, action) =>
                 {
@@ -47,10 +49,20 @@ namespace Ardex.Sync.ChangeTracking
                         .DefaultIfEmpty()
                         .Max() + 1;
 
+
                     ch.Action = action;
                     ch.ReplicaID = this.ReplicaID;
-                    ch.Timestamp = ChangeTrackingUtil.ResolveNextTimestamp(changeHistory, this.ReplicaID);
                     ch.UniqueID = uniqueIdMapping.Get(entity);
+
+                    // Resolve timestamp.
+                    var timestamp = changeHistory
+                        .AsUnsafeEnumerable()
+                        .Where(c => c.ReplicaID == this.ReplicaID)
+                        .Select(c => c.Timestamp)
+                        .DefaultIfEmpty()
+                        .Max();
+
+                    ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
 
                     changeHistory.DirectInsert(ch);
                 });
@@ -69,7 +81,7 @@ namespace Ardex.Sync.ChangeTracking
             throw new NotImplementedException();
         }
 
-        public void InstallCustomChangeTracking<TEntity>(
+        public InstallCustomChangeTracking<TEntity>(
             ISyncRepository<TEntity> repository,
             Action<TEntity, ChangeHistoryAction> localChangeHandler)
         {
