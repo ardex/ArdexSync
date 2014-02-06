@@ -29,7 +29,7 @@ namespace Ardex.Collections
         /// <summary>
         /// Underlying repository.
         /// </summary>
-        private readonly IRepository<TEntity> __repository;
+        private readonly IRepository<TEntity> __innerRepository;
 
         /// <summary>
         /// True if this repo owns the underlying repository
@@ -45,9 +45,9 @@ namespace Ardex.Collections
         /// <summary>
         /// Gets the inner repository.
         /// </summary>
-        private IRepository<TEntity> Repository
+        protected IRepository<TEntity> InnerRepository
         {
-            get { return __repository; }
+            get { return __innerRepository; }
         }
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace Ardex.Collections
         /// </summary>
         public ProxyRepository()
         {
-            __repository = new ListRepository<TEntity>();
+            __innerRepository = new ListRepository<TEntity>();
             this.DisposeInnerRepository = true;
 
             this.ForwardEvents();
@@ -86,7 +86,7 @@ namespace Ardex.Collections
             if (entities == null)
                 throw new ArgumentNullException("entities");
 
-            __repository = new ListRepository<TEntity>(entities);
+            __innerRepository = new ListRepository<TEntity>(entities);
             this.DisposeInnerRepository = true;
 
             this.ForwardEvents();
@@ -106,7 +106,7 @@ namespace Ardex.Collections
             if (repository == null)
                 throw new ArgumentNullException("repository");
 
-            __repository = repository;
+            __innerRepository = repository;
             this.DisposeInnerRepository = false;
 
             this.ForwardEvents();
@@ -114,16 +114,16 @@ namespace Ardex.Collections
 
         private void ForwardEvents()
         {
-            this.Repository.EntityInserted += this.OnEntityInserted;
-            this.Repository.EntityUpdated += this.OnEntityUpdated;
-            this.Repository.EntityDeleted += this.OnEntityDeleted;
+            this.InnerRepository.EntityInserted += this.OnEntityInserted;
+            this.InnerRepository.EntityUpdated += this.OnEntityUpdated;
+            this.InnerRepository.EntityDeleted += this.OnEntityDeleted;
         }
 
         private void UnforwardEvents()
         {
-            this.Repository.EntityInserted -= this.OnEntityInserted;
-            this.Repository.EntityUpdated -= this.OnEntityUpdated;
-            this.Repository.EntityDeleted -= this.OnEntityDeleted;
+            this.InnerRepository.EntityInserted -= this.OnEntityInserted;
+            this.InnerRepository.EntityUpdated -= this.OnEntityUpdated;
+            this.InnerRepository.EntityDeleted -= this.OnEntityDeleted;
         }
 
         protected virtual void OnEntityInserted(TEntity entity)
@@ -159,7 +159,7 @@ namespace Ardex.Collections
             {
                 this.ThrowIfDisposed();
 
-                return this.Repository.Count;
+                return this.InnerRepository.Count;
             }
         }
 
@@ -169,7 +169,7 @@ namespace Ardex.Collections
         public virtual void Insert(TEntity entity)
         {
             this.ThrowIfDisposed();
-            this.Repository.Insert(entity);
+            this.InnerRepository.Insert(entity);
         }
 
         /// <summary>
@@ -178,7 +178,7 @@ namespace Ardex.Collections
         public virtual void Update(TEntity entity)
         {
             this.ThrowIfDisposed();
-            this.Repository.Update(entity);
+            this.InnerRepository.Update(entity);
         }
 
         /// <summary>
@@ -187,7 +187,7 @@ namespace Ardex.Collections
         public virtual void Delete(TEntity entity)
         {
             this.ThrowIfDisposed();
-            this.Repository.Delete(entity);
+            this.InnerRepository.Delete(entity);
         }
 
         #region IEnumerable implementation
@@ -199,7 +199,7 @@ namespace Ardex.Collections
         {
             this.ThrowIfDisposed();
 
-            return this.Repository.GetEnumerator();
+            return this.InnerRepository.GetEnumerator();
         }
 
         /// <summary>
@@ -209,7 +209,7 @@ namespace Ardex.Collections
         {
             this.ThrowIfDisposed();
 
-            return this.Repository.GetEnumerator();
+            return this.InnerRepository.GetEnumerator();
         }
 
         #endregion
@@ -271,7 +271,7 @@ namespace Ardex.Collections
 
                 if (this.DisposeInnerRepository)
                 {
-                    this.Repository.Dispose();
+                    this.InnerRepository.Dispose();
                 }
             }
 

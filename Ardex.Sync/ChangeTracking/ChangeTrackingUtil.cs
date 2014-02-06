@@ -16,8 +16,7 @@ namespace Ardex.Sync.ChangeTracking
         /// </summary>
         public static Timestamp ResolveNextTimestamp<T>(ISyncRepository<T> changeHistory, SyncID replicaID) where T : IChangeHistory
         {
-            var timestamp = changeHistory
-                .AsUnsafeEnumerable()
+            var timestamp = changeHistory.Unlocked
                 .Where(ch => ch.ReplicaID == replicaID)
                 .Select(ch => ch.Timestamp)
                 .DefaultIfEmpty()

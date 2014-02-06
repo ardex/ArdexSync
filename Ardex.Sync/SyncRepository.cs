@@ -16,8 +16,6 @@ namespace Ardex.Sync
         /// </summary>
         private readonly ReaderWriterLockSlim __lock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
 
-        public bool ISyncRepository<TEntity>.SuppressChangeTracking { get; set; }
-
         /// <summary>
         /// Gets the number of entities in the respository.
         /// </summary>
@@ -126,9 +124,7 @@ namespace Ardex.Sync
 
             try
             {
-                snapshot = this.AsSyncRepository()
-                               .AsUnsafeEnumerable()
-                               .ToList();
+                snapshot = this.InnerRepository.ToList();
             }
             finally
             {
@@ -141,12 +137,12 @@ namespace Ardex.Sync
         #region Explicit ISyncRepository implementation
 
         /// <summary>
-        /// Performs a cast of this instance to a generic
-        /// ISyncRepository and returns the result.
+        /// Provides access to the underlying
+        /// repository without any locking.
         /// </summary>
-        private ISyncRepository<TEntity> AsSyncRepository()
+        IRepository<TEntity> ISyncRepository<TEntity>.Unlocked
         {
-            return this;
+            get { return this.InnerRepository; }
         }
 
         /// <summary>
@@ -164,45 +160,6 @@ namespace Ardex.Sync
         void ISyncRepository<TEntity>.ReleaseExclusiveLock()
         {
             __lock.ExitWriteLock();
-        }
-
-        /// <summary>
-        /// Creates an IEnumerable directly over the
-        /// underlying collection without taking any locks.
-        /// </summary>
-        IEnumerable<TEntity> ISyncRepository<TEntity>.AsUnsafeEnumerable()
-        {
-            using (var enumerator = base.GetEnumerator())
-            {
-                while (enumerator.MoveNext())
-                {
-                    yield return enumerator.Current;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Performs the insert without any locking or change tracking.
-        /// </summary>
-        void ISyncRepository<TEntity>.DirectInsert(TEntity entity)
-        {
-            base.Insert(entity);
-        }
-
-        /// <summary>
-        /// Performs the update without any locking or change tracking.
-        /// </summary>
-        void ISyncRepository<TEntity>.DirectUpdate(TEntity entity)
-        {
-            base.Update(entity);
-        }
-
-        /// <summary>
-        /// Performs the delete without any locking or change tracking.
-        /// </summary>
-        void ISyncRepository<TEntity>.DirectDelete(TEntity entity)
-        {
-            base.Delete(entity);
         }
 
         #endregion

@@ -90,7 +90,7 @@ namespace Ardex.Sync.Providers
 
                     // Again, we are accessing snapshot in
                     // order to avoid recursive locking.
-                    foreach (var existingEntity in this.Repository.AsUnsafeEnumerable())
+                    foreach (var existingEntity in this.Repository.Unlocked)
                     {
                         if (changeUniqueID == this.UniqueIdMapping.Get(existingEntity))
                         {
@@ -114,7 +114,7 @@ namespace Ardex.Sync.Providers
 
                             if (changeCount != 0)
                             {
-                                this.Repository.DirectUpdate(existingEntity);
+                                this.Repository.Unlocked.Update(existingEntity);
                                 updates.Add(existingEntity);
                             }
 
@@ -125,7 +125,7 @@ namespace Ardex.Sync.Providers
 
                     if (!found)
                     {
-                        this.Repository.DirectInsert(change);
+                        this.Repository.Unlocked.Insert(change);
                         inserts.Add(change);
                     }
                 }

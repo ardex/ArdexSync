@@ -29,42 +29,47 @@ namespace Ardex.Sync.ChangeTracking
         /// a change history repository which tracks a single article.
         /// One change history repository is used exclusively by one data repository.
         /// </summary>
-        public RepositoryChangeTracking<TEntity, IChangeHistory> InstallExclusiveChangeTracking<TEntity>(
+        public void InstallExclusiveChangeTracking<TEntity>(
             ISyncRepository<TEntity> repository,
             ISyncRepository<IChangeHistory> changeHistory,
             UniqueIdMapping<TEntity> uniqueIdMapping)
         {
-            var changeTracking = new RepositoryChangeTracking<TEntity, IChangeHistory>(repository, changeHistory);
-
-            return this.InstallCustomChangeTracking(
+            this.InstallCustomChangeTracking(
                 repository,
                 (entity, action) =>
                 {
-                    var ch = (IChangeHistory)new ChangeHistory();
+                    changeHistory.ObtainExclusiveLock();
 
-                    // Resolve pk.
-                    ch.ChangeHistoryID = changeHistory
-                        .AsUnsafeEnumerable()
-                        .Select(c => c.ChangeHistoryID)
-                        .DefaultIfEmpty()
-                        .Max() + 1;
+                    try
+                    {
+                        var ch = (IChangeHistory)new ChangeHistory();
+
+                        // Resolve pk.
+                        ch.ChangeHistoryID = changeHistory.Unlocked
+                            .Select(c => c.ChangeHistoryID)
+                            .DefaultIfEmpty()
+                            .Max() + 1;
 
 
-                    ch.Action = action;
-                    ch.ReplicaID = this.ReplicaID;
-                    ch.UniqueID = uniqueIdMapping.Get(entity);
+                        ch.Action = action;
+                        ch.ReplicaID = this.ReplicaID;
+                        ch.UniqueID = uniqueIdMapping.Get(entity);
 
-                    // Resolve timestamp.
-                    var timestamp = changeHistory
-                        .AsUnsafeEnumerable()
-                        .Where(c => c.ReplicaID == this.ReplicaID)
-                        .Select(c => c.Timestamp)
-                        .DefaultIfEmpty()
-                        .Max();
+                        // Resolve timestamp.
+                        var timestamp = changeHistory.Unlocked
+                            .Where(c => c.ReplicaID == this.ReplicaID)
+                            .Select(c => c.Timestamp)
+                            .DefaultIfEmpty()
+                            .Max();
 
-                    ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
+                        ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
 
-                    changeHistory.DirectInsert(ch);
+                        changeHistory.Unlocked.Insert(ch);
+                    }
+                    finally
+                    {
+                        changeHistory.ReleaseExclusiveLock();
+                    }
                 });
         }
 
@@ -81,27 +86,27 @@ namespace Ardex.Sync.ChangeTracking
             throw new NotImplementedException();
         }
 
-        public InstallCustomChangeTracking<TEntity>(
+        public void InstallCustomChangeTracking<TEntity>(
             ISyncRepository<TEntity> repository,
             Action<TEntity, ChangeHistoryAction> localChangeHandler)
         {
-            repository.EntityInserted += e =>
-            {
-                if (!repository.SuppressChangeTracking)
-                    localChangeHandler(e, ChangeHistoryAction.Insert);
-            };
+            //repository.EntityInserted += e =>
+            //{
+            //    if (!repository.SuppressChangeTracking)
+            //        localChangeHandler(e, ChangeHistoryAction.Insert);
+            //};
 
-            repository.EntityUpdated += e =>
-            {
-                if (!repository.SuppressChangeTracking)
-                    localChangeHandler(e, ChangeHistoryAction.Update);
-            };
+            //repository.EntityUpdated += e =>
+            //{
+            //    if (!repository.SuppressChangeTracking)
+            //        localChangeHandler(e, ChangeHistoryAction.Update);
+            //};
 
-            repository.EntityDeleted += e =>
-            {
-                if (!repository.SuppressChangeTracking)
-                    localChangeHandler(e, ChangeHistoryAction.Delete);
-            };
+            //repository.EntityDeleted += e =>
+            //{
+            //    if (!repository.SuppressChangeTracking)
+            //        localChangeHandler(e, ChangeHistoryAction.Delete);
+            //};
         }
     }
 }

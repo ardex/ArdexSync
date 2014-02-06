@@ -73,7 +73,7 @@ namespace Ardex.Sync.Providers
             this.Repository.ObtainExclusiveLock();
 
             // Disable change tracking (which relies on events).
-            this.Repository.SuppressChangeTracking = true;
+            //this.Repository.SuppressChangeTracking = true;
 
             try
             {
@@ -94,7 +94,7 @@ namespace Ardex.Sync.Providers
 
                     // Again, we are accessing snapshot in
                     // order to avoid recursive locking.
-                    foreach (var existingEntity in this.Repository.AsUnsafeEnumerable())
+                    foreach (var existingEntity in this.Repository.Unlocked)
                     {
                         if (changeUniqueID == this.UniqueIdMapping.Get(existingEntity))
                         {
@@ -124,7 +124,7 @@ namespace Ardex.Sync.Providers
 
                             if (changeCount != 0)
                             {
-                                this.Repository.DirectUpdate(existingEntity);
+                                this.Repository.Unlocked.Update(existingEntity);
                                 updates.Add(existingEntity);
                             }
 
@@ -135,7 +135,7 @@ namespace Ardex.Sync.Providers
 
                     if (!found)
                     {
-                        this.Repository.DirectInsert(change.Entity);
+                        this.Repository.Unlocked.Insert(change.Entity);
                         inserts.Add(change);
                     }
 
@@ -146,8 +146,7 @@ namespace Ardex.Sync.Providers
                     {
                         var ch = (IChangeHistory)new ChangeHistory();
 
-                        ch.ChangeHistoryID = this.ChangeHistory
-                            .AsUnsafeEnumerable()
+                        ch.ChangeHistoryID = this.ChangeHistory.Unlocked
                             .Select(c => c.ChangeHistoryID)
                             .DefaultIfEmpty()
                             .Max() + 1;
@@ -157,7 +156,7 @@ namespace Ardex.Sync.Providers
                         ch.Timestamp = change.ChangeHistory.Timestamp;
                         ch.UniqueID = change.ChangeHistory.UniqueID;
 
-                        this.ChangeHistory.DirectInsert(ch);
+                        this.ChangeHistory.Unlocked.Insert(ch);
                     }
                     finally
                     {
@@ -177,7 +176,7 @@ namespace Ardex.Sync.Providers
             }
             finally
             {
-                this.Repository.SuppressChangeTracking = false;
+                //this.Repository.SuppressChangeTracking = false;
                 this.Repository.ReleaseExclusiveLock();
             }
         }
@@ -251,7 +250,7 @@ namespace Ardex.Sync.Providers
             try
             {
                 var lastCommittedTimestampByReplica = this.LastSeenTimestampByReplica(appliedDelta.Select(c => c.ChangeHistory));
-                var snapshot = this.ChangeHistory.AsUnsafeEnumerable().ToList();
+                var snapshot = this.ChangeHistory.Unlocked.ToList();
 
                 foreach (var changeHistory in snapshot)
                 {
@@ -261,7 +260,7 @@ namespace Ardex.Sync.Providers
                     if (lastCommittedTimestampByReplica.TryGetValue(changeHistory.ReplicaID, out lastCommittedTimestamp) &&
                         changeHistory.Timestamp < lastCommittedTimestamp)
                     {
-                        this.ChangeHistory.DirectDelete(changeHistory);
+                        this.ChangeHistory.Unlocked.Delete(changeHistory);
                     }
                 }
             }

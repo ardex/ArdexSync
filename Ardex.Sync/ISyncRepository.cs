@@ -8,7 +8,11 @@ namespace Ardex.Sync
     /// </summary>
     public interface ISyncRepository<TEntity> : IRepository<TEntity>
     {
-        bool SuppressChangeTracking { get; set; }
+        /// <summary>
+        /// Provides access to the underlying
+        /// repository without any locking.
+        /// </summary>
+        IRepository<TEntity> Unlocked { get; }
 
         /// <summary>
         /// Locks the repository so that no Insert,
@@ -20,26 +24,5 @@ namespace Ardex.Sync
         /// Releases the exclusive lock held on this repository.
         /// </summary>
         void ReleaseExclusiveLock();
-
-        /// <summary>
-        /// Creates an IEnumerable directly over the
-        /// underlying collection without taking any locks.
-        /// </summary>
-        IEnumerable<TEntity> AsUnsafeEnumerable();
-
-        /// <summary>
-        /// Performs the insert without any locking.
-        /// </summary>
-        void DirectInsert(TEntity entity);
-
-        /// <summary>
-        /// Performs the update without any locking.
-        /// </summary>
-        void DirectUpdate(TEntity entity);
-
-        /// <summary>
-        /// Performs the delete without any locking.
-        /// </summary>
-        void DirectDelete(TEntity entity);
     }
 }
