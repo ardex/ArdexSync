@@ -54,17 +54,12 @@ namespace Ardex.Sync.Providers
             this.TimestampMapping = timestampMapping;
         }
 
-        public IEnumerable<TEntity> ResolveDelta(Timestamp lastSeenTimestamp, /*int batchSize,*/ CancellationToken ct)
+        public IEnumerable<TEntity> ResolveDelta(Timestamp lastSeenTimestamp, CancellationToken ct)
         {
             var changes = this.Repository
                 .Where(e => lastSeenTimestamp == null || this.TimestampMapping.Get(e) > lastSeenTimestamp)
                 .OrderBy(e => this.TimestampMapping.Get(e))
                 .AsEnumerable();
-
-            //if (batchSize != 0)
-            //{
-            //    changes = changes.Take(batchSize);
-            //}
 
             return changes;
         }
