@@ -102,5 +102,33 @@ namespace Ardex.Sync.ChangeTracking
                 this.ArticleID = value.ToString();
             }
         }
+
+        /// <summary>
+        /// Default constructor.
+        /// </summary>
+        public SharedChangeHistory()
+        {
+
+        }
+
+        /// <summary>
+        /// Copy constructor.
+        /// </summary>
+        public SharedChangeHistory(ISharedChangeHistory other)
+        {
+            var proxy = (ISharedChangeHistory)this;
+
+            proxy.ChangeHistoryID = other.ChangeHistoryID;
+            proxy.ReplicaID = other.ReplicaID;
+            proxy.Timestamp = other.Timestamp;
+            proxy.UniqueID = other.UniqueID;
+            proxy.Action = other.Action;
+            proxy.ArticleID = other.ArticleID;
+        }
+
+        public override string ToString()
+        {
+            return Reflect.ToString(this);
+        }
     }
 }

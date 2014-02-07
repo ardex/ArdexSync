@@ -57,6 +57,7 @@
     <Compile Include="Util\DelegateTimer.cs" />
     <Compile Include="Util\EntityConversion.cs" />
     <Compile Include="Util\EntityConverter.cs" />
+    <Compile Include="Util\Reflect.cs" />
     <Compile Include="Util\StringLogicalComparer.cs" />
     <Compile Include="Util\Text.cs" />
     <Compile Include="Util\TimestampUtil.cs" />

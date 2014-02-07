@@ -139,6 +139,11 @@ namespace Ardex.Sync
             return snapshot.GetEnumerator();
         }
 
+        public override string ToString()
+        {
+            return string.Join(Environment.NewLine, this.InnerRepository.Select(e => Reflect.ToString(e)));
+        }
+
         #region Cleanup
 
         /// <summary>

@@ -16,6 +16,18 @@ namespace Ardex.Sync.Providers
         Loser
     }
 
+    public static class MergeSyncProvider
+    {
+        /// <summary>
+        /// Factory method.
+        /// </summary>
+        public static MergeSyncProvider<TEntity, TChangeHistory> Create<TEntity, TChangeHistory>(
+            ChangeTracking<TEntity, TChangeHistory> changeTracking)
+        {
+            return new MergeSyncProvider<TEntity, TChangeHistory>(changeTracking);
+        }
+    }
+
     /// <summary>
     /// Sync provider implementation which works with
     /// sync repositories and change history metadata.
@@ -76,7 +88,6 @@ namespace Ardex.Sync.Providers
                 var changes = delta.Changes.ToArray().AsEnumerable();
 
                 // Detect conflicts.
-                var myAnchor = this.LastAnchor();
                 var myDelta = this.ResolveDelta(delta.Anchor, ct);
 
                 var conflicts = myDelta.Changes.Join(
@@ -94,11 +105,16 @@ namespace Ardex.Sync.Providers
                 }
                 else if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Winner)
                 {
+                    // Discard other replica's changes.
                     changes = changes.Except(conflicts.Select(c => c.Loser));
                 }
                 else if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Loser)
                 {
-                    // We'll just use the delta as is.
+                    // We'll just pretend that the change never happened.
+                    foreach (var change in conflicts.Select(c => c.Loser))
+                    {
+                        this.ChangeTracking.ChangeHistory.Delete(change.ChangeHistory);
+                    }
                 }
 
                 var changeHistory = this.ChangeTracking.FilteredChangeHistory();
@@ -203,7 +219,7 @@ namespace Ardex.Sync.Providers
                         this.ChangeTracking.Repository.AsEnumerable(),
                         ch => this.ChangeTracking.GetChangeHistoryEntityID(ch),
                         this.ChangeTracking.GetTrackedEntityID,
-                        (ch, entity) => new Change<TEntity, TChangeHistory>(ch, entity))
+                        (ch, entity) => Change.Create(entity, ch))
                     // Ensure that the oldest changes for each replica are sync first.
                     .OrderBy(c => this.ChangeTracking.GetChangeHistoryTimestamp(c.ChangeHistory))
                     .AsEnumerable();

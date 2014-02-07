@@ -98,7 +98,6 @@ namespace Ardex.Sync.ChangeTracking
         /// a change history repository which tracks multiple articles.
         /// One change history repository is used by one or more repositories.
         /// </summary>
-        [Obsolete("Untested")]
         public ChangeTracking<TEntity, ISharedChangeHistory> Shared<TEntity>(
             SyncID articleID,
             SyncRepository<TEntity> repository,
