@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 
-using Ardex.Sync.Providers.ChangeBased;
 using Ardex.Sync.PropertyMapping;
 
 namespace Ardex.Sync.ChangeTracking
@@ -29,67 +28,143 @@ namespace Ardex.Sync.ChangeTracking
         /// a change history repository which tracks a single article.
         /// One change history repository is used exclusively by one data repository.
         /// </summary>
-        public RepositoryChangeTracking<TEntity, IChangeHistory> Exclusive<TEntity>(
+        public ChangeTracking<TEntity, IChangeHistory> Exclusive<TEntity>(
             SyncRepository<TEntity> repository,
             SyncRepository<IChangeHistory> changeHistoryRepository,
-            UniqueIdMapping<TEntity> uniqueIdMapping)
+            UniqueIdMapping<TEntity> entityIdMapping)
         {
-            var newChangeTracking = new RepositoryChangeTracking<TEntity, IChangeHistory>(
-                this.ReplicaID, repository, changeHistoryRepository, uniqueIdMapping);
+            var changeTracking = default(ChangeTracking<TEntity, IChangeHistory>);
 
-            this.HookUpEvents(
-                newChangeTracking,
-                (changeTracking, entity, action) =>
+            changeTracking = new ChangeTracking<TEntity, IChangeHistory>(
+                this.ReplicaID,
+                repository,
+                changeHistoryRepository,
+                entityIdMapping,
+                ch => true,
+                new UniqueIdMapping<IChangeHistory>(ch => ch.ChangeHistoryID),
+                new UniqueIdMapping<IChangeHistory>(ch => ch.UniqueID),
+                new UniqueIdMapping<IChangeHistory>(ch => ch.ReplicaID),
+                new TimestampMapping<IChangeHistory>(ch => ch.Timestamp),
+                (entity, action) =>
                 {
-                    if (changeTracking.Enabled)
-                    {
-                        var changeHistory = (ISyncRepository<IChangeHistory>)changeTracking.ChangeHistory;
+                    var changeHistory = changeTracking.ChangeHistory;
+                    var ch = (IChangeHistory)new ChangeHistory();
 
-                        changeHistory.ObtainExclusiveLock();
+                    // Resolve pk.
+                    ch.ChangeHistoryID = changeHistory
+                        .Select(c => c.ChangeHistoryID)
+                        .DefaultIfEmpty()
+                        .Max() + 1;
 
-                        try
-                        {
-                            var ch = (IChangeHistory)new ChangeHistory();
+                    ch.Action = action;
+                    ch.ReplicaID = this.ReplicaID;
+                    ch.UniqueID = changeTracking.GetTrackedEntityID(entity);
 
-                            // Resolve pk.
-                            ch.ChangeHistoryID = changeHistory.Unlocked
-                                .Select(c => c.ChangeHistoryID)
-                                .DefaultIfEmpty()
-                                .Max() + 1;
+                    // Resolve timestamp.
+                    var timestamp = changeHistory
+                        .Where(c => c.ReplicaID == this.ReplicaID)
+                        .Select(c => c.Timestamp)
+                        .DefaultIfEmpty()
+                        .Max();
 
+                    ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
 
-                            ch.Action = action;
-                            ch.ReplicaID = this.ReplicaID;
-                            ch.UniqueID = uniqueIdMapping.Get(entity);
+                    changeHistory.Insert(ch);
+                },
+                changeHistoryEntry =>
+                {
+                    var changeHistory = changeTracking.ChangeHistory;
+                    var ch = (IChangeHistory)new ChangeHistory();
 
-                            // Resolve timestamp.
-                            var timestamp = changeHistory.Unlocked
-                                .Where(c => c.ReplicaID == this.ReplicaID)
-                                .Select(c => c.Timestamp)
-                                .DefaultIfEmpty()
-                                .Max();
+                    // Resolve pk.
+                    ch.ChangeHistoryID = changeHistory
+                        .Select(c => c.ChangeHistoryID)
+                        .DefaultIfEmpty()
+                        .Max() + 1;
 
-                            ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
+                    ch.Action = changeHistoryEntry.Action;
+                    ch.ReplicaID = changeHistoryEntry.ReplicaID;
+                    ch.UniqueID = changeHistoryEntry.UniqueID;
+                    ch.Timestamp = changeHistoryEntry.Timestamp;
 
-                            changeHistory.Unlocked.Insert(ch);
-                        }
-                        finally
-                        {
-                            changeHistory.ReleaseExclusiveLock();
-                        }
-                    }
+                    changeHistory.Insert(ch);
                 });
 
-            return newChangeTracking;
+            return changeTracking;
         }
 
-        public void HookUpEvents<TEntity, TChangeHistory>(
-            RepositoryChangeTracking<TEntity, TChangeHistory> changeTracking,
-            Action<RepositoryChangeTracking<TEntity, TChangeHistory>, TEntity, ChangeHistoryAction> localChangeHandler)
+        /// <summary>
+        /// Creates links necessary for change tracking to work with
+        /// a change history repository which tracks multiple articles.
+        /// One change history repository is used by one or more repositories.
+        /// </summary>
+        [Obsolete("Untested")]
+        public ChangeTracking<TEntity, ISharedChangeHistory> Shared<TEntity>(
+            SyncID articleID,
+            SyncRepository<TEntity> repository,
+            SyncRepository<ISharedChangeHistory> changeHistoryRepository,
+            UniqueIdMapping<TEntity> entityIdMapping)
         {
-            changeTracking.Repository.EntityInserted += e => localChangeHandler(changeTracking, e, ChangeHistoryAction.Insert);
-            changeTracking.Repository.EntityUpdated += e => localChangeHandler(changeTracking, e, ChangeHistoryAction.Update);
-            changeTracking.Repository.EntityDeleted += e => localChangeHandler(changeTracking, e, ChangeHistoryAction.Delete);
+            var changeTracking = default(ChangeTracking<TEntity, ISharedChangeHistory>);
+
+            changeTracking = new ChangeTracking<TEntity, ISharedChangeHistory>(
+                this.ReplicaID,
+                repository,
+                changeHistoryRepository,
+                entityIdMapping,
+                ch => ch.ArticleID == articleID,
+                new UniqueIdMapping<ISharedChangeHistory>(ch => ch.ChangeHistoryID),
+                new UniqueIdMapping<ISharedChangeHistory>(ch => ch.UniqueID),
+                new UniqueIdMapping<ISharedChangeHistory>(ch => ch.ReplicaID),
+                new TimestampMapping<ISharedChangeHistory>(ch => ch.Timestamp),
+                (entity, action) =>
+                {
+                    var changeHistory = changeTracking.ChangeHistory;
+                    var ch = (ISharedChangeHistory)new SharedChangeHistory();
+
+                    // Resolve pk.
+                    ch.ChangeHistoryID = changeHistory
+                        .Select(c => c.ChangeHistoryID)
+                        .DefaultIfEmpty()
+                        .Max() + 1;
+
+                    ch.ArticleID = articleID;
+                    ch.Action = action;
+                    ch.ReplicaID = this.ReplicaID;
+                    ch.UniqueID = changeTracking.GetTrackedEntityID(entity);
+
+                    // Resolve timestamp.
+                    var timestamp = changeHistory
+                        .Where(c => c.ReplicaID == this.ReplicaID)
+                        .Select(c => c.Timestamp)
+                        .DefaultIfEmpty()
+                        .Max();
+
+                    ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
+
+                    changeHistory.Insert(ch);
+                },
+                changeHistoryEntry =>
+                {
+                    var changeHistory = changeTracking.ChangeHistory;
+                    var ch = (ISharedChangeHistory)new SharedChangeHistory();
+
+                    // Resolve pk.
+                    ch.ChangeHistoryID = changeHistory
+                        .Select(c => c.ChangeHistoryID)
+                        .DefaultIfEmpty()
+                        .Max() + 1;
+
+                    ch.ArticleID = changeHistoryEntry.ArticleID;
+                    ch.Action = changeHistoryEntry.Action;
+                    ch.ReplicaID = changeHistoryEntry.ReplicaID;
+                    ch.UniqueID = changeHistoryEntry.UniqueID;
+                    ch.Timestamp = changeHistoryEntry.Timestamp;
+
+                    changeHistory.Insert(ch);
+                });
+
+            return changeTracking;
         }
     }
 }

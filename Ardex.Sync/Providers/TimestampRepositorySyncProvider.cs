@@ -66,9 +66,9 @@ namespace Ardex.Sync.Providers
 
         public SyncResult AcceptChanges(SyncID sourceReplicaID, IEnumerable<TEntity> delta, CancellationToken ct)
         {
-            var repository = (ISyncRepository<TEntity>)this.Repository;
+            var repository = this.Repository;
 
-            repository.ObtainExclusiveLock();
+            repository.Lock.EnterWriteLock();
 
             try
             {
@@ -90,9 +90,7 @@ namespace Ardex.Sync.Providers
                     var changeUniqueID = this.UniqueIdMapping.Get(change);
                     var found = false;
 
-                    // Again, we are accessing snapshot in
-                    // order to avoid recursive locking.
-                    foreach (var existingEntity in repository.Unlocked)
+                    foreach (var existingEntity in repository)
                     {
                         if (changeUniqueID == this.UniqueIdMapping.Get(existingEntity))
                         {
@@ -116,7 +114,7 @@ namespace Ardex.Sync.Providers
 
                             if (changeCount != 0)
                             {
-                                repository.Unlocked.Update(existingEntity);
+                                repository.Update(existingEntity);
                                 updates.Add(existingEntity);
                             }
 
@@ -127,7 +125,7 @@ namespace Ardex.Sync.Providers
 
                     if (!found)
                     {
-                        repository.Unlocked.Insert(change);
+                        repository.Insert(change);
                         inserts.Add(change);
                     }
                 }
@@ -144,7 +142,7 @@ namespace Ardex.Sync.Providers
             }
             finally
             {
-                repository.ReleaseExclusiveLock();
+                repository.Lock.ExitWriteLock();
             }
         }
 

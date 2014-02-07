@@ -9,12 +9,17 @@ namespace Ardex.Sync
     /// <summary>
     /// ProxyRepository implementation which supports locking (used in sync operations).
     /// </summary>
-    public class SyncRepository<TEntity> : ProxyRepository<TEntity>, ISyncRepository<TEntity>
+    public class SyncRepository<TEntity> : ProxyRepository<TEntity>
     {
         /// <summary>
         /// Backing field for Lock.
         /// </summary>
-        private readonly ReaderWriterLockSlim __lock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+        private readonly ReaderWriterLockSlim __lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+
+        public ReaderWriterLockSlim Lock
+        {
+            get { return __lock; }
+        }
 
         /// <summary>
         /// Gets the number of entities in the respository.
@@ -25,7 +30,7 @@ namespace Ardex.Sync
             {
                 var count = 0;
 
-                __lock.EnterReadLock();
+                this.Lock.EnterReadLock();
 
                 try
                 {
@@ -33,7 +38,7 @@ namespace Ardex.Sync
                 }
                 finally
                 {
-                    __lock.ExitReadLock();
+                    this.Lock.ExitReadLock();
                 }
 
                 return count;
@@ -60,7 +65,7 @@ namespace Ardex.Sync
         /// </summary>
         public override void Insert(TEntity entity)
         {
-            __lock.EnterWriteLock();
+            this.Lock.EnterWriteLock();
 
             try
             {
@@ -68,7 +73,7 @@ namespace Ardex.Sync
             }
             finally
             {
-                __lock.ExitWriteLock();             
+                this.Lock.ExitWriteLock();
             }
         }
 
@@ -77,7 +82,7 @@ namespace Ardex.Sync
         /// </summary>
         public override void Update(TEntity entity)
         {
-            __lock.EnterWriteLock();
+            this.Lock.EnterWriteLock();
 
             try
             {
@@ -85,7 +90,7 @@ namespace Ardex.Sync
             }
             finally
             {
-                __lock.ExitWriteLock();
+                this.Lock.ExitWriteLock();
             }
         }
 
@@ -94,7 +99,7 @@ namespace Ardex.Sync
         /// </summary>
         public override void Delete(TEntity entity)
         {
-            __lock.EnterWriteLock();
+            this.Lock.EnterWriteLock();
 
             try
             {
@@ -102,7 +107,7 @@ namespace Ardex.Sync
             }
             finally
             {
-                __lock.ExitWriteLock();
+                this.Lock.ExitWriteLock();
             }
         }
 
@@ -118,9 +123,9 @@ namespace Ardex.Sync
         public override IEnumerator<TEntity> GetEnumerator()
         {
             // We'll create a clone.
-            __lock.EnterReadLock();
-
             var snapshot = default(List<TEntity>);
+
+            this.Lock.EnterReadLock();
 
             try
             {
@@ -128,41 +133,11 @@ namespace Ardex.Sync
             }
             finally
             {
-                __lock.ExitReadLock();
+                this.Lock.ExitReadLock();
             }
 
             return snapshot.GetEnumerator();
         }
-
-        #region Explicit ISyncRepository implementation
-
-        /// <summary>
-        /// Provides access to the underlying
-        /// repository without any locking.
-        /// </summary>
-        IRepository<TEntity> ISyncRepository<TEntity>.Unlocked
-        {
-            get { return this.InnerRepository; }
-        }
-
-        /// <summary>
-        /// Locks the repository so that no Insert,
-        /// Update, Delete operations can be performed.
-        /// </summary>
-        void ISyncRepository<TEntity>.ObtainExclusiveLock()
-        {
-            __lock.EnterWriteLock();
-        }
-
-        /// <summary>
-        /// Releases the exclusive lock held on this repository.
-        /// </summary>
-        void ISyncRepository<TEntity>.ReleaseExclusiveLock()
-        {
-            __lock.ExitWriteLock();
-        }
-
-        #endregion
 
         #region Cleanup
 
