@@ -154,7 +154,7 @@ namespace Ardex.Sync.ChangeTracking
                         .DefaultIfEmpty()
                         .Max() + 1;
 
-                    ch.ArticleID = changeHistoryEntry.ArticleID;
+                    ch.ArticleID = articleID;
                     ch.Action = changeHistoryEntry.Action;
                     ch.ReplicaID = changeHistoryEntry.ReplicaID;
                     ch.UniqueID = changeHistoryEntry.UniqueID;
