@@ -6,15 +6,23 @@ using System.Threading.Tasks;
 
 namespace Ardex.Sync
 {
+    public static class SyncConflict
+    {
+        public static SyncConflict<TEntity> Create<TEntity>(TEntity local, TEntity remote)
+        {
+            return new SyncConflict<TEntity>(local, remote);
+        }
+    }
+
     public class SyncConflict<TEntity>
     {
-        public TEntity Winner { get; private set; }
-        public TEntity Loser { get; private set; }
+        public TEntity Local { get; private set; }
+        public TEntity Remote { get; private set; }
 
-        public SyncConflict(TEntity winner, TEntity loser)
+        public SyncConflict(TEntity local, TEntity remote)
         {
-            this.Winner = winner;
-            this.Loser = loser;
+            this.Local = local;
+            this.Remote = remote;
         }
     }
 }
