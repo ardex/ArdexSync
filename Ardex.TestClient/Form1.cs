@@ -62,9 +62,9 @@ namespace Ardex.TestClient
                     var client2ID = new SyncID("Client 2");
 
                     // In-memory storage.
-                    var repo1 = new SyncRepositoryWithChangeTracking<Dummy, IChangeHistory>(dx1.Dummies);
-                    var repo2 = new SyncRepositoryWithChangeTracking<Dummy, IChangeHistory>(dx2.Dummies);
-                    var repo3 = new SyncRepositoryWithChangeTracking<Dummy, IChangeHistory>(dx3.Dummies);
+                    var repo1 = new SyncRepository<Dummy>(dx1.Dummies);
+                    var repo2 = new SyncRepository<Dummy>(dx2.Dummies);
+                    var repo3 = new SyncRepository<Dummy>(dx3.Dummies);
 
                     // Change history storage.
                     var changeHistory1 = new SyncRepository<IChangeHistory>(dx1.ChangeHistory);
@@ -75,42 +75,43 @@ namespace Ardex.TestClient
                     var uniqueIdMapping = new UniqueIdMapping<Dummy>(d => d.DummyID);
 
                     // Link entity repos with their change history repos.
-                    new ChangeTrackingFactory(serverID).InstallExclusiveChangeTracking(repo1, changeHistory1, uniqueIdMapping);
-                    new ChangeTrackingFactory(client1ID).InstallExclusiveChangeTracking(repo2, changeHistory2, uniqueIdMapping);
-                    new ChangeTrackingFactory(client2ID).InstallExclusiveChangeTracking(repo3, changeHistory3, uniqueIdMapping);
+                    var repo1Tracking = new ChangeTrackingFactory(serverID).Exclusive(repo1, changeHistory1, uniqueIdMapping);
+                    var repo2Tracking = new ChangeTrackingFactory(client1ID).Exclusive(repo2, changeHistory2, uniqueIdMapping);
+                    var repo3Tracking = new ChangeTrackingFactory(client2ID).Exclusive(repo3, changeHistory3, uniqueIdMapping);
 
                     // Sync providers.
-                    var server = new ChangeRepositorySyncProvider<Dummy>(serverID, repo1, changeHistory1, uniqueIdMapping);
-                    var client1 = new ChangeRepositorySyncProvider<Dummy>(client1ID, repo2, changeHistory2, uniqueIdMapping) { CleanUpMetadataAfterSync = true };
-                    var client2 = new ChangeRepositorySyncProvider<Dummy>(client2ID, repo3, changeHistory3, uniqueIdMapping) { CleanUpMetadataAfterSync = true };
+                    var server = new MergeSyncProvider<Dummy, IChangeHistory>(repo1Tracking) {
+                        CleanUpMetadataAfterSync = false,
+                        ConflictResolutionStrategy = SyncConflictResolutionStrategy.Winner
+                    };
 
-                    
+                    var client1 = new MergeSyncProvider<Dummy, IChangeHistory>(repo2Tracking) {
+                        CleanUpMetadataAfterSync = true,
+                        ConflictResolutionStrategy = SyncConflictResolutionStrategy.Loser
+                    };
+
+                    var client2 = new MergeSyncProvider<Dummy, IChangeHistory>(repo3Tracking) {
+                        CleanUpMetadataAfterSync = true,
+                        ConflictResolutionStrategy = SyncConflictResolutionStrategy.Loser
+                    };
+
+                    // Change filter: emulate serialization/deserialization.
+                    // This is not necessary in real-world scenarios.
+                    var filter = new SyncFilter<Change<Dummy, IChangeHistory>>(
+                        changes => changes.Select(c => new Change<Dummy, IChangeHistory>(new ChangeHistory(c.ChangeHistory), c.Entity.Clone())));
+
                     // Chain sync operations to produce an upload/download chain.
-                    var client1Upload = SyncOperation.Create(client1, server);
-                    var client1Download = SyncOperation.Create(server, client1);
-                    var client2Upload = SyncOperation.Create(client2, server);
-                    var client2Download = SyncOperation.Create(server, client2);
-                    var client1ToClient2 = SyncOperation.Create(client1, client2);
-                    var client2ToClient1 = SyncOperation.Create(client2, client1);
-
-                    foreach (var op in new[] {
-                        client1Upload,
-                        client1Download,
-                        client2Upload,
-                        client2Download,
-                        client1ToClient2,
-                        client2ToClient1 })
-                    {
-                        // Change filter: emulate serialization/deserialization.
-                        // This is not necessary in real-world scenarios.
-                        op.Filter = new SyncFilter<Change<IChangeHistory, Dummy>>(
-                            changes => changes.Select(c => new Change<IChangeHistory, Dummy>(new ChangeHistory(c.ChangeHistory), c.Entity.Clone())));
-                    }
+                    var client1Upload = SyncOperation.Create(client1, server).Filtered(filter);
+                    var client1Download = SyncOperation.Create(server, client1).Filtered(filter);
+                    var client2Upload = SyncOperation.Create(client2, server).Filtered(filter);
+                    var client2Download = SyncOperation.Create(server, client2).Filtered(filter);
+                    var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(filter);
+                    var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(filter);
 
                     // Chain uploads and downloads to produce complete sync sessions.
                     var client1Sync = SyncOperation.Chain(client1Upload, client1Download);
                     var client2Sync = SyncOperation.Chain(client2Upload, client2Download);
-                    var clientClientSync = SyncOperation.Chain(client1ToClient2, client2ToClient1);
+                    //var clientClientSync = SyncOperation.Chain(client1ToClient2, client2ToClient1);
 
                     // Database backing for in-memory storage.
                     repo1.EntityInserted += dx1.Insert;
@@ -143,6 +144,22 @@ namespace Ardex.TestClient
                             repo1.Insert(dummy1);
                             repo1.Insert(dummy2);
 
+                            //await client1Sync.SynchroniseDiffAsync();
+                            //await client2Sync.SynchroniseDiffAsync();
+                            await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
+                        }
+
+                        // Let's create an update conflict.
+                        {
+                            var d1 = repo1.Single(d => d.DummyID == 1);
+                            var d2 = repo2.Single(d => d.DummyID == 1);
+
+                            d1.Text = "Server conflict";
+                            d2.Text = "Client conflict";
+
+                            repo1.Update(d1);
+                            repo2.Update(d2);
+
                             await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                         }
 
@@ -151,6 +168,8 @@ namespace Ardex.TestClient
                         {
                             repo2.Insert(dummy3);
 
+                            //await client1Sync.SynchroniseDiffAsync();
+                            //await client2Sync.SynchroniseDiffAsync();
                             await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                         }
 
@@ -170,28 +189,36 @@ namespace Ardex.TestClient
                             repo2.Update(repo2Dummy2);
                             repo2.Insert(dummy4);
 
-                            //client2.Repository.ObtainExclusiveLock();
-
-                            var repo3Dummy3 = client2.Repository.Single(d => d.DummyID == dummy2.DummyID);
-
-                            repo3Dummy3.Text = "Dodgy concurrent update";
-
                             // Let's spice things up a bit by pushing things out furhter to the thread pool.
-                            await Task.WhenAll(
-                                Task.Run(async () => await client1Sync.SynchroniseDiffAsync()),
-                                Task.Run(async () => await client2Sync.SynchroniseDiffAsync()),
-                                Task.Run(() => repo1.Insert(new Dummy { DummyID = dummyID++, Text = "Dodgy concurrent insert" })));
-                                //Task.Run(() =>
-                                //{
-                                //    client2.Repository.Update(repo3Dummy3);
-                                //    //client2.Repository.ReleaseExclusiveLock();
-                                //}));
+                            var t1 = Task.Run(async () => await client1Sync.SynchroniseDiffAsync());
+                            var t2 = Task.Run(async () => await client2Sync.SynchroniseDiffAsync());
+                            var t3 = Task.Run(() => repo1.Insert(new Dummy { DummyID = dummyID++, Text = "Dodgy concurrent insert" }));
+
+                            var t4 = Task.Run(() =>
+                            {
+                            //    repo3.Lock.EnterWriteLock();
+
+                            //    try
+                            //    {
+                            //        var repo3Dummy3 = repo3.Single(d => d.DummyID == dummy2.DummyID);
+
+                            //        repo3Dummy3.Text = "Dodgy concurrent update";
+
+                            //        repo3.Update(repo3Dummy3);
+                            //    }
+                            //    finally
+                            //    {
+                            //        repo3.Lock.ExitWriteLock();
+                            //    }
+                            });
+
+                            await Task.WhenAll(t1, t2, t3, t4);
                         }
 
                         // Sync 4, 5.
                         var dummy5 = new Dummy { DummyID = dummyID++, Text = "Client 2 dummy" };
                         {
-                            client2.Repository.Insert(dummy5);
+                            client2.ChangeTracking.Repository.Insert(dummy5);
 
                             await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                         }
@@ -199,16 +226,17 @@ namespace Ardex.TestClient
                         // Sync 6, 7.
                         var dummy6 = new Dummy { DummyID = dummyID++, Text = "Dummy 6" };
                         {
-                            client2.Repository.Insert(dummy6);
+                            client2.ChangeTracking.Repository.Insert(dummy6);
 
-                            await clientClientSync.SynchroniseDiffAsync();
+                            //await clientClientSync.SynchroniseDiffAsync();
+                            await client1Sync.SynchroniseDiffAsync();
                             await client2Sync.SynchroniseDiffAsync();
 
-                            var serverDummy = server.Repository.Single(d => d.DummyID == dummy6.DummyID);
+                            var serverDummy = server.ChangeTracking.Repository.Single(d => d.DummyID == dummy6.DummyID);
 
                             serverDummy.Text = "Dummy 6, server modified";
 
-                            server.Repository.Update(serverDummy);
+                            server.ChangeTracking.Repository.Update(serverDummy);
 
                             await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                         }
@@ -220,8 +248,6 @@ namespace Ardex.TestClient
 
                     // Done.
                     sw.Stop();
-
-                    this.Text = "z";
 
                     MessageBox.Show(string.Format("Done. Seconds elapsed: {0:0.#}.", sw.Elapsed.TotalSeconds));
                         MessageBox.Show(string.Format(
@@ -264,12 +290,10 @@ namespace Ardex.TestClient
                 var client1 = new TimestampRepositorySyncProvider<DummyPermission>(new SyncID("Client 1"), repo2, uniqueIdMapping, timestampMapping);
                 var client2 = new TimestampRepositorySyncProvider<DummyPermission>(new SyncID("Client 2"), repo3, uniqueIdMapping, timestampMapping);
                 var filter = new SyncFilter<DummyPermission>(changes => changes.Select(c => c.Clone()));
-                var client1Sync = SyncOperation.Create(server, client1);
-                var client2Sync = SyncOperation.Create(server, client2);
+                var client1Sync = SyncOperation.Create(server, client1).Filtered(filter);
+                var client2Sync = SyncOperation.Create(server, client2).Filtered(filter);
 
-                client1Sync.Filter = filter;
-                client2Sync.Filter = filter;
-
+                // Begin.
                 var dummyPermissionID = 1;
                 var t = new Timestamp(1);
 
