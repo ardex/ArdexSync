@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace Ardex.Sync
@@ -8,6 +9,15 @@ namespace Ardex.Sync
     /// </summary>
     public class BasicSyncOperation<TAnchor, TChange> : SyncOperation
     {
+        #region Transformation methods
+
+        public FilteredSyncOperation<TAnchor, TChange> Filtered(SyncFilter<TChange> filter)
+        {
+            return new FilteredSyncOperation<TAnchor, TChange>(this.Source, this.Target, filter);
+        }
+
+        #endregion
+
         /// <summary>
         /// Sync operation source or provider.
         /// Resolves the change delta in a differential sync operation
@@ -21,14 +31,6 @@ namespace Ardex.Sync
         /// source and accepts changes.
         /// </summary>
         public ISyncTarget<TAnchor, TChange> Target { get; private set; }
-
-        /// <summary>
-        /// Optional filter applied to the change
-        /// delta returned by the source. Filters
-        /// and/or transforms the changes before
-        /// they are accepted by the target.
-        /// </summary>
-        public SyncFilter<TChange> Filter { get; set; }
 
         /// <summary>
         /// Creates a new SyncOperation instance.
@@ -46,18 +48,27 @@ namespace Ardex.Sync
         protected override SyncResult SynchroniseDiff(CancellationToken ct)
         {
             // Determine 
-            var anchor = this.Target.LastAnchor();
+            var anchor = this.LastAnchor();
             ct.ThrowIfCancellationRequested();
 
-            var delta = this.Source.ResolveDelta(anchor, ct);
+            var delta = this.ResolveDelta(anchor, ct);
             ct.ThrowIfCancellationRequested();
 
-            if (this.Filter != null)
-            {
-                delta = this.Filter(delta);
-                ct.ThrowIfCancellationRequested();
-            }
+            return this.AcceptChanges(delta, ct);
+        }
 
+        protected virtual TAnchor LastAnchor()
+        {
+            return this.Target.LastAnchor();
+        }
+
+        protected virtual IEnumerable<TChange> ResolveDelta(TAnchor anchor, CancellationToken ct)
+        {
+            return this.Source.ResolveDelta(anchor, ct);
+        }
+
+        protected virtual SyncResult AcceptChanges(IEnumerable<TChange> delta, CancellationToken ct)
+        {
             // See if either source or target support metadata cleanup.
             var sourceCleanup = this.Source as ISyncMetadataCleanup<TChange>;
             var targetCleanup = this.Target as ISyncMetadataCleanup<TChange>;

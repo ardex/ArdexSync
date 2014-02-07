@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-
+using Ardex.Collections;
 using Ardex.Sync.ChangeTracking;
 using Ardex.Sync.PropertyMapping;
 using Ardex.Sync.Providers.ChangeBased;
@@ -19,24 +19,18 @@ namespace Ardex.Sync.Providers
         ISyncMetadataCleanup<Change<IChangeHistory, TEntity>>
     {
         /// <summary>
-        /// Gets this sync node's unique identifier.
+        /// Gets the change tracking manager used by this provider.
         /// </summary>
-        public SyncID ReplicaID { get; private set; }
+        public RepositoryChangeTracking<TEntity, IChangeHistory> ChangeTracking { get; private set; }
 
         /// <summary>
-        /// Entity storage.
+        /// Gets the unique ID of the data replica
+        /// that this provider works with.
         /// </summary>
-        public ISyncRepository<TEntity> Repository { get; private set; }
-
-        /// <summary>
-        /// Change history storage.
-        /// </summary>
-        public ISyncRepository<IChangeHistory> ChangeHistory { get; private set; }
-
-        /// <summary>
-        /// Provides means of uniquely identifying an entity.
-        /// </summary>
-        public UniqueIdMapping<TEntity> UniqueIdMapping { get; private set; }
+        public SyncID ReplicaID
+        {
+            get { return this.ChangeTracking.ReplicaID; }
+        }
 
         /// <summary>
         /// If true, the change history will be kept minimal
@@ -50,16 +44,9 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        public ChangeRepositorySyncProvider(
-            SyncID replicaID,
-            ISyncRepository<TEntity> repository,
-            ISyncRepository<IChangeHistory> changeHistory,
-            UniqueIdMapping<TEntity> uniqueIdMapping)
+        public ChangeRepositorySyncProvider(RepositoryChangeTracking<TEntity, IChangeHistory> changeTracking)
         {
-            this.ReplicaID = replicaID;
-            this.Repository = repository;
-            this.ChangeHistory = changeHistory;
-            this.UniqueIdMapping = uniqueIdMapping;
+            this.ChangeTracking = changeTracking;
         }
 
         /// <summary>
@@ -70,10 +57,13 @@ namespace Ardex.Sync.Providers
             // TODO: conflicts.
 
             // Critical region protected with exclusive lock.
-            this.Repository.ObtainExclusiveLock();
+            var repository = (ISyncRepository<TEntity>)this.ChangeTracking.Repository;
+            var changeHistory = (ISyncRepository<IChangeHistory>)this.ChangeTracking.ChangeHistory;
+            
+            repository.ObtainExclusiveLock();
 
             // Disable change tracking (which relies on events).
-            //this.Repository.SuppressChangeTracking = true;
+            this.ChangeTracking.Enabled = false;
 
             try
             {
@@ -89,14 +79,14 @@ namespace Ardex.Sync.Providers
                 {
                     ct.ThrowIfCancellationRequested();
 
-                    var changeUniqueID = this.UniqueIdMapping.Get(change.Entity);
+                    var changeUniqueID = this.ChangeTracking.UniqueIdMapping.Get(change.Entity);
                     var found = false;
 
                     // Again, we are accessing snapshot in
                     // order to avoid recursive locking.
-                    foreach (var existingEntity in this.Repository.Unlocked)
+                    foreach (var existingEntity in repository.Unlocked)
                     {
-                        if (changeUniqueID == this.UniqueIdMapping.Get(existingEntity))
+                        if (changeUniqueID == this.ChangeTracking.UniqueIdMapping.Get(existingEntity))
                         {
                             // Found.
                             var changeCount = 0;
@@ -124,7 +114,7 @@ namespace Ardex.Sync.Providers
 
                             if (changeCount != 0)
                             {
-                                this.Repository.Unlocked.Update(existingEntity);
+                                repository.Unlocked.Update(existingEntity);
                                 updates.Add(existingEntity);
                             }
 
@@ -135,18 +125,18 @@ namespace Ardex.Sync.Providers
 
                     if (!found)
                     {
-                        this.Repository.Unlocked.Insert(change.Entity);
+                        repository.Unlocked.Insert(change.Entity);
                         inserts.Add(change);
                     }
 
                     // Write remote change history entry to local change history.
-                    this.ChangeHistory.ObtainExclusiveLock();
+                    changeHistory.ObtainExclusiveLock();
 
                     try
                     {
                         var ch = (IChangeHistory)new ChangeHistory();
 
-                        ch.ChangeHistoryID = this.ChangeHistory.Unlocked
+                        ch.ChangeHistoryID = changeHistory.Unlocked
                             .Select(c => c.ChangeHistoryID)
                             .DefaultIfEmpty()
                             .Max() + 1;
@@ -156,19 +146,19 @@ namespace Ardex.Sync.Providers
                         ch.Timestamp = change.ChangeHistory.Timestamp;
                         ch.UniqueID = change.ChangeHistory.UniqueID;
 
-                        this.ChangeHistory.Unlocked.Insert(ch);
+                        changeHistory.Unlocked.Insert(ch);
                     }
                     finally
                     {
-                        this.ChangeHistory.ReleaseExclusiveLock();
+                        changeHistory.ReleaseExclusiveLock();
                     }
                 }
 
                 ct.ThrowIfCancellationRequested();
 
-                Debug.Print("{0} {1} inserts applied: {2}.", this.ReplicaID, type.Name, inserts.Count);
-                Debug.Print("{0} {1} updates applied: {2}.", this.ReplicaID, type.Name, updates.Count);
-                Debug.Print("{0} {1} deletes applied: {2}.", this.ReplicaID, type.Name, deletes.Count);
+                Debug.Print("{0} {1} inserts applied: {2}.", this.ChangeTracking.ReplicaID, type.Name, inserts.Count);
+                Debug.Print("{0} {1} updates applied: {2}.", this.ChangeTracking.ReplicaID, type.Name, updates.Count);
+                Debug.Print("{0} {1} deletes applied: {2}.", this.ChangeTracking.ReplicaID, type.Name, deletes.Count);
 
                 var result = new SyncResult(inserts, updates, deletes);
 
@@ -176,8 +166,9 @@ namespace Ardex.Sync.Providers
             }
             finally
             {
-                //this.Repository.SuppressChangeTracking = false;
-                this.Repository.ReleaseExclusiveLock();
+                this.ChangeTracking.Enabled = true;
+
+                repository.ReleaseExclusiveLock();
             }
         }
 
@@ -186,7 +177,7 @@ namespace Ardex.Sync.Providers
         /// </summary>
         public IEnumerable<Change<IChangeHistory, TEntity>> ResolveDelta(Dictionary<SyncID, Timestamp> timestampsByReplica, CancellationToken ct)
         {
-            var changes = this.ChangeHistory
+            var changes = this.ChangeTracking.ChangeHistory
                 .Where(ch =>
                 {
                     var timestamp = default(Timestamp);
@@ -194,9 +185,9 @@ namespace Ardex.Sync.Providers
                     return (!timestampsByReplica.TryGetValue(ch.ReplicaID, out timestamp) || ch.Timestamp > timestamp);
                 })
                 .Join(
-                    this.Repository.AsEnumerable(),
+                    this.ChangeTracking.Repository.AsEnumerable(),
                     ch => ch.UniqueID,
-                    this.UniqueIdMapping.Get,
+                    this.ChangeTracking.UniqueIdMapping.Get,
                     (ch, entity) => new Change<IChangeHistory, TEntity>(ch, entity))
                 // Ensure that the oldest changes for each replica are sync first.
                 .OrderBy(c => c.ChangeHistory.Timestamp)
@@ -210,7 +201,7 @@ namespace Ardex.Sync.Providers
         /// </summary>
         public Dictionary<SyncID, Timestamp> LastAnchor()
         {
-            return this.LastSeenTimestampByReplica(this.ChangeHistory.AsEnumerable());
+            return this.LastSeenTimestampByReplica(this.ChangeTracking.ChangeHistory.AsEnumerable());
         }
 
         /// <summary>
@@ -243,30 +234,32 @@ namespace Ardex.Sync.Providers
             if (!this.CleanUpMetadataAfterSync)
                 return;
 
+            var changeHistory = (ISyncRepository<IChangeHistory>)this.ChangeTracking.ChangeHistory;
+
             // We need exclusive access to change
             // history during the cleanup operation.
-            this.ChangeHistory.ObtainExclusiveLock();
+            changeHistory.ObtainExclusiveLock();
 
             try
             {
                 var lastCommittedTimestampByReplica = this.LastSeenTimestampByReplica(appliedDelta.Select(c => c.ChangeHistory));
-                var snapshot = this.ChangeHistory.Unlocked.ToList();
+                var snapshot = changeHistory.Unlocked.ToList();
 
-                foreach (var changeHistory in snapshot)
+                foreach (var ch in snapshot)
                 {
                     // Ensure that this change is not the last for node.
                     var lastCommittedTimestamp = default(Timestamp);
 
-                    if (lastCommittedTimestampByReplica.TryGetValue(changeHistory.ReplicaID, out lastCommittedTimestamp) &&
-                        changeHistory.Timestamp < lastCommittedTimestamp)
+                    if (lastCommittedTimestampByReplica.TryGetValue(ch.ReplicaID, out lastCommittedTimestamp) &&
+                        ch.Timestamp < lastCommittedTimestamp)
                     {
-                        this.ChangeHistory.Unlocked.Delete(changeHistory);
+                        changeHistory.Unlocked.Delete(ch);
                     }
                 }
             }
             finally
             {
-                this.ChangeHistory.ReleaseExclusiveLock();
+                changeHistory.ReleaseExclusiveLock();
             }
         }
     }

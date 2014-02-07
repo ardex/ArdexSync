@@ -6,7 +6,7 @@ namespace Ardex.Sync
     /// <summary>
     /// IRepository with exclusive locking support.
     /// </summary>
-    public interface ISyncRepository<TEntity> : IRepository<TEntity>
+    internal interface ISyncRepository<TEntity> : IRepository<TEntity>
     {
         /// <summary>
         /// Provides access to the underlying

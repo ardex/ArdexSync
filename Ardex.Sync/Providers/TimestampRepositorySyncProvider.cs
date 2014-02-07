@@ -23,7 +23,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Gets the respository that this SyncOperation works with.
         /// </summary>
-        public ISyncRepository<TEntity> Repository { get; private set; }
+        public SyncRepository<TEntity> Repository { get; private set; }
 
         /// <summary>
         /// Provides means of uniquely identifying an entity.
@@ -40,7 +40,7 @@ namespace Ardex.Sync.Providers
         /// </summary>
         public TimestampRepositorySyncProvider(
             SyncID replicaID,
-            ISyncRepository<TEntity> repository,
+            SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> uniqueIdMapping,
             TimestampMapping<TEntity> timestampMapping)
         {
@@ -66,7 +66,9 @@ namespace Ardex.Sync.Providers
 
         public SyncResult AcceptChanges(SyncID sourceReplicaID, IEnumerable<TEntity> delta, CancellationToken ct)
         {
-            this.Repository.ObtainExclusiveLock();
+            var repository = (ISyncRepository<TEntity>)this.Repository;
+
+            repository.ObtainExclusiveLock();
 
             try
             {
@@ -90,7 +92,7 @@ namespace Ardex.Sync.Providers
 
                     // Again, we are accessing snapshot in
                     // order to avoid recursive locking.
-                    foreach (var existingEntity in this.Repository.Unlocked)
+                    foreach (var existingEntity in repository.Unlocked)
                     {
                         if (changeUniqueID == this.UniqueIdMapping.Get(existingEntity))
                         {
@@ -114,7 +116,7 @@ namespace Ardex.Sync.Providers
 
                             if (changeCount != 0)
                             {
-                                this.Repository.Unlocked.Update(existingEntity);
+                                repository.Unlocked.Update(existingEntity);
                                 updates.Add(existingEntity);
                             }
 
@@ -125,7 +127,7 @@ namespace Ardex.Sync.Providers
 
                     if (!found)
                     {
-                        this.Repository.Unlocked.Insert(change);
+                        repository.Unlocked.Insert(change);
                         inserts.Add(change);
                     }
                 }
@@ -142,7 +144,7 @@ namespace Ardex.Sync.Providers
             }
             finally
             {
-                this.Repository.ReleaseExclusiveLock();
+                repository.ReleaseExclusiveLock();
             }
         }
 
