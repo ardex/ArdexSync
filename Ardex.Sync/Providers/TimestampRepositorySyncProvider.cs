@@ -13,7 +13,7 @@ namespace Ardex.Sync.Providers
     /// uses a repository for producing
     /// and accepting change delta.
     /// </summary>
-    public class TimestampRepositorySyncProvider<TEntity> : ISyncProvider<Timestamp, TEntity>
+    public class TimestampRepositorySyncProvider<TEntity> : ISyncProvider<IComparable, TEntity>
     {
         /// <summary>
         /// Unique identifier of this replica.
@@ -33,7 +33,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Provides means of getting a timestamp from an entity.
         /// </summary>
-        public TimestampMapping<TEntity> TimestampMapping { get; private set; }
+        public ComparableMapping<TEntity> TimestampMapping { get; private set; }
 
         /// <summary>
         /// Creates a new instance of the class.
@@ -42,7 +42,7 @@ namespace Ardex.Sync.Providers
             SyncID replicaID,
             SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> uniqueIdMapping,
-            TimestampMapping<TEntity> timestampMapping)
+            ComparableMapping<TEntity> timestampMapping)
         {
             if (repository == null) throw new ArgumentNullException("repository");
             if (uniqueIdMapping == null) throw new ArgumentNullException("uniqueIdMapping");
@@ -54,7 +54,7 @@ namespace Ardex.Sync.Providers
             this.TimestampMapping = timestampMapping;
         }
 
-        public Delta<Timestamp, TEntity> ResolveDelta(Timestamp lastSeenTimestamp, CancellationToken ct)
+        public Delta<IComparable, TEntity> ResolveDelta(IComparable lastSeenTimestamp, CancellationToken ct)
         {
             this.Repository.Lock.EnterReadLock();
 
@@ -63,11 +63,11 @@ namespace Ardex.Sync.Providers
                 var anchor = this.LastAnchor();
 
                 var changes = this.Repository
-                    .Where(e => lastSeenTimestamp == null || this.TimestampMapping.Get(e) > lastSeenTimestamp)
+                    .Where(e => lastSeenTimestamp == null || this.TimestampMapping.Get(e).CompareTo(lastSeenTimestamp) > 0)
                     .OrderBy(e => this.TimestampMapping.Get(e))
                     .AsEnumerable();
 
-                return new Delta<Timestamp, TEntity>(anchor, changes);
+                return new Delta<IComparable, TEntity>(anchor, changes);
             }
             finally
             {
@@ -75,7 +75,7 @@ namespace Ardex.Sync.Providers
             }
         }
 
-        public SyncResult AcceptChanges(SyncID sourceReplicaID, Delta<Timestamp, TEntity> delta, CancellationToken ct)
+        public SyncResult AcceptChanges(SyncID sourceReplicaID, Delta<IComparable, TEntity> delta, CancellationToken ct)
         {
             var repository = this.Repository;
 
@@ -157,7 +157,7 @@ namespace Ardex.Sync.Providers
             }
         }
 
-        public Timestamp LastAnchor()
+        public IComparable LastAnchor()
         {
             return this.Repository
                 .Select(e => this.TimestampMapping.Get(e))

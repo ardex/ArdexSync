@@ -54,7 +54,7 @@
     <Compile Include="ISyncSource.cs" />
     <Compile Include="ISyncTarget.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="PropertyMapping\TimestampMapping.cs" />
+    <Compile Include="PropertyMapping\ComparableMapping.cs" />
     <Compile Include="PropertyMapping\UniqueIdMapping.cs" />
     <Compile Include="Providers\ChangeBased\Change.cs" />
     <Compile Include="Providers\MergeSyncProvider.cs" />

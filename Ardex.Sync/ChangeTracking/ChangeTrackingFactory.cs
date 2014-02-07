@@ -44,7 +44,7 @@ namespace Ardex.Sync.ChangeTracking
                 new UniqueIdMapping<IChangeHistory>(ch => ch.ChangeHistoryID),
                 new UniqueIdMapping<IChangeHistory>(ch => ch.UniqueID),
                 new UniqueIdMapping<IChangeHistory>(ch => ch.ReplicaID),
-                new TimestampMapping<IChangeHistory>(ch => ch.Timestamp),
+                new ComparableMapping<IChangeHistory>(ch => ch.Timestamp),
                 (entity, action) =>
                 {
                     var changeHistory = changeTracking.ChangeHistory;
@@ -115,7 +115,7 @@ namespace Ardex.Sync.ChangeTracking
                 new UniqueIdMapping<ISharedChangeHistory>(ch => ch.ChangeHistoryID),
                 new UniqueIdMapping<ISharedChangeHistory>(ch => ch.UniqueID),
                 new UniqueIdMapping<ISharedChangeHistory>(ch => ch.ReplicaID),
-                new TimestampMapping<ISharedChangeHistory>(ch => ch.Timestamp),
+                new ComparableMapping<ISharedChangeHistory>(ch => ch.Timestamp),
                 (entity, action) =>
                 {
                     var changeHistory = changeTracking.ChangeHistory;

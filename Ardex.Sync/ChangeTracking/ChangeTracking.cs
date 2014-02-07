@@ -36,7 +36,7 @@ namespace Ardex.Sync.ChangeTracking
         private readonly UniqueIdMapping<TChangeHistory> ChangeHistoryIdMapping;
         private readonly UniqueIdMapping<TChangeHistory> ChangeHistoryEntityIdMapping;
         private readonly UniqueIdMapping<TChangeHistory> ChangeHistoryReplicaIdMapping;
-        private readonly TimestampMapping<TChangeHistory> ChangeHistoryTimestampMapping;
+        private readonly ComparableMapping<TChangeHistory> ChangeHistoryTimestampMapping;
 
         // Tracked/untracked change actions.
         // Note that it's the repository's responsibility
@@ -62,7 +62,7 @@ namespace Ardex.Sync.ChangeTracking
             UniqueIdMapping<TChangeHistory> changeHistoryIdMapping,
             UniqueIdMapping<TChangeHistory> changeHistoryEntityIdMapping,
             UniqueIdMapping<TChangeHistory> changeHistoryReplicaIdMapping,
-            TimestampMapping<TChangeHistory> changeHistoryTimestampMapping,
+            ComparableMapping<TChangeHistory> changeHistoryTimestampMapping,
             Action<TEntity, ChangeHistoryAction> trackedChange,
             Action<TChangeHistory> insertChangeHistory)
         {
@@ -162,7 +162,7 @@ namespace Ardex.Sync.ChangeTracking
             return this.ChangeHistoryReplicaIdMapping.Get(changeHistory);
         }
 
-        public Timestamp GetChangeHistoryTimestamp(TChangeHistory changeHistory)
+        public IComparable GetChangeHistoryTimestamp(TChangeHistory changeHistory)
         {
             return this.ChangeHistoryTimestampMapping.Get(changeHistory);
         }

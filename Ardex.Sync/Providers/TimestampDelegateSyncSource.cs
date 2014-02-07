@@ -8,7 +8,7 @@ namespace Ardex.Sync.Providers
     /// Timestamp-based sync provider which uses
     /// a custom ProduceChanges implementation.
     /// </summary>
-    public class TimestampDelegateSyncSource<TEntity> : ISyncSource<Timestamp, TEntity>
+    public class TimestampDelegateSyncSource<TEntity> : ISyncSource<IComparable, TEntity>
     {
         /// <summary>
         /// Unique identifier of this replica.
@@ -18,23 +18,23 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Produces entities for diff sync after the given timestamp.
         /// </summary>
-        private readonly Func<Timestamp, CancellationToken, IEnumerable<TEntity>> GetChanges;
+        private readonly Func<IComparable, CancellationToken, IEnumerable<TEntity>> GetChanges;
 
-        public TimestampDelegateSyncSource(SyncID replicaID, Func<Timestamp, CancellationToken, IEnumerable<TEntity>> getChanges)
+        public TimestampDelegateSyncSource(SyncID replicaID, Func<IComparable, CancellationToken, IEnumerable<TEntity>> getChanges)
         {
             this.ReplicaID = replicaID;
             this.GetChanges = getChanges;
         }
 
-        public Delta<Timestamp, TEntity> ResolveDelta(Timestamp lastSeenTimestamp, CancellationToken ct)
+        public Delta<IComparable, TEntity> ResolveDelta(IComparable lastSeenTimestamp, CancellationToken ct)
         {
             var anchor = this.LastAnchor();
             var changes = this.GetChanges(lastSeenTimestamp, ct);
 
-            return new Delta<Timestamp, TEntity>(anchor, changes);
+            return new Delta<IComparable, TEntity>(anchor, changes);
         }
 
-        public Timestamp LastAnchor()
+        public IComparable LastAnchor()
         {
             return null;
         }

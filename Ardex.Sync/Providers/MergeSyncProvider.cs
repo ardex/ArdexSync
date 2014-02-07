@@ -33,7 +33,7 @@ namespace Ardex.Sync.Providers
     /// sync repositories and change history metadata.
     /// </summary>
     public class MergeSyncProvider<TEntity, TChangeHistory> :
-        ISyncProvider<Dictionary<SyncID, Timestamp>, Change<TEntity, TChangeHistory>>,
+        ISyncProvider<Dictionary<SyncID, IComparable>, Change<TEntity, TChangeHistory>>,
         ISyncMetadataCleanup<Change<TEntity, TChangeHistory>>
     {
         /// <summary>
@@ -73,7 +73,7 @@ namespace Ardex.Sync.Providers
         /// Accepts the changes as reported by the given node.
         /// </summary>
         public SyncResult AcceptChanges(
-            SyncID sourceReplicaID, Delta<Dictionary<SyncID, Timestamp>, Change<TEntity, TChangeHistory>> delta, CancellationToken ct)
+            SyncID sourceReplicaID, Delta<Dictionary<SyncID, IComparable>, Change<TEntity, TChangeHistory>> delta, CancellationToken ct)
         {
             // Critical region protected with exclusive lock.
             var repository = this.ChangeTracking.Repository;
@@ -206,7 +206,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Reports changes since the last reported timestamp for each node.
         /// </summary>
-        public Delta<Dictionary<SyncID, Timestamp>, Change<TEntity, TChangeHistory>> ResolveDelta(Dictionary<SyncID, Timestamp> timestampsByReplica, CancellationToken ct)
+        public Delta<Dictionary<SyncID, IComparable>, Change<TEntity, TChangeHistory>> ResolveDelta(Dictionary<SyncID, IComparable> timestampsByReplica, CancellationToken ct)
         {
             this.ChangeTracking.ChangeHistory.Lock.EnterReadLock();
 
@@ -218,11 +218,11 @@ namespace Ardex.Sync.Providers
                     .FilteredChangeHistory()
                     .Where(ch =>
                     {
-                        var timestamp = default(Timestamp);
+                        var timestamp = default(IComparable);
 
                         return
                             !timestampsByReplica.TryGetValue(this.ChangeTracking.GetChangeHistoryReplicaID(ch), out timestamp) ||
-                            this.ChangeTracking.GetChangeHistoryTimestamp(ch) > timestamp;
+                            this.ChangeTracking.GetChangeHistoryTimestamp(ch).CompareTo(timestamp) > 0;
                     })
                     .Join(
                         this.ChangeTracking.Repository.AsEnumerable(),
@@ -233,7 +233,7 @@ namespace Ardex.Sync.Providers
                     .OrderBy(c => this.ChangeTracking.GetChangeHistoryTimestamp(c.ChangeHistory))
                     .AsEnumerable();
 
-                return new Delta<Dictionary<SyncID, Timestamp>, Change<TEntity, TChangeHistory>>(anchor, changes);
+                return new Delta<Dictionary<SyncID, IComparable>, Change<TEntity, TChangeHistory>>(anchor, changes);
             }
             finally
             {
@@ -244,7 +244,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Returns last seen timestamp value for each known node.
         /// </summary>
-        public Dictionary<SyncID, Timestamp> LastAnchor()
+        public Dictionary<SyncID, IComparable> LastAnchor()
         {
             return this.LastSeenTimestampByReplica(this.ChangeTracking.FilteredChangeHistory());
         }
@@ -252,19 +252,19 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Returns last seen timestamp value for each known node.
         /// </summary>
-        private Dictionary<SyncID, Timestamp> LastSeenTimestampByReplica(IEnumerable<TChangeHistory> changeHistory)
+        private Dictionary<SyncID, IComparable> LastSeenTimestampByReplica(IEnumerable<TChangeHistory> changeHistory)
         {
-            var dict = new Dictionary<SyncID, Timestamp>();
+            var dict = new Dictionary<SyncID, IComparable>();
 
             foreach (var ch in changeHistory)
             {
                 var replicaID = this.ChangeTracking.GetChangeHistoryReplicaID(ch);
-                var timetsamp = this.ChangeTracking.GetChangeHistoryTimestamp(ch);
-                var lastSeenTimestamp = default(Timestamp);
+                var timestamp = this.ChangeTracking.GetChangeHistoryTimestamp(ch);
+                var lastSeenTimestamp = default(IComparable);
 
-                if (!dict.TryGetValue(replicaID, out lastSeenTimestamp) || timetsamp > lastSeenTimestamp)
+                if (!dict.TryGetValue(replicaID, out lastSeenTimestamp) || timestamp.CompareTo(lastSeenTimestamp) > 0)
                 {
-                    dict[replicaID] = timetsamp;
+                    dict[replicaID] = timestamp;
                 }
             }
 
@@ -295,10 +295,10 @@ namespace Ardex.Sync.Providers
                     // Ensure that this change is not the last for node.
                     var replicaID = this.ChangeTracking.GetChangeHistoryReplicaID(ch);
                     var timestamp = this.ChangeTracking.GetChangeHistoryTimestamp(ch);
-                    var lastCommittedTimestamp = default(Timestamp);
+                    var lastCommittedTimestamp = default(IComparable);
 
                     if (lastCommittedTimestampByReplica.TryGetValue(replicaID, out lastCommittedTimestamp) &&
-                        timestamp < lastCommittedTimestamp)
+                        timestamp.CompareTo(lastCommittedTimestamp) < 0)
                     {
                         changeHistory.Delete(ch);
                     }
