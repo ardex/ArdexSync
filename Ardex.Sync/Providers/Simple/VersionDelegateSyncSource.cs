@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Ardex.Sync.Providers
+namespace Ardex.Sync.Providers.Simple
 {
     /// <summary>
-    /// Timestamp-based sync provider which uses
+    /// Version-based sync provider which uses
     /// a custom ProduceChanges implementation.
     /// </summary>
     public class VersionDelegateSyncSource<TEntity> : ISyncSource<IComparable, TEntity>

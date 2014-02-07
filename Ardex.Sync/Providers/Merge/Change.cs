@@ -1,6 +1,6 @@
 ﻿using Ardex.Sync.ChangeTracking;
 
-namespace Ardex.Sync.Providers.ChangeBased
+namespace Ardex.Sync.Providers.Merge
 {
     public static class Change
     {

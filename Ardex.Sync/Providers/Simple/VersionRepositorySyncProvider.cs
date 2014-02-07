@@ -6,7 +6,7 @@ using System.Threading;
 
 using Ardex.Sync.PropertyMapping;
 
-namespace Ardex.Sync.Providers
+namespace Ardex.Sync.Providers.Simple
 {
     /// <summary>
     /// Version-based sync provider which

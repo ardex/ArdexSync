@@ -5,9 +5,8 @@ using System.Linq;
 using System.Threading;
 
 using Ardex.Sync.ChangeTracking;
-using Ardex.Sync.Providers.ChangeBased;
 
-namespace Ardex.Sync.Providers
+namespace Ardex.Sync.Providers.Merge
 {
     public enum SyncConflictResolutionStrategy
     {

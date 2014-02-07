@@ -56,10 +56,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PropertyMapping\ComparableMapping.cs" />
     <Compile Include="PropertyMapping\UniqueIdMapping.cs" />
-    <Compile Include="Providers\ChangeBased\Change.cs" />
-    <Compile Include="Providers\MergeSyncProvider.cs" />
-    <Compile Include="Providers\VersionDelegateSyncSource.cs" />
-    <Compile Include="Providers\VersionRepositorySyncProvider.cs" />
+    <Compile Include="Providers\Merge\Change.cs" />
+    <Compile Include="Providers\Merge\MergeSyncProvider.cs" />
+    <Compile Include="Providers\Simple\VersionDelegateSyncSource.cs" />
+    <Compile Include="Providers\Simple\VersionRepositorySyncProvider.cs" />
     <Compile Include="SyncConflict.cs" />
     <Compile Include="SyncFilter.cs" />
     <Compile Include="SyncID.cs" />
