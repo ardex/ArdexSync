@@ -3,20 +3,26 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using Ardex.Collections;
+
 using Ardex.Sync.ChangeTracking;
-using Ardex.Sync.PropertyMapping;
 using Ardex.Sync.Providers.ChangeBased;
 
 namespace Ardex.Sync.Providers
 {
+    public enum SyncConflictResolutionStrategy
+    {
+        Fail,
+        Winner,
+        Loser
+    }
+
     /// <summary>
     /// Sync provider implementation which works with
     /// sync repositories and change history metadata.
     /// </summary>
-    public class ChangeTrackingSyncProvider<TEntity, TChangeHistory> :
-        ISyncProvider<Dictionary<SyncID, Timestamp>, Change<TChangeHistory, TEntity>>,
-        ISyncMetadataCleanup<Change<TChangeHistory, TEntity>>
+    public class MergeSyncProvider<TEntity, TChangeHistory> :
+        ISyncProvider<Dictionary<SyncID, Timestamp>, Change<TEntity, TChangeHistory>>,
+        ISyncMetadataCleanup<Change<TEntity, TChangeHistory>>
     {
         /// <summary>
         /// Gets the change tracking manager used by this provider.
@@ -41,10 +47,12 @@ namespace Ardex.Sync.Providers
         /// </summary>
         public bool CleanUpMetadataAfterSync { get; set; }
 
+        public SyncConflictResolutionStrategy ConflictResolutionStrategy { get; set; }
+
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        public ChangeTrackingSyncProvider(ChangeTracking<TEntity, TChangeHistory> changeTracking)
+        public MergeSyncProvider(ChangeTracking<TEntity, TChangeHistory> changeTracking)
         {
             this.ChangeTracking = changeTracking;
         }
@@ -52,13 +60,10 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public SyncResult AcceptChanges(SyncID replicaID, IEnumerable<Change<TChangeHistory, TEntity>> delta, CancellationToken ct)
+        public SyncResult AcceptChanges(SyncID replicaID, Delta<Dictionary<SyncID, Timestamp>, Change<TEntity, TChangeHistory>> delta, CancellationToken ct)
         {
-            // TODO: conflicts.
-
             // Critical region protected with exclusive lock.
             var repository = this.ChangeTracking.Repository;
-            var changeHistory = this.ChangeTracking.FilteredChangeHistory();
 
             repository.Lock.EnterWriteLock();
 
@@ -67,6 +72,36 @@ namespace Ardex.Sync.Providers
 
             try
             {
+                // Materialise changes.
+                var changes = delta.Changes.ToArray().AsEnumerable();
+
+                // Detect conflicts.
+                var myAnchor = this.LastAnchor();
+                var myDelta = this.ResolveDelta(delta.Anchor, ct);
+
+                var conflicts = myDelta.Changes.Join(
+                    changes,
+                    c => this.ChangeTracking.GetTrackedEntityID(c.Entity),
+                    c => this.ChangeTracking.GetTrackedEntityID(c.Entity),
+                    (winner, loser) => new SyncConflict<Change<TEntity, TChangeHistory>>(winner, loser));
+
+                if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Fail)
+                {
+                    foreach (var conflict in conflicts)
+                    {
+                        throw new InvalidOperationException("Merge conflict detected.");
+                    }
+                }
+                else if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Winner)
+                {
+                    changes = changes.Except(conflicts.Select(c => c.Loser));
+                }
+                else if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Loser)
+                {
+                    // We'll just use the delta as is.
+                }
+
+                var changeHistory = this.ChangeTracking.FilteredChangeHistory();
                 var type = typeof(TEntity);
                 var inserts = new List<object>();
                 var updates = new List<object>();
@@ -75,7 +110,7 @@ namespace Ardex.Sync.Providers
 
                 // We need to ensure that all changes are processed in such
                 // an order that if we fail, we'll be able to resume later.
-                foreach (var change in delta.OrderBy(c => this.ChangeTracking.GetChangeHistoryTimestamp(c.ChangeHistory)))
+                foreach (var change in changes.OrderBy(c => this.ChangeTracking.GetChangeHistoryTimestamp(c.ChangeHistory)))
                 {
                     ct.ThrowIfCancellationRequested();
 
@@ -146,28 +181,39 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Reports changes since the last reported timestamp for each node.
         /// </summary>
-        public IEnumerable<Change<TChangeHistory, TEntity>> ResolveDelta(Dictionary<SyncID, Timestamp> timestampsByReplica, CancellationToken ct)
+        public Delta<Dictionary<SyncID, Timestamp>, Change<TEntity, TChangeHistory>> ResolveDelta(Dictionary<SyncID, Timestamp> timestampsByReplica, CancellationToken ct)
         {
-            var changes = this.ChangeTracking
-                .FilteredChangeHistory()
-                .Where(ch =>
-                {
-                    var timestamp = default(Timestamp);
+            this.ChangeTracking.ChangeHistory.Lock.EnterReadLock();
 
-                    return
-                        !timestampsByReplica.TryGetValue(this.ChangeTracking.GetChangeHistoryReplicaID(ch), out timestamp) ||
-                        this.ChangeTracking.GetChangeHistoryTimestamp(ch) > timestamp;
-                })
-                .Join(
-                    this.ChangeTracking.Repository.AsEnumerable(),
-                    ch => this.ChangeTracking.GetChangeHistoryEntityID(ch),
-                    this.ChangeTracking.GetTrackedEntityID,
-                    (ch, entity) => new Change<TChangeHistory, TEntity>(ch, entity))
-                // Ensure that the oldest changes for each replica are sync first.
-                .OrderBy(c => this.ChangeTracking.GetChangeHistoryTimestamp(c.ChangeHistory))
-                .AsEnumerable();
+            try
+            {
+                var anchor = this.LastAnchor();
 
-            return changes;
+                var changes = this.ChangeTracking
+                    .FilteredChangeHistory()
+                    .Where(ch =>
+                    {
+                        var timestamp = default(Timestamp);
+
+                        return
+                            !timestampsByReplica.TryGetValue(this.ChangeTracking.GetChangeHistoryReplicaID(ch), out timestamp) ||
+                            this.ChangeTracking.GetChangeHistoryTimestamp(ch) > timestamp;
+                    })
+                    .Join(
+                        this.ChangeTracking.Repository.AsEnumerable(),
+                        ch => this.ChangeTracking.GetChangeHistoryEntityID(ch),
+                        this.ChangeTracking.GetTrackedEntityID,
+                        (ch, entity) => new Change<TEntity, TChangeHistory>(ch, entity))
+                    // Ensure that the oldest changes for each replica are sync first.
+                    .OrderBy(c => this.ChangeTracking.GetChangeHistoryTimestamp(c.ChangeHistory))
+                    .AsEnumerable();
+
+                return new Delta<Dictionary<SyncID, Timestamp>, Change<TEntity, TChangeHistory>>(anchor, changes);
+            }
+            finally
+            {
+                this.ChangeTracking.ChangeHistory.Lock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -204,7 +250,7 @@ namespace Ardex.Sync.Providers
         /// Performs change history cleanup if necessary.
         /// Ensures that only the latest value for each node is kept.
         /// </summary>
-        public void CleanUpSyncMetadata(IEnumerable<Change<TChangeHistory, TEntity>> appliedDelta)
+        public void CleanUpSyncMetadata(IEnumerable<Change<TEntity, TChangeHistory>> appliedDelta)
         {
             if (!this.CleanUpMetadataAfterSync)
                 return;

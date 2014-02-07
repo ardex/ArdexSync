@@ -54,17 +54,28 @@ namespace Ardex.Sync.Providers
             this.TimestampMapping = timestampMapping;
         }
 
-        public IEnumerable<TEntity> ResolveDelta(Timestamp lastSeenTimestamp, CancellationToken ct)
+        public Delta<Timestamp, TEntity> ResolveDelta(Timestamp lastSeenTimestamp, CancellationToken ct)
         {
-            var changes = this.Repository
-                .Where(e => lastSeenTimestamp == null || this.TimestampMapping.Get(e) > lastSeenTimestamp)
-                .OrderBy(e => this.TimestampMapping.Get(e))
-                .AsEnumerable();
+            this.Repository.Lock.EnterReadLock();
 
-            return changes;
+            try
+            {
+                var anchor = this.LastAnchor();
+
+                var changes = this.Repository
+                    .Where(e => lastSeenTimestamp == null || this.TimestampMapping.Get(e) > lastSeenTimestamp)
+                    .OrderBy(e => this.TimestampMapping.Get(e))
+                    .AsEnumerable();
+
+                return new Delta<Timestamp, TEntity>(anchor, changes);
+            }
+            finally
+            {
+                this.Repository.Lock.ExitReadLock();
+            }
         }
 
-        public SyncResult AcceptChanges(SyncID sourceReplicaID, IEnumerable<TEntity> delta, CancellationToken ct)
+        public SyncResult AcceptChanges(SyncID sourceReplicaID, Delta<Timestamp, TEntity> delta, CancellationToken ct)
         {
             var repository = this.Repository;
 
@@ -83,7 +94,7 @@ namespace Ardex.Sync.Providers
                 var deletes = new List<object>();
                 var props = type.GetProperties();
 
-                foreach (var change in delta.OrderBy(e => this.TimestampMapping.Get(e)))
+                foreach (var change in delta.Changes.OrderBy(e => this.TimestampMapping.Get(e)))
                 {
                     ct.ThrowIfCancellationRequested();
 

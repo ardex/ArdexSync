@@ -26,9 +26,17 @@ namespace Ardex.Sync.Providers
             this.GetChanges = getChanges;
         }
 
-        public IEnumerable<TEntity> ResolveDelta(Timestamp lastSeenTimestamp, CancellationToken ct)
+        public Delta<Timestamp, TEntity> ResolveDelta(Timestamp lastSeenTimestamp, CancellationToken ct)
         {
-            return this.GetChanges(lastSeenTimestamp, ct);
+            var anchor = this.LastAnchor();
+            var changes = this.GetChanges(lastSeenTimestamp, ct);
+
+            return new Delta<Timestamp, TEntity>(anchor, changes);
+        }
+
+        public Timestamp LastAnchor()
+        {
+            return null;
         }
     }
 }

@@ -62,13 +62,15 @@ namespace Ardex.Sync
             return this.Target.LastAnchor();
         }
 
-        protected virtual IEnumerable<TChange> ResolveDelta(TAnchor anchor, CancellationToken ct)
+        protected virtual Delta<TAnchor, TChange> ResolveDelta(TAnchor anchor, CancellationToken ct)
         {
             return this.Source.ResolveDelta(anchor, ct);
         }
 
-        protected virtual SyncResult AcceptChanges(IEnumerable<TChange> delta, CancellationToken ct)
+        protected virtual SyncResult AcceptChanges(Delta<TAnchor, TChange> delta, CancellationToken ct)
         {
+            var changes = delta.Changes;
+
             // See if either source or target support metadata cleanup.
             var sourceCleanup = this.Source as ISyncMetadataCleanup<TChange>;
             var targetCleanup = this.Target as ISyncMetadataCleanup<TChange>;
@@ -77,7 +79,7 @@ namespace Ardex.Sync
             {
                 // Materialise changes since they will
                 // need to be iterated over multiple times.
-                delta = delta.ToArray();
+                changes = changes.ToArray();
                 ct.ThrowIfCancellationRequested();
             }
 
@@ -86,11 +88,11 @@ namespace Ardex.Sync
             ct.ThrowIfCancellationRequested();
 
             // Source sync metdatata cleanup.
-            if (sourceCleanup != null) sourceCleanup.CleanUpSyncMetadata(delta);
+            if (sourceCleanup != null) sourceCleanup.CleanUpSyncMetadata(changes);
             ct.ThrowIfCancellationRequested();
 
             // Target sync metdatata cleanup.
-            if (targetCleanup != null) targetCleanup.CleanUpSyncMetadata(delta);
+            if (targetCleanup != null) targetCleanup.CleanUpSyncMetadata(changes);
             ct.ThrowIfCancellationRequested();
 
             return result;

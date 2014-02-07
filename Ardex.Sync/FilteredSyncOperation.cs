@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Ardex.Sync
 {
-    public class FilteredSyncOperation<TAnchor, TChange> : BasicSyncOperation<TAnchor, TChange>
+    public class FilteredSyncOperation<TAnchor, TDelta> : BasicSyncOperation<TAnchor, TDelta>
     {
         /// <summary>
         /// Optional filter applied to the change
@@ -14,21 +14,21 @@ namespace Ardex.Sync
         /// and/or transforms the changes before
         /// they are accepted by the target.
         /// </summary>
-        public SyncFilter<TChange> Filter { get; private set; }
+        public SyncFilter<TDelta> Filter { get; private set; }
 
         public FilteredSyncOperation(
-            ISyncSource<TAnchor, TChange> source,
-            ISyncTarget<TAnchor, TChange> target,
-            SyncFilter<TChange> filter) : base(source, target)
+            ISyncSource<TAnchor, TDelta> source,
+            ISyncTarget<TAnchor, TDelta> target,
+            SyncFilter<TDelta> filter) : base(source, target)
         {
             this.Filter = filter;
         }
 
-        protected override IEnumerable<TChange> ResolveDelta(TAnchor anchor, System.Threading.CancellationToken ct)
+        protected override Delta<TAnchor, TDelta> ResolveDelta(TAnchor anchor, System.Threading.CancellationToken ct)
         {
             var delta = base.ResolveDelta(anchor, ct);
 
-            return this.Filter(delta);
+            return new Delta<TAnchor, TDelta>(delta.Anchor, this.Filter(delta.Changes));
         }
     }
 }

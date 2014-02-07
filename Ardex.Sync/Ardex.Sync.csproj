@@ -46,7 +46,9 @@
     <Compile Include="ChangeTracking\ISharedChangeHistory.cs" />
     <Compile Include="ChangeTracking\ChangeTracking.cs" />
     <Compile Include="ChangeTracking\SharedChangeHistory.cs" />
+    <Compile Include="Delta.cs" />
     <Compile Include="FilteredSyncOperation.cs" />
+    <Compile Include="ISyncAnchor.cs" />
     <Compile Include="ISyncMetadataCleanup.cs" />
     <Compile Include="ISyncProvider.cs" />
     <Compile Include="ISyncSource.cs" />
@@ -55,9 +57,10 @@
     <Compile Include="PropertyMapping\TimestampMapping.cs" />
     <Compile Include="PropertyMapping\UniqueIdMapping.cs" />
     <Compile Include="Providers\ChangeBased\Change.cs" />
-    <Compile Include="Providers\ChangeTrackingSyncProvider.cs" />
+    <Compile Include="Providers\MergeSyncProvider.cs" />
     <Compile Include="Providers\TimestampDelegateSyncSource.cs" />
     <Compile Include="Providers\TimestampRepositorySyncProvider.cs" />
+    <Compile Include="SyncConflict.cs" />
     <Compile Include="SyncFilter.cs" />
     <Compile Include="SyncID.cs" />
     <Compile Include="SyncOperation.cs" />
