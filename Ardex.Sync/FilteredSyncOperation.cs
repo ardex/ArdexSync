@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading;
 
 namespace Ardex.Sync
 {
@@ -24,7 +20,7 @@ namespace Ardex.Sync
             this.Filter = filter;
         }
 
-        protected override Delta<TAnchor, TDelta> ResolveDelta(TAnchor anchor, System.Threading.CancellationToken ct)
+        protected override Delta<TAnchor, TDelta> ResolveDelta(TAnchor anchor, CancellationToken ct)
         {
             var delta = base.ResolveDelta(anchor, ct);
 
