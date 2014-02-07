@@ -72,7 +72,8 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public SyncResult AcceptChanges(SyncID replicaID, Delta<Dictionary<SyncID, Timestamp>, Change<TEntity, TChangeHistory>> delta, CancellationToken ct)
+        public SyncResult AcceptChanges(
+            SyncID sourceReplicaID, Delta<Dictionary<SyncID, Timestamp>, Change<TEntity, TChangeHistory>> delta, CancellationToken ct)
         {
             // Critical region protected with exclusive lock.
             var repository = this.ChangeTracking.Repository;
@@ -94,30 +95,32 @@ namespace Ardex.Sync.Providers
                     changes,
                     c => this.ChangeTracking.GetTrackedEntityID(c.Entity),
                     c => this.ChangeTracking.GetTrackedEntityID(c.Entity),
-                    (winner, loser) => new SyncConflict<Change<TEntity, TChangeHistory>>(winner, loser));
+                    (local, remote) => SyncConflict.Create(local, remote));
 
                 if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Fail)
                 {
-                    foreach (var conflict in conflicts)
+                    if (conflicts.Any())
                     {
                         throw new InvalidOperationException("Merge conflict detected.");
                     }
                 }
                 else if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Winner)
                 {
-                    // Discard other replica's changes.
-                    changes = changes.Except(conflicts.Select(c => c.Loser));
+                    var ignoredChanges = conflicts.Select(c => c.Remote);
+
+                    foreach (var ignoredChange in ignoredChanges)
+                    {
+                        this.ChangeTracking.InsertChangeHistory(ignoredChange.ChangeHistory);
+                    }
+
+                    // Discard other replica's changes. Ours are better.
+                    changes = changes.Except(ignoredChanges);
                 }
                 else if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Loser)
                 {
-                    // We'll just pretend that the change never happened.
-                    foreach (var change in conflicts.Select(c => c.Loser))
-                    {
-                        this.ChangeTracking.ChangeHistory.Delete(change.ChangeHistory);
-                    }
+                    // We'll just pretend that nothing happened.
                 }
 
-                var changeHistory = this.ChangeTracking.FilteredChangeHistory();
                 var type = typeof(TEntity);
                 var inserts = new List<object>();
                 var updates = new List<object>();
@@ -168,6 +171,12 @@ namespace Ardex.Sync.Providers
 
                     if (!found)
                     {
+                        // Debug only.
+                        if (repository.Any(e => this.ChangeTracking.GetTrackedEntityID(e) == this.ChangeTracking.GetTrackedEntityID(change.Entity)))
+                        {
+                            throw new InvalidOperationException("PK violation detected.");
+                        }
+
                         repository.Insert(change.Entity);
                         inserts.Add(change);
                     }
@@ -178,9 +187,9 @@ namespace Ardex.Sync.Providers
 
                 ct.ThrowIfCancellationRequested();
 
-                Debug.Print("{0} {1} inserts applied: {2}.", this.ChangeTracking.ReplicaID, type.Name, inserts.Count);
-                Debug.Print("{0} {1} updates applied: {2}.", this.ChangeTracking.ReplicaID, type.Name, updates.Count);
-                Debug.Print("{0} {1} deletes applied: {2}.", this.ChangeTracking.ReplicaID, type.Name, deletes.Count);
+                Debug.Print("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaID, inserts.Count, type.Name, sourceReplicaID);
+                Debug.Print("{0} applied {1} {2} updates originating at {3}.", this.ReplicaID, updates.Count, type.Name, sourceReplicaID);
+                Debug.Print("{0} applied {1} {2} deletes originating at {3}.", this.ReplicaID, deletes.Count, type.Name, sourceReplicaID);
 
                 var result = new SyncResult(inserts, updates, deletes);
 
@@ -281,7 +290,7 @@ namespace Ardex.Sync.Providers
             {
                 var lastCommittedTimestampByReplica = this.LastSeenTimestampByReplica(appliedDelta.Select(c => c.ChangeHistory));
 
-                foreach (var ch in changeHistory)
+                foreach (var ch in this.ChangeTracking.FilteredChangeHistory())
                 {
                     // Ensure that this change is not the last for node.
                     var replicaID = this.ChangeTracking.GetChangeHistoryReplicaID(ch);
