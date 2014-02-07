@@ -58,8 +58,8 @@
     <Compile Include="PropertyMapping\UniqueIdMapping.cs" />
     <Compile Include="Providers\ChangeBased\Change.cs" />
     <Compile Include="Providers\MergeSyncProvider.cs" />
-    <Compile Include="Providers\TimestampDelegateSyncSource.cs" />
-    <Compile Include="Providers\TimestampRepositorySyncProvider.cs" />
+    <Compile Include="Providers\VersionDelegateSyncSource.cs" />
+    <Compile Include="Providers\VersionRepositorySyncProvider.cs" />
     <Compile Include="SyncConflict.cs" />
     <Compile Include="SyncFilter.cs" />
     <Compile Include="SyncID.cs" />

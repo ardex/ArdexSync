@@ -60,7 +60,7 @@ namespace Ardex.Sync.ChangeTracking
                     ch.ReplicaID = this.ReplicaID;
                     ch.UniqueID = changeTracking.GetTrackedEntityID(entity);
 
-                    // Resolve timestamp.
+                    // Resolve version.
                     var timestamp = changeHistory
                         .Where(c => c.ReplicaID == this.ReplicaID)
                         .Select(c => c.Timestamp)
@@ -132,7 +132,7 @@ namespace Ardex.Sync.ChangeTracking
                     ch.ReplicaID = this.ReplicaID;
                     ch.UniqueID = changeTracking.GetTrackedEntityID(entity);
 
-                    // Resolve timestamp.
+                    // Resolve version.
                     var timestamp = changeHistory
                         .Where(c => c.ReplicaID == this.ReplicaID)
                         .Select(c => c.Timestamp)

@@ -36,7 +36,7 @@ namespace Ardex.Sync.ChangeTracking
         private readonly UniqueIdMapping<TChangeHistory> ChangeHistoryIdMapping;
         private readonly UniqueIdMapping<TChangeHistory> ChangeHistoryEntityIdMapping;
         private readonly UniqueIdMapping<TChangeHistory> ChangeHistoryReplicaIdMapping;
-        private readonly ComparableMapping<TChangeHistory> ChangeHistoryTimestampMapping;
+        private readonly ComparableMapping<TChangeHistory> ChangeHistoryVersionMapping;
 
         // Tracked/untracked change actions.
         // Note that it's the repository's responsibility
@@ -62,7 +62,7 @@ namespace Ardex.Sync.ChangeTracking
             UniqueIdMapping<TChangeHistory> changeHistoryIdMapping,
             UniqueIdMapping<TChangeHistory> changeHistoryEntityIdMapping,
             UniqueIdMapping<TChangeHistory> changeHistoryReplicaIdMapping,
-            ComparableMapping<TChangeHistory> changeHistoryTimestampMapping,
+            ComparableMapping<TChangeHistory> changeHistoryVersionMapping,
             Action<TEntity, ChangeHistoryAction> trackedChange,
             Action<TChangeHistory> insertChangeHistory)
         {
@@ -79,7 +79,7 @@ namespace Ardex.Sync.ChangeTracking
             this.ChangeHistoryIdMapping = changeHistoryIdMapping;
             this.ChangeHistoryEntityIdMapping = changeHistoryEntityIdMapping;
             this.ChangeHistoryReplicaIdMapping = changeHistoryReplicaIdMapping;
-            this.ChangeHistoryTimestampMapping = changeHistoryTimestampMapping;
+            this.ChangeHistoryVersionMapping = changeHistoryVersionMapping;
 
             __trackedChange = trackedChange;
             __insertChangeHistory = insertChangeHistory;
@@ -162,9 +162,9 @@ namespace Ardex.Sync.ChangeTracking
             return this.ChangeHistoryReplicaIdMapping.Get(changeHistory);
         }
 
-        public IComparable GetChangeHistoryTimestamp(TChangeHistory changeHistory)
+        public IComparable GetChangeHistoryVersion(TChangeHistory changeHistory)
         {
-            return this.ChangeHistoryTimestampMapping.Get(changeHistory);
+            return this.ChangeHistoryVersionMapping.Get(changeHistory);
         }
     }
 }

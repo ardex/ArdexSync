@@ -9,11 +9,11 @@ using Ardex.Sync.PropertyMapping;
 namespace Ardex.Sync.Providers
 {
     /// <summary>
-    /// Timestamp-based sync provider which
+    /// Version-based sync provider which
     /// uses a repository for producing
     /// and accepting change delta.
     /// </summary>
-    public class TimestampRepositorySyncProvider<TEntity> : ISyncProvider<IComparable, TEntity>
+    public class VersionRepositorySyncProvider<TEntity> : ISyncProvider<IComparable, TEntity>
     {
         /// <summary>
         /// Unique identifier of this replica.
@@ -31,30 +31,30 @@ namespace Ardex.Sync.Providers
         public UniqueIdMapping<TEntity> UniqueIdMapping { get; private set; }
 
         /// <summary>
-        /// Provides means of getting a timestamp from an entity.
+        /// Provides means of getting a version from an entity.
         /// </summary>
-        public ComparableMapping<TEntity> TimestampMapping { get; private set; }
+        public ComparableMapping<TEntity> VersionMapping { get; private set; }
 
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        public TimestampRepositorySyncProvider(
+        public VersionRepositorySyncProvider(
             SyncID replicaID,
             SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> uniqueIdMapping,
-            ComparableMapping<TEntity> timestampMapping)
+            ComparableMapping<TEntity> versionMapping)
         {
             if (repository == null) throw new ArgumentNullException("repository");
             if (uniqueIdMapping == null) throw new ArgumentNullException("uniqueIdMapping");
-            if (timestampMapping == null) throw new ArgumentNullException("timestampMapping");
+            if (versionMapping == null) throw new ArgumentNullException("versionMapping");
 
             this.ReplicaID = replicaID;
             this.Repository = repository;
             this.UniqueIdMapping = uniqueIdMapping;
-            this.TimestampMapping = timestampMapping;
+            this.VersionMapping = versionMapping;
         }
 
-        public Delta<IComparable, TEntity> ResolveDelta(IComparable lastSeenTimestamp, CancellationToken ct)
+        public Delta<IComparable, TEntity> ResolveDelta(IComparable lastKnownVersion, CancellationToken ct)
         {
             this.Repository.Lock.EnterReadLock();
 
@@ -63,8 +63,8 @@ namespace Ardex.Sync.Providers
                 var anchor = this.LastAnchor();
 
                 var changes = this.Repository
-                    .Where(e => lastSeenTimestamp == null || this.TimestampMapping.Get(e).CompareTo(lastSeenTimestamp) > 0)
-                    .OrderBy(e => this.TimestampMapping.Get(e))
+                    .Where(e => lastKnownVersion == null || this.VersionMapping.Get(e).CompareTo(lastKnownVersion) > 0)
+                    .OrderBy(e => this.VersionMapping.Get(e))
                     .AsEnumerable();
 
                 return new Delta<IComparable, TEntity>(anchor, changes);
@@ -94,7 +94,7 @@ namespace Ardex.Sync.Providers
                 var deletes = new List<object>();
                 var props = type.GetProperties();
 
-                foreach (var change in delta.Changes.OrderBy(e => this.TimestampMapping.Get(e)))
+                foreach (var change in delta.Changes.OrderBy(e => this.VersionMapping.Get(e)))
                 {
                     ct.ThrowIfCancellationRequested();
 
@@ -160,7 +160,7 @@ namespace Ardex.Sync.Providers
         public IComparable LastAnchor()
         {
             return this.Repository
-                .Select(e => this.TimestampMapping.Get(e))
+                .Select(e => this.VersionMapping.Get(e))
                 .DefaultIfEmpty()
                 .Max();
         }

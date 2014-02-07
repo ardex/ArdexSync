@@ -129,7 +129,7 @@ namespace Ardex.Sync.Providers
 
                 // We need to ensure that all changes are processed in such
                 // an order that if we fail, we'll be able to resume later.
-                foreach (var change in changes.OrderBy(c => this.ChangeTracking.GetChangeHistoryTimestamp(c.ChangeHistory)))
+                foreach (var change in changes.OrderBy(c => this.ChangeTracking.GetChangeHistoryVersion(c.ChangeHistory)))
                 {
                     ct.ThrowIfCancellationRequested();
 
@@ -204,9 +204,9 @@ namespace Ardex.Sync.Providers
         }
 
         /// <summary>
-        /// Reports changes since the last reported timestamp for each node.
+        /// Reports changes since the last reported version for each node.
         /// </summary>
-        public Delta<Dictionary<SyncID, IComparable>, Change<TEntity, TChangeHistory>> ResolveDelta(Dictionary<SyncID, IComparable> timestampsByReplica, CancellationToken ct)
+        public Delta<Dictionary<SyncID, IComparable>, Change<TEntity, TChangeHistory>> ResolveDelta(Dictionary<SyncID, IComparable> versionsByReplica, CancellationToken ct)
         {
             this.ChangeTracking.ChangeHistory.Lock.EnterReadLock();
 
@@ -218,11 +218,11 @@ namespace Ardex.Sync.Providers
                     .FilteredChangeHistory()
                     .Where(ch =>
                     {
-                        var timestamp = default(IComparable);
+                        var version = default(IComparable);
 
                         return
-                            !timestampsByReplica.TryGetValue(this.ChangeTracking.GetChangeHistoryReplicaID(ch), out timestamp) ||
-                            this.ChangeTracking.GetChangeHistoryTimestamp(ch).CompareTo(timestamp) > 0;
+                            !versionsByReplica.TryGetValue(this.ChangeTracking.GetChangeHistoryReplicaID(ch), out version) ||
+                            this.ChangeTracking.GetChangeHistoryVersion(ch).CompareTo(version) > 0;
                     })
                     .Join(
                         this.ChangeTracking.Repository.AsEnumerable(),
@@ -230,7 +230,7 @@ namespace Ardex.Sync.Providers
                         this.ChangeTracking.GetTrackedEntityID,
                         (ch, entity) => Change.Create(entity, ch))
                     // Ensure that the oldest changes for each replica are sync first.
-                    .OrderBy(c => this.ChangeTracking.GetChangeHistoryTimestamp(c.ChangeHistory))
+                    .OrderBy(c => this.ChangeTracking.GetChangeHistoryVersion(c.ChangeHistory))
                     .AsEnumerable();
 
                 return new Delta<Dictionary<SyncID, IComparable>, Change<TEntity, TChangeHistory>>(anchor, changes);
@@ -242,29 +242,29 @@ namespace Ardex.Sync.Providers
         }
 
         /// <summary>
-        /// Returns last seen timestamp value for each known node.
+        /// Returns last seen version value for each known node.
         /// </summary>
         public Dictionary<SyncID, IComparable> LastAnchor()
         {
-            return this.LastSeenTimestampByReplica(this.ChangeTracking.FilteredChangeHistory());
+            return this.LastKnownVersionByReplica(this.ChangeTracking.FilteredChangeHistory());
         }
 
         /// <summary>
-        /// Returns last seen timestamp value for each known node.
+        /// Returns last seen version value for each known node.
         /// </summary>
-        private Dictionary<SyncID, IComparable> LastSeenTimestampByReplica(IEnumerable<TChangeHistory> changeHistory)
+        private Dictionary<SyncID, IComparable> LastKnownVersionByReplica(IEnumerable<TChangeHistory> changeHistory)
         {
             var dict = new Dictionary<SyncID, IComparable>();
 
             foreach (var ch in changeHistory)
             {
                 var replicaID = this.ChangeTracking.GetChangeHistoryReplicaID(ch);
-                var timestamp = this.ChangeTracking.GetChangeHistoryTimestamp(ch);
-                var lastSeenTimestamp = default(IComparable);
+                var version = this.ChangeTracking.GetChangeHistoryVersion(ch);
+                var lastKnownVersion = default(IComparable);
 
-                if (!dict.TryGetValue(replicaID, out lastSeenTimestamp) || timestamp.CompareTo(lastSeenTimestamp) > 0)
+                if (!dict.TryGetValue(replicaID, out lastKnownVersion) || version.CompareTo(lastKnownVersion) > 0)
                 {
-                    dict[replicaID] = timestamp;
+                    dict[replicaID] = version;
                 }
             }
 
@@ -288,17 +288,17 @@ namespace Ardex.Sync.Providers
 
             try
             {
-                var lastCommittedTimestampByReplica = this.LastSeenTimestampByReplica(appliedDelta.Select(c => c.ChangeHistory));
+                var lastKnownVersionByReplica = this.LastKnownVersionByReplica(appliedDelta.Select(c => c.ChangeHistory));
 
                 foreach (var ch in this.ChangeTracking.FilteredChangeHistory())
                 {
                     // Ensure that this change is not the last for node.
                     var replicaID = this.ChangeTracking.GetChangeHistoryReplicaID(ch);
-                    var timestamp = this.ChangeTracking.GetChangeHistoryTimestamp(ch);
-                    var lastCommittedTimestamp = default(IComparable);
+                    var version = this.ChangeTracking.GetChangeHistoryVersion(ch);
+                    var lastKnownVersion = default(IComparable);
 
-                    if (lastCommittedTimestampByReplica.TryGetValue(replicaID, out lastCommittedTimestamp) &&
-                        timestamp.CompareTo(lastCommittedTimestamp) < 0)
+                    if (lastKnownVersionByReplica.TryGetValue(replicaID, out lastKnownVersion) &&
+                        version.CompareTo(lastKnownVersion) < 0)
                     {
                         changeHistory.Delete(ch);
                     }
