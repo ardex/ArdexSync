@@ -28,14 +28,14 @@ namespace Ardex.Sync.ChangeTracking
         /// a change history repository which tracks a single article.
         /// One change history repository is used exclusively by one data repository.
         /// </summary>
-        public ChangeTracking<TEntity, IChangeHistory> Exclusive<TEntity>(
+        public ChangeTrackingRegistration<TEntity, IChangeHistory> Exclusive<TEntity>(
             SyncRepository<TEntity> repository,
             SyncRepository<IChangeHistory> changeHistoryRepository,
             UniqueIdMapping<TEntity> entityIdMapping)
         {
-            var changeTracking = default(ChangeTracking<TEntity, IChangeHistory>);
+            var changeTracking = default(ChangeTrackingRegistration<TEntity, IChangeHistory>);
 
-            changeTracking = new ChangeTracking<TEntity, IChangeHistory>(
+            changeTracking = new ChangeTrackingRegistration<TEntity, IChangeHistory>(
                 this.ReplicaID,
                 repository,
                 changeHistoryRepository,
@@ -98,15 +98,15 @@ namespace Ardex.Sync.ChangeTracking
         /// a change history repository which tracks multiple articles.
         /// One change history repository is used by one or more repositories.
         /// </summary>
-        public ChangeTracking<TEntity, ISharedChangeHistory> Shared<TEntity>(
+        public ChangeTrackingRegistration<TEntity, ISharedChangeHistory> Shared<TEntity>(
             SyncID articleID,
             SyncRepository<TEntity> repository,
             SyncRepository<ISharedChangeHistory> changeHistoryRepository,
             UniqueIdMapping<TEntity> entityIdMapping)
         {
-            var changeTracking = default(ChangeTracking<TEntity, ISharedChangeHistory>);
+            var changeTracking = default(ChangeTrackingRegistration<TEntity, ISharedChangeHistory>);
 
-            changeTracking = new ChangeTracking<TEntity, ISharedChangeHistory>(
+            changeTracking = new ChangeTrackingRegistration<TEntity, ISharedChangeHistory>(
                 this.ReplicaID,
                 repository,
                 changeHistoryRepository,

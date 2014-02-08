@@ -6,7 +6,7 @@ using Ardex.Sync.PropertyMapping;
 
 namespace Ardex.Sync.ChangeTracking
 {
-    public class ChangeTracking<TEntity, TChangeHistory>
+    public class ChangeTrackingRegistration<TEntity, TChangeHistory>
     {
         private readonly SyncRepository<TChangeHistory> __changeHistory;
 
@@ -53,7 +53,7 @@ namespace Ardex.Sync.ChangeTracking
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        public ChangeTracking(
+        public ChangeTrackingRegistration(
             SyncID replicaID,
             SyncRepository<TEntity> entities,
             SyncRepository<TChangeHistory> changeHistory,
