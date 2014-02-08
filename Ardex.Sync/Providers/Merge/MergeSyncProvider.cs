@@ -12,7 +12,7 @@ namespace Ardex.Sync.Providers.Merge
         /// Factory method.
         /// </summary>
         public static MergeSyncProvider<TEntity, TChangeHistory> Create<TEntity, TChangeHistory>(
-            ChangeTracking<TEntity, TChangeHistory> changeTracking)
+            ChangeTrackingRegistration<TEntity, TChangeHistory> changeTracking)
         {
             return new MergeSyncProvider<TEntity, TChangeHistory>(changeTracking);
         }
@@ -22,12 +22,12 @@ namespace Ardex.Sync.Providers.Merge
     /// Sync provider implementation which works with
     /// sync repositories and change history metadata.
     /// </summary>
-    public class MergeSyncProvider<TEntity, TVersion> : SyncProvider<TEntity, TVersion, Dictionary<SyncID, TVersion>>
+    public class MergeSyncProvider<TEntity, TVersion> : SyncProvider<TEntity, TVersion>
     {
         /// <summary>
         /// Gets the change tracking manager used by this provider.
         /// </summary>
-        public ChangeTracking<TEntity, TVersion> ChangeTracking { get; private set; }
+        public ChangeTrackingRegistration<TEntity, TVersion> ChangeTracking { get; private set; }
 
         /// <summary>
         /// If true, the change history will be kept minimal
@@ -67,7 +67,8 @@ namespace Ardex.Sync.Providers.Merge
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        public MergeSyncProvider(ChangeTracking<TEntity, TVersion> changeTracking) : base(changeTracking.ReplicaID, changeTracking.Repository, changeTracking.TrackedEntityIdMapping)
+        public MergeSyncProvider(ChangeTrackingRegistration<TEntity, TVersion> changeTracking)
+            : base(changeTracking.ReplicaID, changeTracking.Repository, changeTracking.TrackedEntityIdMapping)
         {
             this.ChangeTracking = changeTracking;
         }
@@ -75,7 +76,7 @@ namespace Ardex.Sync.Providers.Merge
         /// <summary>
         /// Reports changes since the last reported version for each node.
         /// </summary>
-        public override SyncDelta<TEntity, TVersion, Dictionary<SyncID, TVersion>> ResolveDelta(Dictionary<SyncID, TVersion> versionByReplica, CancellationToken ct)
+        public override SyncDelta<TEntity, TVersion> ResolveDelta(Dictionary<SyncID, TVersion> versionByReplica, CancellationToken ct)
         {
             this.ChangeTracking.ChangeHistory.Lock.EnterReadLock();
 

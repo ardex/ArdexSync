@@ -80,7 +80,7 @@ namespace Ardex.Sync
         /// </summary>
         private void Initialise()
         {
-            this.ChangeTracking = new ChangeTracking<TEntity>(this);
+            //this.ChangeTracking = new ChangeTracking<TEntity>(this);
         }
 
         /// <summary>

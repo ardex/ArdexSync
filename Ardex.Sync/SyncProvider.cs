@@ -66,7 +66,7 @@ namespace Ardex.Sync
         /// the change delta that needs to be transferred
         /// and to detect and resolve conflicts.
         /// </summary>
-        public abstract TAnchor LastAnchor();
+        public abstract Dictionary<SyncID, TVersion> LastAnchor();
         
         /// <summary>
         /// Resolves the changes made since the last reported anchor.
@@ -84,7 +84,7 @@ namespace Ardex.Sync
             try
             {
                 // Temporarily suspend change tracking.
-                this.Repository.ChangeTracking.Enabled = false;
+                this.ChangeTrackingEnabled = false;
 
                 try
                 {
@@ -182,7 +182,7 @@ namespace Ardex.Sync
                 }
                 finally
                 {
-                    this.Repository.ChangeTracking.Enabled = true;
+                    this.ChangeTrackingEnabled = true;
                 }
             }
             finally
