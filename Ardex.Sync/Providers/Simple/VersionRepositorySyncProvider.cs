@@ -40,7 +40,6 @@ namespace Ardex.Sync.Providers.Simple
             SyncID replicaID,
             SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> uniqueIdMapping,
-            UniqueIdMapping<TEntity> ownerIdMapping,
             ComparableMapping<TEntity> versionMapping) : base(replicaID, repository, uniqueIdMapping)
         {
             this.VersionMapping = versionMapping;
