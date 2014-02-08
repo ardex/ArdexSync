@@ -10,15 +10,41 @@ using Ardex.Sync.PropertyMapping;
 
 namespace Ardex.Sync.Providers.Merge
 {
+    /// <summary>
+    /// Base class for merge synchronisation providers.
+    /// </summary>
     public abstract class MergeSyncProviderBase<TEntity, TAnchor, TVersion> : ISyncProvider<TAnchor, VersionInfo<TEntity, TVersion>>
     {
+        /// <summary>
+        /// Unique ID of this replica.
+        /// </summary>
         public SyncID ReplicaID { get; private set; }
+
+        /// <summary>
+        /// Repository which is being synchronised.
+        /// </summary>
         public SyncRepository<TEntity> Repository { get; private set; }
+
+        /// <summary>
+        /// Entity primary key / unique identifier mapping.
+        /// </summary>
         public UniqueIdMapping<TEntity> EntityIdMapping { get; private set; }
 
+        /// <summary>
+        /// Conflict resolution strategy used by this provider.
+        /// </summary>
         public SyncConflictResolutionStrategy ConflictResolutionStrategy { get; set; }
 
+        /// <summary>
+        /// Enables temporary suppression of the change tracking functionality
+        /// for the purpose of writing custom change entries during the sync.
+        /// </summary>
         protected abstract bool ChangeTrackingEnabled { get; set; }
+
+        /// <summary>
+        /// Comparer responsible for comparing timestamps
+        /// and other versioning data structures.
+        /// </summary>
         protected abstract IComparer<TVersion> VersionComparer { get; }
 
         public MergeSyncProviderBase(
@@ -31,10 +57,29 @@ namespace Ardex.Sync.Providers.Merge
             this.EntityIdMapping = entityIdMapping;
         }
 
+        /// <summary>
+        /// Writes the remote version entry into the
+        /// local change history store if necessary.
+        /// </summary>
         protected abstract void WriteRemoteVersion(VersionInfo<TEntity, TVersion> remoteVersion);
+
+        /// <summary>
+        /// Resolves the changes made since the last reported anchor.
+        /// </summary>
         public abstract Delta<TAnchor, VersionInfo<TEntity, TVersion>> ResolveDelta(TAnchor anchor, CancellationToken ct);
+
+        /// <summary>
+        /// Retrieves the last anchor containing
+        /// this replica's latest change knowledge.
+        /// It is used by the other side in order to detect
+        /// the change delta that needs to be transferred
+        /// and to detect and resolve conflicts.
+        /// </summary>
         public abstract TAnchor LastAnchor();
 
+        /// <summary>
+        /// Accepts the changes as reported by the given node.
+        /// </summary>
         public SyncResult AcceptChanges(SyncID sourceReplicaID, Delta<TAnchor, VersionInfo<TEntity, TVersion>> delta, CancellationToken ct)
         {
             // Critical region protected with exclusive lock.
@@ -59,6 +104,7 @@ namespace Ardex.Sync.Providers.Merge
                     c => this.EntityIdMapping.Get(c.Entity),
                     (local, remote) => SyncConflict.Create(local, remote));
 
+                // Resolve conflicts.
                 if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Fail)
                 {
                     if (conflicts.Any())
@@ -87,7 +133,6 @@ namespace Ardex.Sync.Providers.Merge
                 var inserts = new List<object>();
                 var updates = new List<object>();
                 var deletes = new List<object>();
-                var props = type.GetProperties();
 
                 // We need to ensure that all changes are processed in such
                 // an order that if we fail, we'll be able to resume later.
@@ -103,22 +148,7 @@ namespace Ardex.Sync.Providers.Merge
                         if (changeUniqueID == this.EntityIdMapping.Get(existingEntity))
                         {
                             // Found.
-                            var changeCount = 0;
-
-                            foreach (var prop in props)
-                            {
-                                if (prop.CanRead && prop.CanWrite)
-                                {
-                                    var oldValue = prop.GetValue(existingEntity);
-                                    var newValue = prop.GetValue(change.Entity);
-
-                                    if (!object.Equals(oldValue, newValue))
-                                    {
-                                        prop.SetValue(existingEntity, newValue);
-                                        changeCount++;
-                                    }
-                                }
-                            }
+                            var changeCount = this.ApplyChange(existingEntity, change.Entity);
 
                             if (changeCount != 0)
                             {
@@ -157,6 +187,34 @@ namespace Ardex.Sync.Providers.Merge
 
                 repository.Lock.ExitWriteLock();
             }
+        }
+
+        /// <summary>
+        /// Reconciles the differences where necessary,
+        /// and returns the number of changes applied.
+        /// </summary>
+        protected virtual int ApplyChange(TEntity original, TEntity modified)
+        {
+            var changeCount = 0;
+            var type = typeof(TEntity);
+            var props = type.GetProperties();
+
+            foreach (var prop in props)
+            {
+                if (prop.CanRead && prop.CanWrite)
+                {
+                    var oldValue = prop.GetValue(original);
+                    var newValue = prop.GetValue(modified);
+
+                    if (!object.Equals(oldValue, newValue))
+                    {
+                        prop.SetValue(original, newValue);
+                        changeCount++;
+                    }
+                }
+            }
+
+            return changeCount;
         }
     }
 }
