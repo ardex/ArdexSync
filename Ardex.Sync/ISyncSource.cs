@@ -6,7 +6,7 @@ namespace Ardex.Sync
     /// <summary>
     /// Source of a sync operation.
     /// </summary>
-    public interface ISyncSource<TEntity, TAnchor, TVersion> : ISyncAnchor<TAnchor>
+    public interface ISyncSource<TEntity, TVersion, TAnchor> : ISyncAnchor<TAnchor>
     {
         /// <summary>
         /// Gets this replica's unique identifier.
@@ -16,6 +16,6 @@ namespace Ardex.Sync
         /// <summary>
         /// Resolves the changes made since the last reported anchor.
         /// </summary>
-        SyncDelta<TEntity, TAnchor, TVersion> ResolveDelta(TAnchor anchor, CancellationToken ct);
+        SyncDelta<TEntity, TVersion, TAnchor> ResolveDelta(TAnchor anchor, CancellationToken ct);
     }
 }

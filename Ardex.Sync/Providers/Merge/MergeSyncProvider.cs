@@ -24,7 +24,7 @@ namespace Ardex.Sync.Providers.Merge
     /// Sync provider implementation which works with
     /// sync repositories and change history metadata.
     /// </summary>
-    public class MergeSyncProvider<TEntity, TVersion> : SyncProvider<TEntity, Dictionary<SyncID, TVersion>, TVersion>
+    public class MergeSyncProvider<TEntity, TVersion> : SyncProvider<TEntity, TVersion, Dictionary<SyncID, TVersion>>
     {
         /// <summary>
         /// Gets the change tracking manager used by this provider.
@@ -77,7 +77,7 @@ namespace Ardex.Sync.Providers.Merge
         /// <summary>
         /// Reports changes since the last reported version for each node.
         /// </summary>
-        public override SyncDelta<TEntity, Dictionary<SyncID, TVersion>, TVersion> ResolveDelta(Dictionary<SyncID, TVersion> versionByReplica, CancellationToken ct)
+        public override SyncDelta<TEntity, TVersion, Dictionary<SyncID, TVersion>> ResolveDelta(Dictionary<SyncID, TVersion> versionByReplica, CancellationToken ct)
         {
             this.ChangeTracking.ChangeHistory.Lock.EnterReadLock();
 

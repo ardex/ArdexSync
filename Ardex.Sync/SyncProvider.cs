@@ -11,7 +11,7 @@ namespace Ardex.Sync
     /// <summary>
     /// Base class for merge synchronisation providers.
     /// </summary>
-    public abstract class SyncProvider<TEntity, TAnchor, TVersion> : ISyncProvider<TEntity, TAnchor, TVersion>
+    public abstract class SyncProvider<TEntity, TVersion, TAnchor> : ISyncProvider<TEntity, TVersion, TAnchor>
     {
         /// <summary>
         /// Unique ID of this replica.
@@ -62,7 +62,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Resolves the changes made since the last reported anchor.
         /// </summary>
-        public abstract SyncDelta<TEntity, TAnchor, TVersion> ResolveDelta(TAnchor anchor, CancellationToken ct);
+        public abstract SyncDelta<TEntity, TVersion, TAnchor> ResolveDelta(TAnchor anchor, CancellationToken ct);
 
         /// <summary>
         /// Retrieves the last anchor containing
@@ -76,7 +76,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TAnchor, TVersion> delta, CancellationToken ct)
+        public SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TVersion, TAnchor> delta, CancellationToken ct)
         {
             this.ChangeTrackingEnabled = false;
 
