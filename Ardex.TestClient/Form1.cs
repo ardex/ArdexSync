@@ -44,40 +44,18 @@ namespace Ardex.TestClient
                     var repo2 = new SyncRepository<Dummy>();
                     var repo3 = new SyncRepository<Dummy>();
 
-                    // Change history storage.
-                    var changeHistory1 = new SyncRepository<IChangeHistory>();
-                    var changeHistory2 = new SyncRepository<IChangeHistory>();
-                    var changeHistory3 = new SyncRepository<IChangeHistory>();
-                    var sharedChangeHistory = new SyncRepository<ISharedChangeHistory>();
-
-                    // Essential member mapping.
-                    var uniqueIdMapping = new UniqueIdMapping<Dummy>(d => d.DummyID);
-
-                    //repo1.ChangeTracking.SetUp(changeHistory1, "Server", uniqueIdMapping);
-                    //repo2.ChangeTracking.SetUp(changeHistory2, "Client 1", uniqueIdMapping);
-                    //repo3.ChangeTracking.SetUp(changeHistory3, "Client 2", uniqueIdMapping);
-
-                    // Link entity repos with their change history repos.
-                    //var trackingRegistration1 = new ChangeTrackingFactory("Server").Exclusive(repo1, changeHistory1, uniqueIdMapping);
-                    //var trackingRegistration2 = new ChangeTrackingFactory("Client 1").Exclusive(repo2, changeHistory2, uniqueIdMapping);
-                    //var trackingRegistration3 = new ChangeTrackingFactory("Client 2").Exclusive(repo3, changeHistory3, uniqueIdMapping);
-                    //var trackingRegistration1 = new ChangeTrackingFactory("Server").Shared("Dummy_Server", repo1, sharedChangeHistory, uniqueIdMapping);
-                    //var trackingRegistration2 = new ChangeTrackingFactory("Client 1").Shared("Dummy_Client1", repo2, sharedChangeHistory, uniqueIdMapping);
-                    //var trackingRegistration3 = new ChangeTrackingFactory("Client 2").Shared("Dummy_Client2", repo3, sharedChangeHistory, uniqueIdMapping);
-
                     // Sync providers.
-                    //var server = MergeSyncProvider.Create(trackingRegistration1);
-                    //var client1 = MergeSyncProvider.Create(trackingRegistration2);
-                    //var client2 = MergeSyncProvider.Create(trackingRegistration3);
-                    var server = SyncProvider.Create("Server", repo1, changeHistory1, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client1 = SyncProvider.Create("Client 1", repo2, changeHistory2, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client2 = SyncProvider.Create("Client 2", repo3, changeHistory3, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var server = SyncProvider.Create("Server", repo1, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client1 = SyncProvider.Create("Client 1", repo2, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client2 = SyncProvider.Create("Client 2", repo3, new UniqueIdMapping<Dummy>(d => d.DummyID));
 
-                    //server.CleanUpMetadataAfterSync = false;
-                    //client1.CleanUpMetadataAfterSync = true;
-                    //client2.CleanUpMetadataAfterSync = true;
+                    server.CleanUpMetadataAfterSync = false;
                     server.ConflictResolutionStrategy = SyncConflictStrategy.Winner;
+
+                    client1.CleanUpMetadataAfterSync = true;
                     client1.ConflictResolutionStrategy = SyncConflictStrategy.Loser;
+
+                    client2.CleanUpMetadataAfterSync = true;
                     client2.ConflictResolutionStrategy = SyncConflictStrategy.Loser;
 
                     // Change filter: emulate serialization/deserialization.
@@ -90,15 +68,6 @@ namespace Ardex.TestClient
                             )
                         )
                     );
-
-                    //var filter = new SyncFilter<Dummy, ISharedChangeHistory>(
-                    //    changes => changes.Select(
-                    //        c => new SyncEntityVersion<Dummy, ISharedChangeHistory>(
-                    //            c.Entity.Clone(),
-                    //            new SharedChangeHistory(c.Version)
-                    //        )
-                    //    )
-                    //);
 
                     // Chain sync operations to produce an upload/download chain.
                     var client1Upload = SyncOperation.Create(client1, server).Filtered(filter);
@@ -115,7 +84,7 @@ namespace Ardex.TestClient
                     // Rolling primary key.
                     var dummyID = 1;
 
-                    const int NUM_ITERATIONS = 1;
+                    const int NUM_ITERATIONS = 100;
 
                     for (var iterations = 0; iterations < NUM_ITERATIONS; iterations++)
                     {
@@ -185,20 +154,20 @@ namespace Ardex.TestClient
 
                             var t4 = Task.Run(() =>
                             {
-                                //    repo3.Lock.EnterWriteLock();
+                                    repo3.Lock.EnterWriteLock();
 
-                                //    try
-                                //    {
-                                //        var repo3Dummy3 = repo3.Single(d => d.DummyID == dummy2.DummyID);
+                                    try
+                                    {
+                                        var repo3Dummy3 = repo3.Single(d => d.DummyID == dummy2.DummyID);
 
-                                //        repo3Dummy3.Text = "Dodgy concurrent update";
+                                        repo3Dummy3.Text = "Dodgy concurrent update";
 
-                                //        repo3.Update(repo3Dummy3);
-                                //    }
-                                //    finally
-                                //    {
-                                //        repo3.Lock.ExitWriteLock();
-                                //    }
+                                        repo3.Update(repo3Dummy3);
+                                    }
+                                    finally
+                                    {
+                                        repo3.Lock.ExitWriteLock();
+                                    }
                             });
 
                             //await Task.WhenAll(t1, t2, t3, t4);
