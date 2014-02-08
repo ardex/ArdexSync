@@ -32,7 +32,7 @@ namespace Ardex.Sync.ChangeTracking
         private readonly Func<TChangeHistory, bool> ChangeHistoryPredicate;
 
         // Essential member mapping.
-        private readonly UniqueIdMapping<TEntity> TrackedEntityIdMapping;
+        public readonly UniqueIdMapping<TEntity> TrackedEntityIdMapping;
         private readonly UniqueIdMapping<TChangeHistory> ChangeHistoryIdMapping;
         private readonly UniqueIdMapping<TChangeHistory> ChangeHistoryEntityIdMapping;
         private readonly UniqueIdMapping<TChangeHistory> ChangeHistoryReplicaIdMapping;
