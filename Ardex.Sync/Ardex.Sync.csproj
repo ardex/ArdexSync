@@ -57,7 +57,6 @@
     <Compile Include="PropertyMapping\ComparableMapping.cs" />
     <Compile Include="PropertyMapping\ReadWriteMapping.cs" />
     <Compile Include="PropertyMapping\UniqueIdMapping.cs" />
-    <Compile Include="Providers\Merge\Change.cs" />
     <Compile Include="SyncProvider.cs" />
     <Compile Include="Providers\Simple\VersionDelegateSyncSource.cs" />
     <Compile Include="Providers\Simple\VersionRepositorySyncProvider.cs" />
@@ -71,9 +70,7 @@
     <Compile Include="Timestamp.cs" />
     <Compile Include="Version.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="__Exclude\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\Ardex\Ardex.csproj">
       <Project>{b5d19187-5443-4f78-8a91-3543b0387018}</Project>
