@@ -47,7 +47,10 @@ namespace Ardex.Sync.Providers.Merge
         /// </summary>
         protected abstract IComparer<TVersion> VersionComparer { get; }
 
-        public MergeSyncProviderBase(
+        /// <summary>
+        /// Creates a new instance of the class.
+        /// </summary>
+        protected MergeSyncProviderBase(
             SyncID replicaID,
             SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> entityIdMapping)

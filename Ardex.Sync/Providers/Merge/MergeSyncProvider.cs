@@ -65,8 +65,13 @@ namespace Ardex.Sync.Providers.Merge
         {
             get
             {
-                return new ComparisonComparer<TVersion>(
-                    (x, y) => this.ChangeTracking.GetChangeHistoryVersion(x).CompareTo(this.ChangeTracking.GetChangeHistoryVersion(y)));
+                return new ComparisonComparer<TVersion>((x, y) =>
+                {
+                    var xVersion = this.ChangeTracking.GetChangeHistoryVersion(x);
+                    var yVersion = this.ChangeTracking.GetChangeHistoryVersion(y);
+
+                    return xVersion.CompareTo(yVersion);
+                });
             }
         }
 
