@@ -32,7 +32,7 @@ namespace Ardex.Sync.Providers.Merge
     /// sync repositories and change history metadata.
     /// </summary>
     public class MergeSyncProvider<TEntity, TVersion> :
-        MergeSyncProviderBase<TEntity, Dictionary<SyncID, IComparable>, TVersion>,
+        MergeSyncProviderBase<TEntity, Dictionary<SyncID, TVersion>, TVersion>,
         ISyncMetadataCleanup<VersionInfo<TEntity, TVersion>>
     {
         /// <summary>
@@ -65,7 +65,8 @@ namespace Ardex.Sync.Providers.Merge
         {
             get
             {
-                return new ComparisonComparer<TVersion>((x, y) => this.ChangeTracking.GetChangeHistoryVersion(x).CompareTo(this.ChangeTracking.GetChangeHistoryVersion(y)));
+                return new ComparisonComparer<TVersion>(
+                    (x, y) => this.ChangeTracking.GetChangeHistoryVersion(x).CompareTo(this.ChangeTracking.GetChangeHistoryVersion(y)));
             }
         }
 
@@ -80,7 +81,7 @@ namespace Ardex.Sync.Providers.Merge
         /// <summary>
         /// Reports changes since the last reported version for each node.
         /// </summary>
-        public override Delta<Dictionary<SyncID, IComparable>, VersionInfo<TEntity, TVersion>> ResolveDelta(Dictionary<SyncID, IComparable> versionByReplica, CancellationToken ct)
+        public override Delta<Dictionary<SyncID, TVersion>, VersionInfo<TEntity, TVersion>> ResolveDelta(Dictionary<SyncID, TVersion> versionByReplica, CancellationToken ct)
         {
             this.ChangeTracking.ChangeHistory.Lock.EnterReadLock();
 
@@ -92,11 +93,11 @@ namespace Ardex.Sync.Providers.Merge
                     .FilteredChangeHistory()
                     .Where(ch =>
                     {
-                        var version = default(IComparable);
+                        var version = default(TVersion);
 
                         return
                             !versionByReplica.TryGetValue(this.ChangeTracking.GetChangeHistoryReplicaID(ch), out version) ||
-                            this.ChangeTracking.GetChangeHistoryVersion(ch).CompareTo(version) > 0;
+                            this.VersionComparer.Compare(ch, version) > 0;
                     })
                     .Join(
                         this.ChangeTracking.Repository.AsEnumerable(),
@@ -107,7 +108,7 @@ namespace Ardex.Sync.Providers.Merge
                     .OrderBy(c => this.ChangeTracking.GetChangeHistoryVersion(c.Version))
                     .AsEnumerable();
 
-                return new Delta<Dictionary<SyncID, IComparable>, VersionInfo<TEntity, TVersion>>(anchor, changes);
+                return new Delta<Dictionary<SyncID, TVersion>, VersionInfo<TEntity, TVersion>>(anchor, changes);
             }
             finally
             {
@@ -118,7 +119,7 @@ namespace Ardex.Sync.Providers.Merge
         /// <summary>
         /// Returns last seen version value for each known node.
         /// </summary>
-        public override Dictionary<SyncID, IComparable> LastAnchor()
+        public override Dictionary<SyncID, TVersion> LastAnchor()
         {
             return this.LastKnownVersionByReplica(this.ChangeTracking.FilteredChangeHistory());
         }
@@ -126,19 +127,18 @@ namespace Ardex.Sync.Providers.Merge
         /// <summary>
         /// Returns last seen version value for each known node.
         /// </summary>
-        private Dictionary<SyncID, IComparable> LastKnownVersionByReplica(IEnumerable<TVersion> changeHistory)
+        private Dictionary<SyncID, TVersion> LastKnownVersionByReplica(IEnumerable<TVersion> changeHistory)
         {
-            var dict = new Dictionary<SyncID, IComparable>();
+            var dict = new Dictionary<SyncID, TVersion>();
 
             foreach (var ch in changeHistory)
             {
                 var replicaID = this.ChangeTracking.GetChangeHistoryReplicaID(ch);
-                var version = this.ChangeTracking.GetChangeHistoryVersion(ch);
-                var lastKnownVersion = default(IComparable);
+                var lastKnownVersion = default(TVersion);
 
-                if (!dict.TryGetValue(replicaID, out lastKnownVersion) || version.CompareTo(lastKnownVersion) > 0)
+                if (!dict.TryGetValue(replicaID, out lastKnownVersion) || this.VersionComparer.Compare(ch, lastKnownVersion) > 0)
                 {
-                    dict[replicaID] = version;
+                    dict[replicaID] = ch;
                 }
             }
 
@@ -168,11 +168,10 @@ namespace Ardex.Sync.Providers.Merge
                 {
                     // Ensure that this change is not the last for node.
                     var replicaID = this.ChangeTracking.GetChangeHistoryReplicaID(ch);
-                    var version = this.ChangeTracking.GetChangeHistoryVersion(ch);
-                    var lastKnownVersion = default(IComparable);
+                    var lastKnownVersion = default(TVersion);
 
                     if (lastKnownVersionByReplica.TryGetValue(replicaID, out lastKnownVersion) &&
-                        version.CompareTo(lastKnownVersion) < 0)
+                        this.VersionComparer.Compare(ch, lastKnownVersion) < 0)
                     {
                         changeHistory.Delete(ch);
                     }
