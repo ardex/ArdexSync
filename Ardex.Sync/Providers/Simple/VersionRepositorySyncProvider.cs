@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -20,6 +19,12 @@ namespace Ardex.Sync.Providers.Simple
         /// </summary>
         public ComparableMapping<TEntity> VersionMapping { get; private set; }
 
+        /// <summary>
+        /// Uniquely identifies the sole replica which is
+        /// allowed to make changes to a particular entity.
+        /// </summary>
+        public UniqueIdMapping<TEntity> OwnerReplicaIdMapping { get; set; }
+
         protected override IComparer<IComparable> VersionComparer
         {
             get
@@ -35,6 +40,7 @@ namespace Ardex.Sync.Providers.Simple
             SyncID replicaID,
             SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> uniqueIdMapping,
+            UniqueIdMapping<TEntity> ownerIdMapping,
             ComparableMapping<TEntity> versionMapping) : base(replicaID, repository, uniqueIdMapping)
         {
             this.VersionMapping = versionMapping;
@@ -46,10 +52,13 @@ namespace Ardex.Sync.Providers.Simple
 
             try
             {
+                var ownerReplicaIdMapping = this.OwnerReplicaIdMapping;
                 var anchor = this.LastAnchor();
 
                 var changes = this.Repository
-                    .Where(e => lastKnownVersion == null || this.VersionMapping.Get(e).CompareTo(lastKnownVersion) > 0)
+                    .Where(e =>
+                        (ownerReplicaIdMapping == null || this.OwnerReplicaIdMapping.Get(e) == this.ReplicaID) &&
+                        (lastKnownVersion == null || this.VersionMapping.Get(e).CompareTo(lastKnownVersion) > 0))
                     .OrderBy(e => this.VersionMapping.Get(e))
                     .Select(e => SyncEntityVersion.Create(e, this.VersionMapping.Get(e)));
 

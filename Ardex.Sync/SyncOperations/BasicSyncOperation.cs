@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading;
 
-namespace Ardex.Sync
+namespace Ardex.Sync.SyncOperations
 {
     /// <summary>
     /// Basic sync operation implementation.

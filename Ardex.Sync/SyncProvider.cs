@@ -31,7 +31,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Conflict resolution strategy used by this provider.
         /// </summary>
-        public SyncConflictResolutionStrategy ConflictResolutionStrategy { get; set; }
+        public SyncConflictStrategy ConflictResolutionStrategy { get; set; }
 
         /// <summary>
         /// Comparer responsible for comparing timestamps
@@ -60,11 +60,6 @@ namespace Ardex.Sync
         }
 
         /// <summary>
-        /// Resolves the changes made since the last reported anchor.
-        /// </summary>
-        public abstract SyncDelta<TEntity, TVersion, TAnchor> ResolveDelta(TAnchor anchor, CancellationToken ct);
-
-        /// <summary>
         /// Retrieves the last anchor containing
         /// this replica's latest change knowledge.
         /// It is used by the other side in order to detect
@@ -72,6 +67,11 @@ namespace Ardex.Sync
         /// and to detect and resolve conflicts.
         /// </summary>
         public abstract TAnchor LastAnchor();
+        
+        /// <summary>
+        /// Resolves the changes made since the last reported anchor.
+        /// </summary>
+        public abstract SyncDelta<TEntity, TVersion, TAnchor> ResolveDelta(TAnchor anchor, CancellationToken ct);
 
         /// <summary>
         /// Accepts the changes as reported by the given node.
@@ -103,14 +103,14 @@ namespace Ardex.Sync
                     (local, remote) => SyncConflict.Create(local, remote));
 
                 // Resolve conflicts.
-                if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Fail)
+                if (this.ConflictResolutionStrategy == SyncConflictStrategy.Fail)
                 {
                     if (conflicts.Any())
                     {
                         throw new InvalidOperationException("Merge conflict detected.");
                     }
                 }
-                else if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Winner)
+                else if (this.ConflictResolutionStrategy == SyncConflictStrategy.Winner)
                 {
                     var ignoredChanges = conflicts.Select(c => c.Remote);
 
@@ -122,7 +122,7 @@ namespace Ardex.Sync
                     // Discard other replica's changes. Ours are better.
                     changes = changes.Except(ignoredChanges);
                 }
-                else if (this.ConflictResolutionStrategy == SyncConflictResolutionStrategy.Loser)
+                else if (this.ConflictResolutionStrategy == SyncConflictStrategy.Loser)
                 {
                     // We'll just pretend that nothing happened.
                 }

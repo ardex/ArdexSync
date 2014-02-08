@@ -10,11 +10,24 @@ namespace Ardex.Sync
         }
     }
 
+    /// <summary>
+    /// Encapsulates sync anchor and change information.
+    /// </summary>
     public class SyncDelta<TEntity, TVersion, TAnchor>
     {
+        /// <summary>
+        /// Contains most up-to date change knowledge of a particular party.
+        /// </summary>
         public TAnchor Anchor { get; private set; }
+
+        /// <summary>
+        /// Contains changes resolved for the other party after receiving anchor.
+        /// </summary>
         public IEnumerable<SyncEntityVersion<TEntity, TVersion>> Changes { get; private set; }
 
+        /// <summary>
+        /// Creates a new instance of the class.
+        /// </summary>
         public SyncDelta(TAnchor anchor, IEnumerable<SyncEntityVersion<TEntity, TVersion>> changes)
         {
             this.Anchor = anchor;

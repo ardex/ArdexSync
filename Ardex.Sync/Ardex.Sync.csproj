@@ -39,7 +39,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BasicSyncOperation.cs" />
+    <Compile Include="SyncOperations\BasicSyncOperation.cs" />
     <Compile Include="ChangeTracking\ChangeHistory.cs" />
     <Compile Include="ChangeTracking\ChangeTrackingFactory.cs" />
     <Compile Include="ChangeTracking\IChangeHistory.cs" />
@@ -47,9 +47,9 @@
     <Compile Include="ChangeTracking\ChangeTracking.cs" />
     <Compile Include="ChangeTracking\SharedChangeHistory.cs" />
     <Compile Include="ComparisonComparer.cs" />
-    <Compile Include="SyncConflictResolutionStrategy.cs" />
+    <Compile Include="SyncConflictStrategy.cs" />
     <Compile Include="SyncDelta.cs" />
-    <Compile Include="FilteredSyncOperation.cs" />
+    <Compile Include="SyncOperations\FilteredSyncOperation.cs" />
     <Compile Include="ISyncAnchor.cs" />
     <Compile Include="ISyncProvider.cs" />
     <Compile Include="ISyncSource.cs" />

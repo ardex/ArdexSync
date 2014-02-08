@@ -1,6 +1,6 @@
 ﻿using System.Threading;
 
-namespace Ardex.Sync
+namespace Ardex.Sync.SyncOperations
 {
     public class FilteredSyncOperation<TEntity, TVersion, TAnchor> : BasicSyncOperation<TEntity, TVersion, TAnchor>
     {

@@ -5,7 +5,7 @@ namespace Ardex.Sync
     /// <summary>
     /// Unique identifier used by sync.
     /// </summary>
-    public struct SyncID : IEquatable<SyncID>, IComparable<SyncID>
+    public class SyncID : IEquatable<SyncID>, IComparable<SyncID>
     {
         private readonly string value;
 
@@ -26,12 +26,7 @@ namespace Ardex.Sync
 
         public override bool Equals(object obj)
         {
-            if (obj is SyncID)
-            {
-                return this.Equals((SyncID)obj);
-            }
-
-            return false;
+            return this.Equals(obj as SyncID);
         }
 
         public bool Equals(SyncID other)
