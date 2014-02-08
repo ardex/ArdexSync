@@ -47,10 +47,10 @@
     <Compile Include="ChangeTracking\ChangeTracking.cs" />
     <Compile Include="ChangeTracking\SharedChangeHistory.cs" />
     <Compile Include="ComparisonComparer.cs" />
-    <Compile Include="Delta.cs" />
+    <Compile Include="SyncConflictResolutionStrategy.cs" />
+    <Compile Include="SyncDelta.cs" />
     <Compile Include="FilteredSyncOperation.cs" />
     <Compile Include="ISyncAnchor.cs" />
-    <Compile Include="ISyncMetadataCleanup.cs" />
     <Compile Include="ISyncProvider.cs" />
     <Compile Include="ISyncSource.cs" />
     <Compile Include="ISyncTarget.cs" />
@@ -60,7 +60,7 @@
     <Compile Include="PropertyMapping\UniqueIdMapping.cs" />
     <Compile Include="Providers\Merge\Change.cs" />
     <Compile Include="Providers\Merge\MergeSyncProvider.cs" />
-    <Compile Include="Providers\Merge\MergeSyncProviderBase.cs" />
+    <Compile Include="SyncProvider.cs" />
     <Compile Include="Providers\Simple\VersionDelegateSyncSource.cs" />
     <Compile Include="Providers\Simple\VersionRepositorySyncProvider.cs" />
     <Compile Include="SyncConflict.cs" />

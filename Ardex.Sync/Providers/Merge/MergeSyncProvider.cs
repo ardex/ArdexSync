@@ -8,13 +8,6 @@ using Ardex.Sync.ChangeTracking;
 
 namespace Ardex.Sync.Providers.Merge
 {
-    public enum SyncConflictResolutionStrategy
-    {
-        Fail,
-        Winner,
-        Loser
-    }
-
     public static class MergeSyncProvider
     {
         /// <summary>
@@ -31,9 +24,7 @@ namespace Ardex.Sync.Providers.Merge
     /// Sync provider implementation which works with
     /// sync repositories and change history metadata.
     /// </summary>
-    public class MergeSyncProvider<TEntity, TVersion> :
-        MergeSyncProviderBase<TEntity, Dictionary<SyncID, TVersion>, TVersion>,
-        ISyncMetadataCleanup<VersionInfo<TEntity, TVersion>>
+    public class MergeSyncProvider<TEntity, TVersion> : SyncProvider<TEntity, Dictionary<SyncID, TVersion>, TVersion>
     {
         /// <summary>
         /// Gets the change tracking manager used by this provider.
@@ -86,7 +77,7 @@ namespace Ardex.Sync.Providers.Merge
         /// <summary>
         /// Reports changes since the last reported version for each node.
         /// </summary>
-        public override Delta<Dictionary<SyncID, TVersion>, VersionInfo<TEntity, TVersion>> ResolveDelta(Dictionary<SyncID, TVersion> versionByReplica, CancellationToken ct)
+        public override SyncDelta<Dictionary<SyncID, TVersion>, VersionInfo<TEntity, TVersion>> ResolveDelta(Dictionary<SyncID, TVersion> versionByReplica, CancellationToken ct)
         {
             this.ChangeTracking.ChangeHistory.Lock.EnterReadLock();
 
@@ -113,7 +104,7 @@ namespace Ardex.Sync.Providers.Merge
                     .OrderBy(c => this.ChangeTracking.GetChangeHistoryVersion(c.Version))
                     .AsEnumerable();
 
-                return new Delta<Dictionary<SyncID, TVersion>, VersionInfo<TEntity, TVersion>>(anchor, changes);
+                return new SyncDelta<Dictionary<SyncID, TVersion>, VersionInfo<TEntity, TVersion>>(anchor, changes);
             }
             finally
             {
@@ -154,7 +145,7 @@ namespace Ardex.Sync.Providers.Merge
         /// Performs change history cleanup if necessary.
         /// Ensures that only the latest value for each node is kept.
         /// </summary>
-        public void CleanUpSyncMetadata(IEnumerable<VersionInfo<TEntity, TVersion>> appliedDelta)
+        protected override void CleanUpSyncMetadata(IEnumerable<VersionInfo<TEntity, TVersion>> appliedDelta)
         {
             if (!this.CleanUpMetadataAfterSync)
                 return;

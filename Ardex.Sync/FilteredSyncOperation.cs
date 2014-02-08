@@ -2,7 +2,7 @@
 
 namespace Ardex.Sync
 {
-    public class FilteredSyncOperation<TAnchor, TDelta> : BasicSyncOperation<TAnchor, TDelta>
+    public class FilteredSyncOperation<TAnchor, TChange> : BasicSyncOperation<TAnchor, TChange>
     {
         /// <summary>
         /// Optional filter applied to the change
@@ -10,21 +10,21 @@ namespace Ardex.Sync
         /// and/or transforms the changes before
         /// they are accepted by the target.
         /// </summary>
-        public SyncFilter<TDelta> Filter { get; private set; }
+        public SyncFilter<TChange> Filter { get; private set; }
 
         public FilteredSyncOperation(
-            ISyncSource<TAnchor, TDelta> source,
-            ISyncTarget<TAnchor, TDelta> target,
-            SyncFilter<TDelta> filter) : base(source, target)
+            ISyncSource<TAnchor, TChange> source,
+            ISyncTarget<TAnchor, TChange> target,
+            SyncFilter<TChange> filter) : base(source, target)
         {
             this.Filter = filter;
         }
 
-        protected override Delta<TAnchor, TDelta> ResolveDelta(TAnchor anchor, CancellationToken ct)
+        protected override SyncDelta<TAnchor, TChange> ResolveDelta(TAnchor anchor, CancellationToken ct)
         {
             var delta = base.ResolveDelta(anchor, ct);
 
-            return new Delta<TAnchor, TDelta>(delta.Anchor, this.Filter(delta.Changes));
+            return new SyncDelta<TAnchor, TChange>(delta.Anchor, this.Filter(delta.Changes));
         }
     }
 }

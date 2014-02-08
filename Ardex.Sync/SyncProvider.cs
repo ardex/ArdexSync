@@ -2,18 +2,16 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 using Ardex.Sync.PropertyMapping;
 
-namespace Ardex.Sync.Providers.Merge
+namespace Ardex.Sync
 {
     /// <summary>
     /// Base class for merge synchronisation providers.
     /// </summary>
-    public abstract class MergeSyncProviderBase<TEntity, TAnchor, TVersion> : ISyncProvider<TAnchor, VersionInfo<TEntity, TVersion>>
+    public abstract class SyncProvider<TEntity, TAnchor, TVersion> : ISyncProvider<TAnchor, VersionInfo<TEntity, TVersion>>
     {
         /// <summary>
         /// Unique ID of this replica.
@@ -36,21 +34,22 @@ namespace Ardex.Sync.Providers.Merge
         public SyncConflictResolutionStrategy ConflictResolutionStrategy { get; set; }
 
         /// <summary>
-        /// Enables temporary suppression of the change tracking functionality
-        /// for the purpose of writing custom change entries during the sync.
-        /// </summary>
-        protected abstract bool ChangeTrackingEnabled { get; set; }
-
-        /// <summary>
         /// Comparer responsible for comparing timestamps
         /// and other versioning data structures.
         /// </summary>
         protected abstract IComparer<TVersion> VersionComparer { get; }
 
         /// <summary>
+        /// When overridden in a derived class, enables temporary
+        /// suppression of the change tracking functionality for the
+        /// purpose of writing custom change entries during the sync.
+        /// </summary>
+        protected virtual bool ChangeTrackingEnabled { get; set; }
+
+        /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        protected MergeSyncProviderBase(
+        protected SyncProvider(
             SyncID replicaID,
             SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> entityIdMapping)
@@ -61,15 +60,9 @@ namespace Ardex.Sync.Providers.Merge
         }
 
         /// <summary>
-        /// Writes the remote version entry into the
-        /// local change history store if necessary.
-        /// </summary>
-        protected abstract void WriteRemoteVersion(VersionInfo<TEntity, TVersion> remoteVersion);
-
-        /// <summary>
         /// Resolves the changes made since the last reported anchor.
         /// </summary>
-        public abstract Delta<TAnchor, VersionInfo<TEntity, TVersion>> ResolveDelta(TAnchor anchor, CancellationToken ct);
+        public abstract SyncDelta<TAnchor, VersionInfo<TEntity, TVersion>> ResolveDelta(TAnchor anchor, CancellationToken ct);
 
         /// <summary>
         /// Retrieves the last anchor containing
@@ -83,18 +76,20 @@ namespace Ardex.Sync.Providers.Merge
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public SyncResult AcceptChanges(SyncID sourceReplicaID, Delta<TAnchor, VersionInfo<TEntity, TVersion>> delta, CancellationToken ct)
+        public SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TAnchor, VersionInfo<TEntity, TVersion>> delta, CancellationToken ct)
         {
+            this.ChangeTrackingEnabled = false;
+
             // Critical region protected with exclusive lock.
             var repository = this.Repository;
-
-            repository.Lock.EnterWriteLock();
-
-            //// Disable change tracking (which relies on events).
-            this.ChangeTrackingEnabled = false;
+            var lockTaken = false;
 
             try
             {
+                repository.Lock.EnterWriteLock();
+
+                lockTaken = true;
+
                 // Materialise changes.
                 var changes = delta.Changes.ToArray().AsEnumerable();
 
@@ -182,13 +177,24 @@ namespace Ardex.Sync.Providers.Merge
 
                 var result = new SyncResult(inserts, updates, deletes);
 
+                // Perform metadata cleanup.
+                this.CleanUpSyncMetadata(changes);
+
                 return result;
             }
             finally
             {
-                this.ChangeTrackingEnabled = true;
-
-                repository.Lock.ExitWriteLock();
+                try
+                {
+                    this.ChangeTrackingEnabled = true;
+                }
+                finally
+                {
+                    if (lockTaken)
+                    {
+                        repository.Lock.ExitWriteLock();
+                    }
+                }
             }
         }
 
@@ -218,6 +224,24 @@ namespace Ardex.Sync.Providers.Merge
             }
 
             return changeCount;
+        }
+
+        /// <summary>
+        /// When overridden in a derived class, performs
+        /// post-sync metadata (change history) cleanup.
+        /// </summary>
+        protected virtual void CleanUpSyncMetadata(IEnumerable<VersionInfo<TEntity, TVersion>> appliedChanges)
+        {
+
+        }
+
+        /// <summary>
+        /// When overridden in a derived class, applies the
+        /// given remote change entry locally if necessary.
+        /// </summary>
+        protected virtual void WriteRemoteVersion(VersionInfo<TEntity, TVersion> versionInfo)
+        {
+
         }
     }
 }

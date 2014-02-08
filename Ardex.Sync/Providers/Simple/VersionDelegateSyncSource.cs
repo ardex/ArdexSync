@@ -8,7 +8,7 @@ namespace Ardex.Sync.Providers.Simple
     /// Version-based sync provider which uses
     /// a custom ProduceChanges implementation.
     /// </summary>
-    public class VersionDelegateSyncSource<TEntity> : ISyncSource<IComparable, TEntity>
+    public class VersionDelegateSyncSource<TEntity> : ISyncSource<IComparable, VersionInfo<TEntity, IComparable>>
     {
         /// <summary>
         /// Unique identifier of this replica.
@@ -18,20 +18,20 @@ namespace Ardex.Sync.Providers.Simple
         /// <summary>
         /// Produces entities for diff sync after the given version.
         /// </summary>
-        private readonly Func<IComparable, CancellationToken, IEnumerable<TEntity>> GetChanges;
+        private readonly Func<IComparable, CancellationToken, IEnumerable<VersionInfo<TEntity, IComparable>>> GetChanges;
 
-        public VersionDelegateSyncSource(SyncID replicaID, Func<IComparable, CancellationToken, IEnumerable<TEntity>> getChanges)
+        public VersionDelegateSyncSource(SyncID replicaID, Func<IComparable, CancellationToken, IEnumerable<VersionInfo<TEntity, IComparable>>> getChanges)
         {
             this.ReplicaID = replicaID;
             this.GetChanges = getChanges;
         }
 
-        public Delta<IComparable, TEntity> ResolveDelta(IComparable lastKnownVersion, CancellationToken ct)
+        public SyncDelta<IComparable, VersionInfo<TEntity, IComparable>> ResolveDelta(IComparable lastKnownVersion, CancellationToken ct)
         {
             var anchor = this.LastAnchor();
             var changes = this.GetChanges(lastKnownVersion, ct);
 
-            return new Delta<IComparable, TEntity>(anchor, changes);
+            return new SyncDelta<IComparable, VersionInfo<TEntity, IComparable>>(anchor, changes);
         }
 
         public IComparable LastAnchor()

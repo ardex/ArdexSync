@@ -16,6 +16,6 @@ namespace Ardex.Sync
         /// <summary>
         /// Resolves the changes made since the last reported anchor.
         /// </summary>
-        Delta<TAnchor, TChange> ResolveDelta(TAnchor anchor, CancellationToken ct);
+        SyncDelta<TAnchor, TChange> ResolveDelta(TAnchor anchor, CancellationToken ct);
     }
 }

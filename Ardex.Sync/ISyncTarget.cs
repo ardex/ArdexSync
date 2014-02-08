@@ -11,6 +11,6 @@ namespace Ardex.Sync
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        SyncResult AcceptChanges(SyncID sourceReplicaID, Delta<TAnchor, TChange> delta, CancellationToken ct);
+        SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TAnchor, TChange> delta, CancellationToken ct);
     }
 }
