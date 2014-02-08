@@ -12,7 +12,7 @@ namespace Ardex.Sync.Providers.Simple
     /// uses a repository for producing
     /// and accepting change delta.
     /// </summary>
-    public class VersionRepositorySyncProvider<TEntity> : SyncProvider<TEntity, IComparable, IComparable>
+    public class VersionRepositorySyncProvider<TEntity> : SyncProvider<TEntity, IComparable>
     {
         /// <summary>
         /// Provides means of getting a version from an entity.
@@ -45,8 +45,10 @@ namespace Ardex.Sync.Providers.Simple
             this.VersionMapping = versionMapping;
         }
 
-        public override SyncDelta<TEntity, IComparable, IComparable> ResolveDelta(IComparable lastKnownVersion, CancellationToken ct)
+        public override SyncDelta<TEntity, IComparable> ResolveDelta(Dictionary<SyncID, IComparable> lastKnownVersion, CancellationToken ct)
         {
+            throw new NotImplementedException();
+
             this.Repository.Lock.EnterReadLock();
 
             try
@@ -69,12 +71,14 @@ namespace Ardex.Sync.Providers.Simple
             }
         }
 
-        public override IComparable LastAnchor()
+        public override Dictionary<SyncID, IComparable> LastAnchor()
         {
-            return this.Repository
-                .Select(e => this.VersionMapping.Get(e))
-                .DefaultIfEmpty()
-                .Max();
+            throw new NotImplementedException();
+
+            //return this.Repository
+            //    .Select(e => this.VersionMapping.Get(e))
+            //    .DefaultIfEmpty()
+            //    .Max();
         }
     }
 }

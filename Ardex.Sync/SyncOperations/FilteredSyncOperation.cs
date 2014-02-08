@@ -1,8 +1,9 @@
-﻿using System.Threading;
+﻿using System.Collections.Generic;
+using System.Threading;
 
 namespace Ardex.Sync.SyncOperations
 {
-    public class FilteredSyncOperation<TEntity, TVersion, TAnchor> : BasicSyncOperation<TEntity, TVersion, TAnchor>
+    public class FilteredSyncOperation<TEntity, TVersion> : BasicSyncOperation<TEntity, TVersion>
     {
         /// <summary>
         /// Optional filter applied to the change
@@ -13,14 +14,14 @@ namespace Ardex.Sync.SyncOperations
         public SyncFilter<TEntity, TVersion> Filter { get; private set; }
 
         public FilteredSyncOperation(
-            ISyncSource<TEntity, TVersion, TAnchor> source,
-            ISyncTarget<TEntity, TVersion, TAnchor> target,
+            ISyncSource<TEntity, TVersion> source,
+            ISyncTarget<TEntity, TVersion> target,
             SyncFilter<TEntity, TVersion> filter) : base(source, target)
         {
             this.Filter = filter;
         }
 
-        protected override SyncDelta<TEntity, TVersion, TAnchor> ResolveDelta(TAnchor anchor, CancellationToken ct)
+        protected override SyncDelta<TEntity, TVersion> ResolveDelta(Dictionary<SyncID, TVersion> anchor, CancellationToken ct)
         {
             var delta = base.ResolveDelta(anchor, ct);
 

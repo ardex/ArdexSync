@@ -1,6 +1,8 @@
-﻿namespace Ardex.Sync
+﻿using System.Collections.Generic;
+
+namespace Ardex.Sync
 {
-    public interface ISyncAnchor<TAnchor>
+    public interface ISyncAnchor<TVersion>
     {
         /// <summary>
         /// Retrieves the last anchor containing
@@ -9,6 +11,6 @@
         /// the change delta that needs to be transferred
         /// and to detect and resolve conflicts.
         /// </summary>
-        TAnchor LastAnchor();
+        Dictionary<SyncID, TVersion> LastAnchor();
     }
 }

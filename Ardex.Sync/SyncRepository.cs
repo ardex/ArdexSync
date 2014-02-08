@@ -16,10 +16,16 @@ namespace Ardex.Sync
         /// </summary>
         private readonly ReaderWriterLockSlim __lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 
+        /// <summary>
+        /// Lock used to protect read and write
+        /// operations in this repository.
+        /// </summary>
         public ReaderWriterLockSlim Lock
         {
             get { return __lock; }
         }
+
+        //public ChangeTracking<TEntity> ChangeTracking { get; private set; }
 
         /// <summary>
         /// Gets the number of entities in the respository.
@@ -48,17 +54,34 @@ namespace Ardex.Sync
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public SyncRepository() { }
+        public SyncRepository()
+        {
+            this.Initialise();
+        }
 
         /// <summary>
         /// Initialises a new instance wrapping the given repository.
         /// </summary>
-        public SyncRepository(IRepository<TEntity> repository) : base(repository) { }
+        public SyncRepository(IRepository<TEntity> repository) : base(repository)
+        {
+            this.Initialise();
+        }
 
         /// <summary>
         /// Initialises a new instance pre-populated with the given entities.
         /// </summary>
-        public SyncRepository(IEnumerable<TEntity> entities) : base(entities) { }
+        public SyncRepository(IEnumerable<TEntity> entities) : base(entities)
+        {
+            this.Initialise();
+        }
+
+        /// <summary>
+        /// Prepares this instance for use (called from the constructor).
+        /// </summary>
+        private void Initialise()
+        {
+            this.ChangeTracking = new ChangeTracking<TEntity>(this);
+        }
 
         /// <summary>
         /// Inserts the specified entity.

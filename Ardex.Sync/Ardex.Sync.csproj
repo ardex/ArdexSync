@@ -39,12 +39,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ChangeTracking.cs" />
     <Compile Include="SyncOperations\BasicSyncOperation.cs" />
     <Compile Include="ChangeTracking\ChangeHistory.cs" />
     <Compile Include="ChangeTracking\ChangeTrackingFactory.cs" />
     <Compile Include="ChangeTracking\IChangeHistory.cs" />
     <Compile Include="ChangeTracking\ISharedChangeHistory.cs" />
-    <Compile Include="ChangeTracking\ChangeTracking.cs" />
+    <Compile Include="ChangeTracking\ChangeTrackingRegistration.cs" />
     <Compile Include="ChangeTracking\SharedChangeHistory.cs" />
     <Compile Include="ComparisonComparer.cs" />
     <Compile Include="SyncConflictStrategy.cs" />
