@@ -7,13 +7,13 @@ namespace Ardex.Sync
     /// <summary>
     /// Basic sync operation implementation.
     /// </summary>
-    public class BasicSyncOperation<TAnchor, TChange> : SyncOperation
+    public class BasicSyncOperation<TEntity, TAnchor, TVersion> : SyncOperation
     {
         #region Transformation methods
 
-        public FilteredSyncOperation<TAnchor, TChange> Filtered(SyncFilter<TChange> filter)
+        public FilteredSyncOperation<TEntity, TAnchor, TVersion> Filtered(SyncFilter<TEntity, TVersion> filter)
         {
-            return new FilteredSyncOperation<TAnchor, TChange>(this.Source, this.Target, filter);
+            return new FilteredSyncOperation<TEntity, TAnchor, TVersion>(this.Source, this.Target, filter);
         }
 
         #endregion
@@ -23,20 +23,20 @@ namespace Ardex.Sync
         /// Resolves the change delta in a differential sync operation
         /// based on anchor info provided by the sync target.
         /// </summary>
-        public ISyncSource<TAnchor, TChange> Source { get; private set; }
+        public ISyncSource<TEntity, TAnchor, TVersion> Source { get; private set; }
 
         /// <summary>
         /// Sync operation target or provider.
         /// Produces anchor info for the
         /// source and accepts changes.
         /// </summary>
-        public ISyncTarget<TAnchor, TChange> Target { get; private set; }
+        public ISyncTarget<TEntity, TAnchor, TVersion> Target { get; private set; }
 
         /// <summary>
         /// Creates a new SyncOperation instance.
         /// Consider using SyncOperation.Create for convenience.
         /// </summary>
-        public BasicSyncOperation(ISyncSource<TAnchor, TChange> source, ISyncTarget<TAnchor, TChange> target)
+        public BasicSyncOperation(ISyncSource<TEntity, TAnchor, TVersion> source, ISyncTarget<TEntity, TAnchor, TVersion> target)
         {
             this.Source = source;
             this.Target = target;
@@ -62,12 +62,12 @@ namespace Ardex.Sync
             return this.Target.LastAnchor();
         }
 
-        protected virtual SyncDelta<TAnchor, TChange> ResolveDelta(TAnchor anchor, CancellationToken ct)
+        protected virtual SyncDelta<TEntity, TAnchor, TVersion> ResolveDelta(TAnchor anchor, CancellationToken ct)
         {
             return this.Source.ResolveDelta(anchor, ct);
         }
 
-        protected virtual SyncResult AcceptChanges(SyncDelta<TAnchor, TChange> delta, CancellationToken ct)
+        protected virtual SyncResult AcceptChanges(SyncDelta<TEntity, TAnchor, TVersion> delta, CancellationToken ct)
         {
             return this.Target.AcceptChanges(this.Source.ReplicaID, delta, ct);
         }

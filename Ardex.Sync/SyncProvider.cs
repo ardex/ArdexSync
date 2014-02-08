@@ -11,7 +11,7 @@ namespace Ardex.Sync
     /// <summary>
     /// Base class for merge synchronisation providers.
     /// </summary>
-    public abstract class SyncProvider<TEntity, TAnchor, TVersion> : ISyncProvider<TAnchor, VersionInfo<TEntity, TVersion>>
+    public abstract class SyncProvider<TEntity, TAnchor, TVersion> : ISyncProvider<TEntity, TAnchor, TVersion>
     {
         /// <summary>
         /// Unique ID of this replica.
@@ -62,7 +62,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Resolves the changes made since the last reported anchor.
         /// </summary>
-        public abstract SyncDelta<TAnchor, VersionInfo<TEntity, TVersion>> ResolveDelta(TAnchor anchor, CancellationToken ct);
+        public abstract SyncDelta<TEntity, TAnchor, TVersion> ResolveDelta(TAnchor anchor, CancellationToken ct);
 
         /// <summary>
         /// Retrieves the last anchor containing
@@ -76,7 +76,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TAnchor, VersionInfo<TEntity, TVersion>> delta, CancellationToken ct)
+        public SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TAnchor, TVersion> delta, CancellationToken ct)
         {
             this.ChangeTrackingEnabled = false;
 
@@ -230,7 +230,7 @@ namespace Ardex.Sync
         /// When overridden in a derived class, performs
         /// post-sync metadata (change history) cleanup.
         /// </summary>
-        protected virtual void CleanUpSyncMetadata(IEnumerable<VersionInfo<TEntity, TVersion>> appliedChanges)
+        protected virtual void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, TVersion>> appliedChanges)
         {
 
         }
@@ -239,7 +239,7 @@ namespace Ardex.Sync
         /// When overridden in a derived class, applies the
         /// given remote change entry locally if necessary.
         /// </summary>
-        protected virtual void WriteRemoteVersion(VersionInfo<TEntity, TVersion> versionInfo)
+        protected virtual void WriteRemoteVersion(SyncEntityVersion<TEntity, TVersion> versionInfo)
         {
 
         }

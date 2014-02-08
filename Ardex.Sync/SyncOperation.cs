@@ -14,10 +14,10 @@ namespace Ardex.Sync
         /// <summary>
         /// Creates a sync operation with the given source and target.
         /// </summary>
-        public static BasicSyncOperation<TAnchor, TChange> Create<TAnchor, TChange>(
-            ISyncSource<TAnchor, TChange> source, ISyncTarget<TAnchor, TChange> target)
+        public static BasicSyncOperation<TEntity, TAnchor, TVersion> Create<TEntity, TAnchor, TVersion>(
+            ISyncSource<TEntity, TAnchor, TVersion> source, ISyncTarget<TEntity, TAnchor, TVersion> target)
         {
-            return new BasicSyncOperation<TAnchor, TChange>(source, target);
+            return new BasicSyncOperation<TEntity, TAnchor, TVersion>(source, target);
         }
 
         /// <summary>

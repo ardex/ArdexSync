@@ -40,7 +40,7 @@ namespace Ardex.Sync.Providers.Simple
             this.VersionMapping = versionMapping;
         }
 
-        public override SyncDelta<IComparable, VersionInfo<TEntity, IComparable>> ResolveDelta(IComparable lastKnownVersion, CancellationToken ct)
+        public override SyncDelta<TEntity, IComparable, IComparable> ResolveDelta(IComparable lastKnownVersion, CancellationToken ct)
         {
             this.Repository.Lock.EnterReadLock();
 
@@ -51,7 +51,7 @@ namespace Ardex.Sync.Providers.Simple
                 var changes = this.Repository
                     .Where(e => lastKnownVersion == null || this.VersionMapping.Get(e).CompareTo(lastKnownVersion) > 0)
                     .OrderBy(e => this.VersionMapping.Get(e))
-                    .Select(e => VersionInfo.Create(e, this.VersionMapping.Get(e)));
+                    .Select(e => SyncEntityVersion.Create(e, this.VersionMapping.Get(e)));
 
                 return SyncDelta.Create(anchor, changes);
             }

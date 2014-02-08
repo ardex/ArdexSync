@@ -77,7 +77,7 @@ namespace Ardex.Sync.Providers.Merge
         /// <summary>
         /// Reports changes since the last reported version for each node.
         /// </summary>
-        public override SyncDelta<Dictionary<SyncID, TVersion>, VersionInfo<TEntity, TVersion>> ResolveDelta(Dictionary<SyncID, TVersion> versionByReplica, CancellationToken ct)
+        public override SyncDelta<TEntity, Dictionary<SyncID, TVersion>, TVersion> ResolveDelta(Dictionary<SyncID, TVersion> versionByReplica, CancellationToken ct)
         {
             this.ChangeTracking.ChangeHistory.Lock.EnterReadLock();
 
@@ -99,12 +99,12 @@ namespace Ardex.Sync.Providers.Merge
                         this.ChangeTracking.Repository.AsEnumerable(),
                         ch => this.ChangeTracking.GetChangeHistoryEntityID(ch),
                         this.ChangeTracking.GetTrackedEntityID,
-                        (ch, entity) => VersionInfo.Create(entity, ch))
+                        (ch, entity) => SyncEntityVersion.Create(entity, ch))
                     // Ensure that the oldest changes for each replica are sync first.
                     .OrderBy(c => this.ChangeTracking.GetChangeHistoryVersion(c.Version))
                     .AsEnumerable();
 
-                return new SyncDelta<Dictionary<SyncID, TVersion>, VersionInfo<TEntity, TVersion>>(anchor, changes);
+                return SyncDelta.Create(anchor, changes);
             }
             finally
             {
@@ -145,7 +145,7 @@ namespace Ardex.Sync.Providers.Merge
         /// Performs change history cleanup if necessary.
         /// Ensures that only the latest value for each node is kept.
         /// </summary>
-        protected override void CleanUpSyncMetadata(IEnumerable<VersionInfo<TEntity, TVersion>> appliedDelta)
+        protected override void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, TVersion>> appliedDelta)
         {
             if (!this.CleanUpMetadataAfterSync)
                 return;
@@ -179,7 +179,7 @@ namespace Ardex.Sync.Providers.Merge
             }
         }
 
-        protected override void WriteRemoteVersion(VersionInfo<TEntity, TVersion> remoteVersion)
+        protected override void WriteRemoteVersion(SyncEntityVersion<TEntity, TVersion> remoteVersion)
         {
             this.ChangeTracking.InsertChangeHistory(remoteVersion.Version);
         }

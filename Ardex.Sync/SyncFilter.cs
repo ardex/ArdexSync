@@ -6,5 +6,5 @@ namespace Ardex.Sync
     /// Filter applied to entities/changes exchanged during the synchronisation.
     /// Can be used for filtering and/or transformation.
     /// </summary>
-    public delegate IEnumerable<TEntity> SyncFilter<TEntity>(IEnumerable<TEntity> entities);
+    public delegate IEnumerable<SyncEntityVersion<TEntity, TVersion>> SyncFilter<TEntity, TVersion>(IEnumerable<SyncEntityVersion<TEntity, TVersion>> changes);
 }

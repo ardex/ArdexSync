@@ -10,9 +10,9 @@ namespace Ardex.Sync
     /// Complete sync provider, which includes both
     /// sync source and sync target functionality.
     /// </summary>
-    public interface ISyncProvider<TAnchor, TChange> :
-        ISyncSource<TAnchor, TChange>,
-        ISyncTarget<TAnchor, TChange>
+    public interface ISyncProvider<TEntity, TAnchor, TVersion> :
+        ISyncSource<TEntity, TAnchor, TVersion>,
+        ISyncTarget<TEntity, TAnchor, TVersion>
     {
 
     }

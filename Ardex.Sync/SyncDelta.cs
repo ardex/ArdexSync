@@ -4,18 +4,18 @@ namespace Ardex.Sync
 {
     public static class SyncDelta
     {
-        public static SyncDelta<TAnchor, TChange> Create<TAnchor, TChange>(TAnchor anchor, IEnumerable<TChange> changes)
+        public static SyncDelta<TEntity, TAnchor, TVersion> Create<TEntity, TAnchor, TVersion>(TAnchor anchor, IEnumerable<SyncEntityVersion<TEntity, TVersion>> changes)
         {
-            return new SyncDelta<TAnchor, TChange>(anchor, changes);
+            return new SyncDelta<TEntity, TAnchor, TVersion>(anchor, changes);
         }
     }
 
-    public class SyncDelta<TAnchor, TChange>
+    public class SyncDelta<TEntity, TAnchor, TVersion>
     {
         public TAnchor Anchor { get; private set; }
-        public IEnumerable<TChange> Changes { get; private set; }
+        public IEnumerable<SyncEntityVersion<TEntity, TVersion>> Changes { get; private set; }
 
-        public SyncDelta(TAnchor anchor, IEnumerable<TChange> changes)
+        public SyncDelta(TAnchor anchor, IEnumerable<SyncEntityVersion<TEntity, TVersion>> changes)
         {
             this.Anchor = anchor;
             this.Changes = changes;
