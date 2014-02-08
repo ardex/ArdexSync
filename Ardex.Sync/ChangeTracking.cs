@@ -71,64 +71,64 @@ namespace Ardex.Sync
             return null;
         }
 
-        public void SetUp(SyncRepository<IChangeHistory> changeHistory, SyncID replicaID, UniqueIdMapping<TEntity> entityIdMapping)
-        {
-            var changeTracking = default(ChangeTrackingRegistration<TEntity, IChangeHistory>);
+        //public void SetUp(SyncRepository<IChangeHistory> changeHistory, SyncID replicaID, UniqueIdMapping<TEntity> entityIdMapping)
+        //{
+        //    var changeTracking = default(ChangeTrackingRegistration<TEntity, IChangeHistory>);
 
-            changeTracking = new ChangeTrackingRegistration<TEntity, IChangeHistory>(
-                replicaID,
-                this.Repository,
-                changeHistory,
-                entityIdMapping,
-                ch => true,
-                new UniqueIdMapping<IChangeHistory>(ch => ch.ChangeHistoryID),
-                new UniqueIdMapping<IChangeHistory>(ch => ch.UniqueID),
-                new UniqueIdMapping<IChangeHistory>(ch => ch.ReplicaID),
-                new ComparableMapping<IChangeHistory>(ch => ch.Timestamp),
-                (entity, action) =>
-                {
-                    var ch = (IChangeHistory)new ChangeHistory();
+        //    changeTracking = new ChangeTrackingRegistration<TEntity, IChangeHistory>(
+        //        replicaID,
+        //        this.Repository,
+        //        changeHistory,
+        //        entityIdMapping,
+        //        ch => true,
+        //        new UniqueIdMapping<IChangeHistory>(ch => ch.ChangeHistoryID),
+        //        new UniqueIdMapping<IChangeHistory>(ch => ch.UniqueID),
+        //        new UniqueIdMapping<IChangeHistory>(ch => ch.ReplicaID),
+        //        new ComparableMapping<IChangeHistory>(ch => ch.Timestamp),
+        //        (entity, action) =>
+        //        {
+        //            var ch = (IChangeHistory)new ChangeHistory();
 
-                    // Resolve pk.
-                    ch.ChangeHistoryID = changeHistory
-                        .Select(c => c.ChangeHistoryID)
-                        .DefaultIfEmpty()
-                        .Max() + 1;
+        //            // Resolve pk.
+        //            ch.ChangeHistoryID = changeHistory
+        //                .Select(c => c.ChangeHistoryID)
+        //                .DefaultIfEmpty()
+        //                .Max() + 1;
 
-                    ch.Action = action;
-                    ch.ReplicaID = replicaID;
-                    ch.UniqueID = changeTracking.GetTrackedEntityID(entity);
+        //            ch.Action = action;
+        //            ch.ReplicaID = replicaID;
+        //            ch.UniqueID = changeTracking.GetTrackedEntityID(entity);
 
-                    // Resolve version.
-                    var timestamp = changeHistory
-                        .Where(c => c.ReplicaID == replicaID)
-                        .Select(c => c.Timestamp)
-                        .DefaultIfEmpty()
-                        .Max();
+        //            // Resolve version.
+        //            var timestamp = changeHistory
+        //                .Where(c => c.ReplicaID == replicaID)
+        //                .Select(c => c.Timestamp)
+        //                .DefaultIfEmpty()
+        //                .Max();
 
-                    ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
+        //            ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
 
-                    changeHistory.Insert(ch);
-                },
-                changeHistoryEntry =>
-                {
-                    var ch = (IChangeHistory)new ChangeHistory();
+        //            changeHistory.Insert(ch);
+        //        },
+        //        changeHistoryEntry =>
+        //        {
+        //            var ch = (IChangeHistory)new ChangeHistory();
 
-                    // Resolve pk.
-                    ch.ChangeHistoryID = changeHistory
-                        .Select(c => c.ChangeHistoryID)
-                        .DefaultIfEmpty()
-                        .Max() + 1;
+        //            // Resolve pk.
+        //            ch.ChangeHistoryID = changeHistory
+        //                .Select(c => c.ChangeHistoryID)
+        //                .DefaultIfEmpty()
+        //                .Max() + 1;
 
-                    ch.Action = changeHistoryEntry.Action;
-                    ch.ReplicaID = changeHistoryEntry.ReplicaID;
-                    ch.UniqueID = changeHistoryEntry.UniqueID;
-                    ch.Timestamp = changeHistoryEntry.Timestamp;
+        //            ch.Action = changeHistoryEntry.Action;
+        //            ch.ReplicaID = changeHistoryEntry.ReplicaID;
+        //            ch.UniqueID = changeHistoryEntry.UniqueID;
+        //            ch.Timestamp = changeHistoryEntry.Timestamp;
 
-                    changeHistory.Insert(ch);
-                });
+        //            changeHistory.Insert(ch);
+        //        });
 
-            this.Registrations.Add(typeof(IChangeHistory), changeTracking);
-        }
+        //    this.Registrations.Add(typeof(IChangeHistory), changeTracking);
+        //}
     }
 }

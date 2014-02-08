@@ -54,13 +54,7 @@ namespace Ardex.Sync.Providers.Merge
         {
             get
             {
-                return new ComparisonComparer<TVersion>((x, y) =>
-                {
-                    var xVersion = this.ChangeTracking.GetChangeHistoryVersion(x);
-                    var yVersion = this.ChangeTracking.GetChangeHistoryVersion(y);
-
-                    return xVersion.CompareTo(yVersion);
-                });
+                return this.ChangeTracking.VersionComparer;
             }
         }
 
@@ -78,37 +72,7 @@ namespace Ardex.Sync.Providers.Merge
         /// </summary>
         public override SyncDelta<TEntity, TVersion> ResolveDelta(Dictionary<SyncID, TVersion> versionByReplica, CancellationToken ct)
         {
-            this.ChangeTracking.ChangeHistory.Lock.EnterReadLock();
-
-            try
-            {
-                var anchor = this.LastAnchor();
-
-                var changes = this.ChangeTracking
-                    .FilteredChangeHistory()
-                    .Where(ch =>
-                    {
-                        var version = default(TVersion);
-
-                        return
-                            !versionByReplica.TryGetValue(this.ChangeTracking.GetChangeHistoryReplicaID(ch), out version) ||
-                            this.VersionComparer.Compare(ch, version) > 0;
-                    })
-                    .Join(
-                        this.ChangeTracking.Repository.AsEnumerable(),
-                        ch => this.ChangeTracking.GetChangeHistoryEntityID(ch),
-                        this.ChangeTracking.GetTrackedEntityID,
-                        (ch, entity) => SyncEntityVersion.Create(entity, ch))
-                    // Ensure that the oldest changes for each replica are sync first.
-                    .OrderBy(c => this.ChangeTracking.GetChangeHistoryVersion(c.Version))
-                    .AsEnumerable();
-
-                return SyncDelta.Create(anchor, changes);
-            }
-            finally
-            {
-                this.ChangeTracking.ChangeHistory.Lock.ExitReadLock();
-            }
+            return this.ChangeTracking.ResolveDelta(versionByReplica, ct);
         }
 
         /// <summary>
@@ -116,28 +80,7 @@ namespace Ardex.Sync.Providers.Merge
         /// </summary>
         public override Dictionary<SyncID, TVersion> LastAnchor()
         {
-            return this.LastKnownVersionByReplica(this.ChangeTracking.FilteredChangeHistory());
-        }
-
-        /// <summary>
-        /// Returns last seen version value for each known node.
-        /// </summary>
-        private Dictionary<SyncID, TVersion> LastKnownVersionByReplica(IEnumerable<TVersion> changeHistory)
-        {
-            var dict = new Dictionary<SyncID, TVersion>();
-
-            foreach (var ch in changeHistory)
-            {
-                var replicaID = this.ChangeTracking.GetChangeHistoryReplicaID(ch);
-                var lastKnownVersion = default(TVersion);
-
-                if (!dict.TryGetValue(replicaID, out lastKnownVersion) || this.VersionComparer.Compare(ch, lastKnownVersion) > 0)
-                {
-                    dict[replicaID] = ch;
-                }
-            }
-
-            return dict;
+            return this.ChangeTracking.LastAnchor();
         }
 
         /// <summary>
@@ -157,7 +100,7 @@ namespace Ardex.Sync.Providers.Merge
 
             try
             {
-                var lastKnownVersionByReplica = this.LastKnownVersionByReplica(appliedDelta.Select(c => c.Version));
+                var lastKnownVersionByReplica = this.ChangeTracking.LastKnownVersionByReplica(appliedDelta.Select(c => c.Version));
 
                 foreach (var ch in this.ChangeTracking.FilteredChangeHistory())
                 {

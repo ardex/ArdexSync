@@ -54,48 +54,52 @@ namespace Ardex.TestClient
                     // Essential member mapping.
                     var uniqueIdMapping = new UniqueIdMapping<Dummy>(d => d.DummyID);
 
-                    repo1.ChangeTracking.SetUp(changeHistory1, "Server", uniqueIdMapping);
-                    repo2.ChangeTracking.SetUp(changeHistory2, "Client 1", uniqueIdMapping);
-                    repo3.ChangeTracking.SetUp(changeHistory3, "Client 2", uniqueIdMapping);
+                    //repo1.ChangeTracking.SetUp(changeHistory1, "Server", uniqueIdMapping);
+                    //repo2.ChangeTracking.SetUp(changeHistory2, "Client 1", uniqueIdMapping);
+                    //repo3.ChangeTracking.SetUp(changeHistory3, "Client 2", uniqueIdMapping);
 
                     // Link entity repos with their change history repos.
-                    //var repo1Tracking = new ChangeTrackingFactory("Server").Exclusive(repo1, changeHistory1, uniqueIdMapping);
-                    //var repo2Tracking = new ChangeTrackingFactory("Client 1").Exclusive(repo2, changeHistory2, uniqueIdMapping);
-                    //var repo3Tracking = new ChangeTrackingFactory("Client 2").Exclusive(repo3, changeHistory3, uniqueIdMapping);
-                    var repo1Tracking = new ChangeTrackingFactory("Server").Shared("Dummy_Server", repo1, sharedChangeHistory, uniqueIdMapping);
-                    var repo2Tracking = new ChangeTrackingFactory("Client 1").Shared("Dummy_Client1", repo2, sharedChangeHistory, uniqueIdMapping);
-                    var repo3Tracking = new ChangeTrackingFactory("Client 2").Shared("Dummy_Client2", repo3, sharedChangeHistory, uniqueIdMapping);
+                    //var trackingRegistration1 = new ChangeTrackingFactory("Server").Exclusive(repo1, changeHistory1, uniqueIdMapping);
+                    //var trackingRegistration2 = new ChangeTrackingFactory("Client 1").Exclusive(repo2, changeHistory2, uniqueIdMapping);
+                    //var trackingRegistration3 = new ChangeTrackingFactory("Client 2").Exclusive(repo3, changeHistory3, uniqueIdMapping);
+                    //var trackingRegistration1 = new ChangeTrackingFactory("Server").Shared("Dummy_Server", repo1, sharedChangeHistory, uniqueIdMapping);
+                    //var trackingRegistration2 = new ChangeTrackingFactory("Client 1").Shared("Dummy_Client1", repo2, sharedChangeHistory, uniqueIdMapping);
+                    //var trackingRegistration3 = new ChangeTrackingFactory("Client 2").Shared("Dummy_Client2", repo3, sharedChangeHistory, uniqueIdMapping);
 
                     // Sync providers.
-                    var server = MergeSyncProvider.Create(repo1Tracking);
-                    var client1 = MergeSyncProvider.Create(repo2Tracking);
-                    var client2 = MergeSyncProvider.Create(repo3Tracking);
+                    //var server = MergeSyncProvider.Create(trackingRegistration1);
+                    //var client1 = MergeSyncProvider.Create(trackingRegistration2);
+                    //var client2 = MergeSyncProvider.Create(trackingRegistration3);
+                    var server = SyncProvider.Create("Server", repo1, changeHistory1, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client1 = SyncProvider.Create("Client 1", repo2, changeHistory2, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client2 = SyncProvider.Create("Client 2", repo3, changeHistory3, new UniqueIdMapping<Dummy>(d => d.DummyID));
 
-                    server.CleanUpMetadataAfterSync = false;
-                    client1.CleanUpMetadataAfterSync = true;
-                    client2.CleanUpMetadataAfterSync = true;
+                    //server.CleanUpMetadataAfterSync = false;
+                    //client1.CleanUpMetadataAfterSync = true;
+                    //client2.CleanUpMetadataAfterSync = true;
                     server.ConflictResolutionStrategy = SyncConflictStrategy.Winner;
                     client1.ConflictResolutionStrategy = SyncConflictStrategy.Loser;
                     client2.ConflictResolutionStrategy = SyncConflictStrategy.Loser;
 
-                    //// Change filter: emulate serialization/deserialization.
-                    //// This is not necessary in real-world scenarios.
-                    //var filter = new SyncFilter<Change<Dummy, IChangeHistory>>(
-                    //    changes => changes.Select(
-                    //        c => new Change<Dummy, IChangeHistory>(
-                    //            c.Entity.Clone(),
-                    //            new ChangeHistory(c.ChangeHistory))
-                    //    )
-                    //);
-
-                    var filter = new SyncFilter<Dummy, ISharedChangeHistory>(
+                    // Change filter: emulate serialization/deserialization.
+                    // This is not necessary in real-world scenarios.
+                    var filter = new SyncFilter<Dummy, IChangeHistory>(
                         changes => changes.Select(
-                            c => new SyncEntityVersion<Dummy, ISharedChangeHistory>(
+                            c => new SyncEntityVersion<Dummy, IChangeHistory>(
                                 c.Entity.Clone(),
-                                new SharedChangeHistory(c.Version)
+                                new ChangeHistory(c.Version)
                             )
                         )
                     );
+
+                    //var filter = new SyncFilter<Dummy, ISharedChangeHistory>(
+                    //    changes => changes.Select(
+                    //        c => new SyncEntityVersion<Dummy, ISharedChangeHistory>(
+                    //            c.Entity.Clone(),
+                    //            new SharedChangeHistory(c.Version)
+                    //        )
+                    //    )
+                    //);
 
                     // Chain sync operations to produce an upload/download chain.
                     var client1Upload = SyncOperation.Create(client1, server).Filtered(filter);
@@ -207,7 +211,7 @@ namespace Ardex.TestClient
                         // Sync 4, 5.
                         var dummy5 = new Dummy { DummyID = dummyID++, Text = "Client 2 dummy" };
                         {
-                            client2.ChangeTracking.Repository.Insert(dummy5);
+                            repo3.Insert(dummy5);
 
                             await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
@@ -218,17 +222,17 @@ namespace Ardex.TestClient
                         // Sync 6, 7.
                         var dummy6 = new Dummy { DummyID = dummyID++, Text = "Dummy 6" };
                         {
-                            client2.ChangeTracking.Repository.Insert(dummy6);
+                            repo3.Insert(dummy6);
 
                             //await clientClientSync.SynchroniseDiffAsync();
                             await client1Sync.SynchroniseDiffAsync();
                             await client2Sync.SynchroniseDiffAsync();
 
-                            var serverDummy = server.ChangeTracking.Repository.Single(d => d.DummyID == dummy6.DummyID);
+                            var serverDummy = repo1.Single(d => d.DummyID == dummy6.DummyID);
 
                             serverDummy.Text = "Dummy 6, server modified";
 
-                            server.ChangeTracking.Repository.Update(serverDummy);
+                            repo1.Update(serverDummy);
 
                             await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
