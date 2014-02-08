@@ -39,13 +39,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ChangeTracking.cs" />
+    <Compile Include="Providers\ChangeHistorySyncProvider.cs" />
     <Compile Include="SyncOperations\BasicSyncOperation.cs" />
     <Compile Include="ChangeTracking\ChangeHistory.cs" />
-    <Compile Include="ChangeTracking\ChangeTrackingFactory.cs" />
     <Compile Include="ChangeTracking\IChangeHistory.cs" />
     <Compile Include="ChangeTracking\ISharedChangeHistory.cs" />
-    <Compile Include="ChangeTracking\ChangeTrackingRegistration.cs" />
     <Compile Include="ChangeTracking\SharedChangeHistory.cs" />
     <Compile Include="ComparisonComparer.cs" />
     <Compile Include="SyncConflictStrategy.cs" />
@@ -60,7 +58,6 @@
     <Compile Include="PropertyMapping\ReadWriteMapping.cs" />
     <Compile Include="PropertyMapping\UniqueIdMapping.cs" />
     <Compile Include="Providers\Merge\Change.cs" />
-    <Compile Include="Providers\Merge\MergeSyncProvider.cs" />
     <Compile Include="SyncProvider.cs" />
     <Compile Include="Providers\Simple\VersionDelegateSyncSource.cs" />
     <Compile Include="Providers\Simple\VersionRepositorySyncProvider.cs" />
@@ -68,7 +65,6 @@
     <Compile Include="SyncFilter.cs" />
     <Compile Include="SyncID.cs" />
     <Compile Include="SyncOperation.cs" />
-    <Compile Include="SyncProviderCustom.cs" />
     <Compile Include="SyncProviderFactory.cs" />
     <Compile Include="SyncRepository.cs" />
     <Compile Include="SyncResult.cs" />

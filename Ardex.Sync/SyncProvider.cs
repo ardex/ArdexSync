@@ -34,6 +34,15 @@ namespace Ardex.Sync
         public SyncConflictStrategy ConflictResolutionStrategy { get; set; }
 
         /// <summary>
+        /// If true, the change history will be kept minimal
+        /// by truncating all but the last entry at the end
+        /// of the sync operation. Should only ever be enabled
+        /// on the client in a client-server sync topology.
+        /// The default is false.
+        /// </summary>
+        public bool CleanUpMetadataAfterSync { get; set; }
+
+        /// <summary>
         /// Comparer responsible for comparing timestamps
         /// and other versioning data structures.
         /// </summary>
@@ -44,7 +53,7 @@ namespace Ardex.Sync
         /// suppression of the change tracking functionality for the
         /// purpose of writing custom change entries during the sync.
         /// </summary>
-        protected virtual bool ChangeTrackingEnabled { get; set; }
+        protected bool ChangeTrackingEnabled { get; set; }
 
         /// <summary>
         /// Creates a new instance of the class.
@@ -57,7 +66,12 @@ namespace Ardex.Sync
             this.ReplicaID = replicaID;
             this.Repository = repository;
             this.EntityIdMapping = entityIdMapping;
+
+            // Defaults.
+            this.ChangeTrackingEnabled = true;
         }
+
+        #region Abstract methods
 
         /// <summary>
         /// Retrieves the last anchor containing
@@ -72,6 +86,20 @@ namespace Ardex.Sync
         /// Resolves the changes made since the last reported anchor.
         /// </summary>
         public abstract SyncDelta<TEntity, TVersion> ResolveDelta(Dictionary<SyncID, TVersion> anchor, CancellationToken ct);
+
+        /// <summary>
+        /// When overridden in a derived class, performs
+        /// post-sync metadata (change history) cleanup.
+        /// </summary>
+        protected abstract void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, TVersion>> appliedChanges);
+
+        /// <summary>
+        /// When overridden in a derived class, applies the
+        /// given remote change entry locally if necessary.
+        /// </summary>
+        protected abstract void WriteRemoteVersion(SyncEntityVersion<TEntity, TVersion> versionInfo);
+
+        #endregion
 
         /// <summary>
         /// Accepts the changes as reported by the given node.
@@ -217,24 +245,6 @@ namespace Ardex.Sync
             }
 
             return changeCount;
-        }
-
-        /// <summary>
-        /// When overridden in a derived class, performs
-        /// post-sync metadata (change history) cleanup.
-        /// </summary>
-        protected virtual void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, TVersion>> appliedChanges)
-        {
-
-        }
-
-        /// <summary>
-        /// When overridden in a derived class, applies the
-        /// given remote change entry locally if necessary.
-        /// </summary>
-        protected virtual void WriteRemoteVersion(SyncEntityVersion<TEntity, TVersion> versionInfo)
-        {
-            
         }
     }
 }
