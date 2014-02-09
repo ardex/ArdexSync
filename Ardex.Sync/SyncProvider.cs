@@ -121,7 +121,7 @@ namespace Ardex.Sync
                 try
                 {
                     // Materialise changes.
-                    var changes = delta.Changes.ToArray().AsEnumerable();
+                    var changes = delta.Changes;
 
                     // Detect conflicts.
                     var myDelta = this.ResolveDelta(delta.Anchor, ct);
@@ -150,7 +150,9 @@ namespace Ardex.Sync
                         }
 
                         // Discard other replica's changes. Ours are better.
-                        changes = changes.Except(ignoredChanges);
+                        changes = changes
+                            .Except(ignoredChanges)
+                            .ToArray();
                     }
                     else if (this.ConflictStrategy == SyncConflictStrategy.Loser)
                     {

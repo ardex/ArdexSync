@@ -74,20 +74,10 @@ namespace Ardex.TestClient
                 {
                     // --- BEGIN SYNC SETUP --- //
 
-                    // Let's say this is our database on the server.
-                    var db1 = new List<Dummy>();
-
-                    db1.Add(new Dummy { DummyID = 0, Text = "Pre-ch dummy" });
-
                     // In-memory storage.
                     var repo1 = new SyncRepository<Dummy>();
                     var repo2 = new SyncRepository<Dummy>();
                     var repo3 = new SyncRepository<Dummy>();
-
-                    //// Sync providers.
-                    //var server  = SyncProvider.Create("Server",   repo1, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    //var client1 = SyncProvider.Create("Client 1", repo2, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    //var client2 = SyncProvider.Create("Client 2", repo3, new UniqueIdMapping<Dummy>(d => d.DummyID));
 
                     // Sync providers.
                     var changeHistory = new SyncRepository<ISharedChangeHistory>();
