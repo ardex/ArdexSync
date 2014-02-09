@@ -40,6 +40,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Providers\ChangeHistorySyncProvider.cs" />
+    <Compile Include="Providers\ExclusiveChangeHistorySyncProvider.cs" />
+    <Compile Include="Providers\SharedChangeHistorySyncProvider.cs" />
     <Compile Include="SyncOperations\BasicSyncOperation.cs" />
     <Compile Include="ChangeTracking\ChangeHistory.cs" />
     <Compile Include="ChangeTracking\IChangeHistory.cs" />

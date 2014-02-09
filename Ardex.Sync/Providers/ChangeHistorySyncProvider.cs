@@ -9,20 +9,22 @@ using Ardex.Sync.PropertyMapping;
 
 namespace Ardex.Sync.Providers
 {
-    public class ChangeHistorySyncProvider<TEntity> : SyncProvider<TEntity, IChangeHistory>
+    public abstract class ChangeHistorySyncProvider<TEntity, TChangeHistory> :
+        SyncProvider<TEntity, TChangeHistory>
+        where TChangeHistory : IChangeHistory
     {
-        public SyncRepository<IChangeHistory> ChangeHistory { get; private set; }
+        public SyncRepository<TChangeHistory> ChangeHistory { get; private set; }
 
-        protected override IComparer<IChangeHistory> VersionComparer
+        protected override IComparer<TChangeHistory> VersionComparer
         {
             get
             {
-                return new ComparisonComparer<IChangeHistory>(
+                return new ComparisonComparer<TChangeHistory>(
                     (x, y) => x.Timestamp.CompareTo(y.Timestamp));
             }
         }
 
-        protected virtual IEnumerable<IChangeHistory> FilteredChangeHistory
+        protected virtual IEnumerable<TChangeHistory> FilteredChangeHistory
         {
             get { return this.ChangeHistory; }
         }
@@ -30,7 +32,7 @@ namespace Ardex.Sync.Providers
         public ChangeHistorySyncProvider(
             SyncID replicaID,
             SyncRepository<TEntity> repository,
-            SyncRepository<IChangeHistory> changeHistory,
+            SyncRepository<TChangeHistory> changeHistory,
             UniqueIdMapping<TEntity> entityIdMapping) : base(replicaID, repository, entityIdMapping)
         {
             this.ChangeHistory = changeHistory;
@@ -41,7 +43,7 @@ namespace Ardex.Sync.Providers
             this.Repository.EntityDeleted += e => this.HandleRepositoryChange(e, ChangeHistoryAction.Delete);
         }
     
-        internal void HandleRepositoryChange(TEntity entity, ChangeHistoryAction action)
+        internal virtual void HandleRepositoryChange(TEntity entity, ChangeHistoryAction action)
         {
             if (this.ChangeTrackingEnabled)
             {
@@ -49,7 +51,7 @@ namespace Ardex.Sync.Providers
 
                 try
                 {
-                    var ch = (IChangeHistory)new ChangeHistory();
+                    var ch = (TChangeHistory)(IChangeHistory)new ChangeHistory();
 
                     // Resolve pk.
                     ch.ChangeHistoryID = this.ChangeHistory
@@ -83,13 +85,13 @@ namespace Ardex.Sync.Providers
         /// When overridden in a derived class, applies the
         /// given remote change entry locally if necessary.
         /// </summary>
-        protected override void WriteRemoteVersion(SyncEntityVersion<TEntity, IChangeHistory> versionInfo)
+        protected override void WriteRemoteVersion(SyncEntityVersion<TEntity, TChangeHistory> versionInfo)
         {
             this.ChangeHistory.Lock.EnterWriteLock();
 
             try
             {
-                var ch = (IChangeHistory)new ChangeHistory();
+                var ch = (TChangeHistory)(IChangeHistory)new ChangeHistory();
 
                 // Resolve pk.
                 ch.ChangeHistoryID = this.ChangeHistory
@@ -110,12 +112,12 @@ namespace Ardex.Sync.Providers
             }
         }
 
-        public override Dictionary<SyncID, IChangeHistory> LastAnchor()
+        public override Dictionary<SyncID, TChangeHistory> LastAnchor()
         {
             return this.LastKnownVersionByReplica(this.FilteredChangeHistory);
         }
 
-        public override SyncDelta<TEntity, IChangeHistory> ResolveDelta(Dictionary<SyncID, IChangeHistory> anchor, CancellationToken ct)
+        public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(Dictionary<SyncID, TChangeHistory> anchor, CancellationToken ct)
         {
             this.ChangeHistory.Lock.EnterReadLock();
 
@@ -126,7 +128,7 @@ namespace Ardex.Sync.Providers
                 var changes = this.FilteredChangeHistory
                     .Where(ch =>
                     {
-                        var version = default(IChangeHistory);
+                        var version = default(TChangeHistory);
 
                         return
                             !anchor.TryGetValue(ch.ReplicaID, out version) ||
@@ -153,7 +155,7 @@ namespace Ardex.Sync.Providers
         /// Performs change history cleanup if necessary.
         /// Ensures that only the latest value for each node is kept.
         /// </summary>
-        protected override void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, IChangeHistory>> appliedDelta)
+        protected override void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, TChangeHistory>> appliedDelta)
         {
             if (!this.CleanUpMetadata)
                 return;
@@ -171,7 +173,7 @@ namespace Ardex.Sync.Providers
                 foreach (var ch in this.ChangeHistory)
                 {
                     // Ensure that this change is not the last for node.
-                    var lastKnownVersion = default(IChangeHistory);
+                    var lastKnownVersion = default(TChangeHistory);
 
                     if (lastKnownVersionByReplica.TryGetValue(ch.ReplicaID, out lastKnownVersion) &&
                         this.VersionComparer.Compare(ch, lastKnownVersion) < 0)
@@ -189,13 +191,13 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Returns last seen version value for each known node.
         /// </summary>
-        protected Dictionary<SyncID, IChangeHistory> LastKnownVersionByReplica(IEnumerable<IChangeHistory> changeHistory)
+        protected Dictionary<SyncID, TChangeHistory> LastKnownVersionByReplica(IEnumerable<TChangeHistory> changeHistory)
         {
-            var dict = new Dictionary<SyncID, IChangeHistory>();
+            var dict = new Dictionary<SyncID, TChangeHistory>();
 
             foreach (var ch in changeHistory)
             {
-                var lastKnownVersion = default(IChangeHistory);
+                var lastKnownVersion = default(TChangeHistory);
 
                 if (!dict.TryGetValue(ch.ReplicaID, out lastKnownVersion) ||
                     this.VersionComparer.Compare(ch, lastKnownVersion) > 0)

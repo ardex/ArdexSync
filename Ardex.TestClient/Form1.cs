@@ -37,6 +37,23 @@ namespace Ardex.TestClient
             }
         }
 
+        private SyncFilter<Dummy, ISharedChangeHistory> SharedChangeHistoryFilter
+        {
+            get
+            {
+                // Change filter: emulate serialization/deserialization.
+                // This is not necessary in real-world scenarios.
+                return new SyncFilter<Dummy, ISharedChangeHistory>(
+                    changes => changes.Select(
+                        c => new SyncEntityVersion<Dummy, ISharedChangeHistory>(
+                            c.Entity.Clone(),
+                            new SharedChangeHistory(c.Version)
+                        )
+                    )
+                );
+            }
+        }
+
         public Form1()
         {
             this.InitializeComponent();
@@ -64,14 +81,20 @@ namespace Ardex.TestClient
                     db1.Add(new Dummy { DummyID = 0, Text = "Pre-ch dummy" });
 
                     // In-memory storage.
-                    var repo1 = new SyncRepository<Dummy>(db1);
+                    var repo1 = new SyncRepository<Dummy>();
                     var repo2 = new SyncRepository<Dummy>();
                     var repo3 = new SyncRepository<Dummy>();
 
+                    //// Sync providers.
+                    //var server  = SyncProvider.Create("Server",   repo1, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    //var client1 = SyncProvider.Create("Client 1", repo2, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    //var client2 = SyncProvider.Create("Client 2", repo3, new UniqueIdMapping<Dummy>(d => d.DummyID));
+
                     // Sync providers.
-                    var server  = SyncProvider.Create("Server",   repo1, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client1 = SyncProvider.Create("Client 1", repo2, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client2 = SyncProvider.Create("Client 2", repo3, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var changeHistory = new SyncRepository<ISharedChangeHistory>();
+                    var server = SyncProvider.Create("Server", "SERVER", repo1, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client1 = SyncProvider.Create("Client 1", "CLIENT 1", repo2, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client2 = SyncProvider.Create("Client 2", "CLIENT 2", repo3, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
 
                     server.CleanUpMetadata = false;
                     server.ConflictStrategy = SyncConflictStrategy.Winner;
@@ -83,12 +106,18 @@ namespace Ardex.TestClient
                     client2.ConflictStrategy = SyncConflictStrategy.Loser;
 
                     // Chain sync operations to produce an upload/download chain.
-                    var client1Upload = SyncOperation.Create(client1, server).Filtered(this.ExclusiveChangeHistoryFilter);
-                    var client1Download = SyncOperation.Create(server, client1).Filtered(this.ExclusiveChangeHistoryFilter);
-                    var client2Upload = SyncOperation.Create(client2, server).Filtered(this.ExclusiveChangeHistoryFilter);
-                    var client2Download = SyncOperation.Create(server, client2).Filtered(this.ExclusiveChangeHistoryFilter);
-                    var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(this.ExclusiveChangeHistoryFilter);
-                    var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(this.ExclusiveChangeHistoryFilter);
+                    //var client1Upload = SyncOperation.Create(client1, server).Filtered(this.ExclusiveChangeHistoryFilter);
+                    //var client1Download = SyncOperation.Create(server, client1).Filtered(this.ExclusiveChangeHistoryFilter);
+                    //var client2Upload = SyncOperation.Create(client2, server).Filtered(this.ExclusiveChangeHistoryFilter);
+                    //var client2Download = SyncOperation.Create(server, client2).Filtered(this.ExclusiveChangeHistoryFilter);
+                    //var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(this.ExclusiveChangeHistoryFilter);
+                    //var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(this.ExclusiveChangeHistoryFilter);
+                    var client1Upload = SyncOperation.Create(client1, server).Filtered(this.SharedChangeHistoryFilter);
+                    var client1Download = SyncOperation.Create(server, client1).Filtered(this.SharedChangeHistoryFilter);
+                    var client2Upload = SyncOperation.Create(client2, server).Filtered(this.SharedChangeHistoryFilter);
+                    var client2Download = SyncOperation.Create(server, client2).Filtered(this.SharedChangeHistoryFilter);
+                    var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(this.SharedChangeHistoryFilter);
+                    var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(this.SharedChangeHistoryFilter);
 
                     // Chain uploads and downloads to produce complete sync sessions.
                     var client1Sync = SyncOperation.Chain(client1Upload, client1Download);
