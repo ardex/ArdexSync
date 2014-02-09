@@ -47,13 +47,6 @@ namespace Ardex.Sync
         protected abstract IComparer<TVersion> VersionComparer { get; }
 
         /// <summary>
-        /// When overridden in a derived class, enables temporary
-        /// suppression of the change tracking functionality for the
-        /// purpose of writing custom change entries during the sync.
-        /// </summary>
-        protected bool ChangeTrackingEnabled { get; set; }
-
-        /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
         protected SyncProvider(
@@ -64,9 +57,6 @@ namespace Ardex.Sync
             this.ReplicaID = replicaID;
             this.Repository = repository;
             this.EntityIdMapping = entityIdMapping;
-
-            // Defaults.
-            this.ChangeTrackingEnabled = true;
         }
 
         #region Abstract methods
@@ -115,112 +105,102 @@ namespace Ardex.Sync
 
             try
             {
-                // Temporarily suspend change tracking.
-                this.ChangeTrackingEnabled = false;
+                // Materialise changes.
+                var changes = remoteDelta.Changes;
 
-                try
+                // Detect conflicts.
+                var myDelta = this.ResolveDelta(remoteDelta.Anchor, ct);
+
+                var conflicts = myDelta.Changes.Join(
+                    changes,
+                    c => this.EntityIdMapping.Get(c.Entity),
+                    c => this.EntityIdMapping.Get(c.Entity),
+                    (local, remote) => SyncConflict.Create(local, remote));
+
+                // Resolve conflicts.
+                if (this.ConflictStrategy == SyncConflictStrategy.Fail)
                 {
-                    // Materialise changes.
-                    var changes = remoteDelta.Changes;
-
-                    // Detect conflicts.
-                    var myDelta = this.ResolveDelta(remoteDelta.Anchor, ct);
-
-                    var conflicts = myDelta.Changes.Join(
-                        changes,
-                        c => this.EntityIdMapping.Get(c.Entity),
-                        c => this.EntityIdMapping.Get(c.Entity),
-                        (local, remote) => SyncConflict.Create(local, remote));
-
-                    // Resolve conflicts.
-                    if (this.ConflictStrategy == SyncConflictStrategy.Fail)
+                    if (conflicts.Any())
                     {
-                        if (conflicts.Any())
-                        {
-                            throw new InvalidOperationException("Merge conflict detected.");
-                        }
+                        throw new InvalidOperationException("Merge conflict detected.");
                     }
-                    else if (this.ConflictStrategy == SyncConflictStrategy.Winner)
-                    {
-                        var ignoredChanges = conflicts.Select(c => c.Remote);
+                }
+                else if (this.ConflictStrategy == SyncConflictStrategy.Winner)
+                {
+                    var ignoredChanges = conflicts.Select(c => c.Remote);
 
-                        foreach (var ignoredChange in ignoredChanges)
-                        {
-                            this.WriteRemoteVersion(ignoredChange);
-                        }
-
-                        // Discard other replica's changes. Ours are better.
-                        changes = changes
-                            .Except(ignoredChanges)
-                            .ToArray();
-                    }
-                    else if (this.ConflictStrategy == SyncConflictStrategy.Loser)
+                    foreach (var ignoredChange in ignoredChanges)
                     {
-                        // We'll just pretend that nothing happened.
+                        this.WriteRemoteVersion(ignoredChange);
                     }
 
-                    var type = typeof(TEntity);
-                    var inserts = new List<object>();
-                    var updates = new List<object>();
-                    var deletes = new List<object>();
+                    // Discard other replica's changes. Ours are better.
+                    changes = changes
+                        .Except(ignoredChanges)
+                        .ToArray();
+                }
+                else if (this.ConflictStrategy == SyncConflictStrategy.Loser)
+                {
+                    // We'll just pretend that nothing happened.
+                }
 
-                    // We need to ensure that all changes are processed in such
-                    // an order that if we fail, we'll be able to resume later.
-                    foreach (var change in changes.OrderBy(c => c.Version, this.VersionComparer))
-                    {
-                        ct.ThrowIfCancellationRequested();
+                var type = typeof(TEntity);
+                var inserts = new List<object>();
+                var updates = new List<object>();
+                var deletes = new List<object>();
 
-                        var changeUniqueID = this.EntityIdMapping.Get(change.Entity);
-                        var found = false;
-
-                        foreach (var existingEntity in this.Repository)
-                        {
-                            if (changeUniqueID == this.EntityIdMapping.Get(existingEntity))
-                            {
-                                // Found.
-                                var changeCount = this.ApplyDataChange(existingEntity, change.Entity);
-
-                                if (changeCount != 0)
-                                {
-                                    this.Repository.Update(existingEntity);
-                                    updates.Add(existingEntity);
-                                }
-
-                                found = true;
-                                break;
-                            }
-                        }
-
-                        if (!found)
-                        {
-                            this.Repository.Insert(change.Entity);
-                            inserts.Add(change);
-                        }
-
-                        // Write remote change history entry to local change history.
-                        this.WriteRemoteVersion(change);
-                    }
-
+                // We need to ensure that all changes are processed in such
+                // an order that if we fail, we'll be able to resume later.
+                foreach (var change in changes.OrderBy(c => c.Version, this.VersionComparer))
+                {
                     ct.ThrowIfCancellationRequested();
 
-                    Debug.Print("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaID, inserts.Count, type.Name, sourceReplicaID);
-                    Debug.Print("{0} applied {1} {2} updates originating at {3}.", this.ReplicaID, updates.Count, type.Name, sourceReplicaID);
-                    Debug.Print("{0} applied {1} {2} deletes originating at {3}.", this.ReplicaID, deletes.Count, type.Name, sourceReplicaID);
+                    var changeUniqueID = this.EntityIdMapping.Get(change.Entity);
+                    var found = false;
 
-                    var result = new SyncResult(inserts, updates, deletes);
-
-                    // Perform metadata cleanup.
-                    if (this.CleanUpMetadata)
+                    foreach (var existingEntity in this.Repository)
                     {
-                        this.CleanUpSyncMetadata(changes);
+                        if (changeUniqueID == this.EntityIdMapping.Get(existingEntity))
+                        {
+                            // Found.
+                            var changeCount = this.ApplyDataChange(existingEntity, change.Entity);
+
+                            if (changeCount != 0)
+                            {
+                                this.Repository.UntrackedUpdate(existingEntity);
+                                updates.Add(existingEntity);
+                            }
+
+                            found = true;
+                            break;
+                        }
                     }
 
-                    return result;
+                    if (!found)
+                    {
+                        this.Repository.UntrackedInsert(change.Entity);
+                        inserts.Add(change);
+                    }
+
+                    // Write remote change history entry to local change history.
+                    this.WriteRemoteVersion(change);
                 }
-                finally
+
+                ct.ThrowIfCancellationRequested();
+
+                Debug.Print("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaID, inserts.Count, type.Name, sourceReplicaID);
+                Debug.Print("{0} applied {1} {2} updates originating at {3}.", this.ReplicaID, updates.Count, type.Name, sourceReplicaID);
+                Debug.Print("{0} applied {1} {2} deletes originating at {3}.", this.ReplicaID, deletes.Count, type.Name, sourceReplicaID);
+
+                var result = new SyncResult(inserts, updates, deletes);
+
+                // Perform metadata cleanup.
+                if (this.CleanUpMetadata)
                 {
-                    this.ChangeTrackingEnabled = true;
+                    this.CleanUpSyncMetadata(changes);
                 }
+
+                return result;
             }
             finally
             {

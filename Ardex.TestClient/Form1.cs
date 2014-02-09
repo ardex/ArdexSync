@@ -478,37 +478,49 @@ namespace Ardex.TestClient
 
         private async void button3_Click(object sender, EventArgs e)
         {
-            //this.button3.Enabled = false;
+            this.button3.Enabled = false;
 
-            //try
-            //{
-            //    var path1 = @"C:\dev\DirectorySyncTest\Dir 1";
-            //    var path2 = @"C:\dev\DirectorySyncTest\Dir 2";
+            try
+            {
+                var path1 = @"C:\dev\DirectorySyncTest\Dir 1";
+                var path2 = @"C:\dev\DirectorySyncTest\Dir 2";
 
-            //    var repo1 = new SyncRepository<FileAccessInfo>();
-            //    var repo2 = new SyncRepository<FileAccessInfo>();
+                var repo1 = new SyncRepository<FileAccessInfo>();
+                var repo2 = new SyncRepository<FileAccessInfo>();
 
-            //    repo1.EntityInserted += f => File.WriteAllBytes()
+                repo1.TrackedChange += (file, action) =>
+                {
+                    var bytes = File.ReadAllBytes(Path.Combine(path2, file.FileName));
 
-            //    var provider1 = new ExclusiveChangeHistorySyncProvider<FileAccessInfo>("Dir 1", repo1, new SyncRepository<IChangeHistory>(), new UniqueIdMapping<FileAccessInfo>(f => f.FileName));
-            //    var provider2 = new ExclusiveChangeHistorySyncProvider<FileAccessInfo>("Dir 2", repo2, new SyncRepository<IChangeHistory>(), new UniqueIdMapping<FileAccessInfo>(f => f.FileName));
+                    File.WriteAllBytes(Path.Combine(path1, file.FileName), bytes);
+                };
 
-            //    var sync1 = SyncOperation.Create(provider1, provider2);
-            //    var sync2 = SyncOperation.Create(provider2, provider1);
-            //    var sync = SyncOperation.Chain(sync1, sync2);
+                repo2.TrackedChange += (file, action) =>
+                {
+                    var bytes = File.ReadAllBytes(Path.Combine(path2, file.FileName));
 
-            //    while (true)
-            //    {
-            //        await Task.Delay(TimeSpan.FromSeconds(5));
-            //        await sync.SynchroniseDiffAsync();
-            //    }
-            //}
-            //finally
-            //{
-            //    this.button3.Enabled = true;
-            //}
+                    File.WriteAllBytes(Path.Combine(path1, file.FileName), bytes);
+                };
 
-            //this.button3.Enabled = false;
+                var provider1 = new ExclusiveChangeHistorySyncProvider<FileAccessInfo>("Dir 1", repo1, new SyncRepository<IChangeHistory>(), new UniqueIdMapping<FileAccessInfo>(f => f.FileName));
+                var provider2 = new ExclusiveChangeHistorySyncProvider<FileAccessInfo>("Dir 2", repo2, new SyncRepository<IChangeHistory>(), new UniqueIdMapping<FileAccessInfo>(f => f.FileName));
+
+                var sync1 = SyncOperation.Create(provider1, provider2);
+                var sync2 = SyncOperation.Create(provider2, provider1);
+                var sync = SyncOperation.Chain(sync1, sync2);
+
+                while (true)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    await sync.SynchroniseDiffAsync();
+                }
+            }
+            finally
+            {
+                this.button3.Enabled = true;
+            }
+
+            this.button3.Enabled = false;
 
             //try
             //{

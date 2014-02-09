@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 
 using Ardex.Collections;
+using Ardex.Sync.ChangeTracking;
 
 namespace Ardex.Sync
 {
@@ -66,6 +67,16 @@ namespace Ardex.Sync
         public SyncRepository(IEnumerable<TEntity> entities) : base(entities) { }
 
         /// <summary>
+        /// Raised after a tracked insert, update or delete.
+        /// </summary>
+        public event Action<TEntity, ChangeHistoryAction> TrackedChange;
+
+        /// <summary>
+        /// Raised after an untracked insert, update or delete.
+        /// </summary>
+        public event Action<TEntity, ChangeHistoryAction> UntrackedChange;
+
+        /// <summary>
         /// Inserts the specified entity.
         /// </summary>
         public override void Insert(TEntity entity)
@@ -75,6 +86,11 @@ namespace Ardex.Sync
             try
             {
                 base.Insert(entity);
+
+                if (this.TrackedChange != null)
+                {
+                    this.TrackedChange(entity, ChangeHistoryAction.Insert);
+                }
             }
             finally
             {
@@ -92,6 +108,11 @@ namespace Ardex.Sync
             try
             {
                 base.Update(entity);
+
+                if (this.TrackedChange != null)
+                {
+                    this.TrackedChange(entity, ChangeHistoryAction.Update);
+                }
             }
             finally
             {
@@ -109,6 +130,11 @@ namespace Ardex.Sync
             try
             {
                 base.Delete(entity);
+
+                if (this.TrackedChange != null)
+                {
+                    this.TrackedChange(entity, ChangeHistoryAction.Delete);
+                }
             }
             finally
             {
@@ -144,9 +170,70 @@ namespace Ardex.Sync
             return snapshot.GetEnumerator();
         }
 
-        public override string ToString()
+        /// <summary>
+        /// Inserts the specified entity.
+        /// </summary>
+        internal void UntrackedInsert(TEntity entity)
         {
-            return string.Join(Environment.NewLine, this.InnerRepository.Select(e => Reflect.ToString(e)));
+            this.Lock.EnterWriteLock();
+
+            try
+            {
+                base.Insert(entity);
+
+                if (this.UntrackedChange != null)
+                {
+                    this.UntrackedChange(entity, ChangeHistoryAction.Insert);
+                }
+            }
+            finally
+            {
+                this.Lock.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
+        /// Updates the specified entity.
+        /// </summary>
+        internal void UntrackedUpdate(TEntity entity)
+        {
+            this.Lock.EnterWriteLock();
+
+            try
+            {
+                base.Update(entity);
+
+                if (this.UntrackedChange != null)
+                {
+                    this.UntrackedChange(entity, ChangeHistoryAction.Update);
+                }
+            }
+            finally
+            {
+                this.Lock.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
+        /// Deletes the specified entity.
+        /// </summary>
+        internal void UntrackedDelete(TEntity entity)
+        {
+            this.Lock.EnterWriteLock();
+
+            try
+            {
+                base.Delete(entity);
+
+                if (this.UntrackedChange != null)
+                {
+                    this.UntrackedChange(entity, ChangeHistoryAction.Delete);
+                }
+            }
+            finally
+            {
+                this.Lock.ExitWriteLock();
+            }
         }
 
         #region Cleanup
@@ -158,6 +245,9 @@ namespace Ardex.Sync
         {
             if (disposing)
             {
+                this.TrackedChange = null;
+                this.UntrackedChange = null;
+
                 __lock.Dispose();
             }
 

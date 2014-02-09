@@ -34,30 +34,25 @@ namespace Ardex.Sync.Providers
             this.ChangeHistory = changeHistory;
 
             // Set up change tracking.
-            this.Repository.EntityInserted += e => this.HandleRepositoryChange(e, ChangeHistoryAction.Insert);
-            this.Repository.EntityUpdated += e => this.HandleRepositoryChange(e, ChangeHistoryAction.Update);
-            this.Repository.EntityDeleted += e => this.HandleRepositoryChange(e, ChangeHistoryAction.Delete);
+            this.Repository.TrackedChange += this.HandleTrackedChange;
         }
 
         protected abstract TChangeHistory CreateChangeHistoryForLocalChange(TEntity entity, ChangeHistoryAction action);
         protected abstract TChangeHistory CreateChangeHistoryForRemoteChange(SyncEntityVersion<TEntity, TChangeHistory> remoteVersionInfo);
     
-        private void HandleRepositoryChange(TEntity entity, ChangeHistoryAction action)
+        private void HandleTrackedChange(TEntity entity, ChangeHistoryAction action)
         {
-            if (this.ChangeTrackingEnabled)
+            this.ChangeHistory.Lock.EnterWriteLock();
+
+            try
             {
-                this.ChangeHistory.Lock.EnterWriteLock();
+                var ch = this.CreateChangeHistoryForLocalChange(entity, action);
 
-                try
-                {
-                    var ch = this.CreateChangeHistoryForLocalChange(entity, action);
-
-                    this.ChangeHistory.Insert(ch);
-                }
-                finally
-                {
-                    this.ChangeHistory.Lock.ExitWriteLock();
-                }
+                this.ChangeHistory.Insert(ch);
+            }
+            finally
+            {
+                this.ChangeHistory.Lock.ExitWriteLock();
             }
         }
 
