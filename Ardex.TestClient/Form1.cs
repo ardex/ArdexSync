@@ -20,6 +20,23 @@ namespace Ardex.TestClient
 {
     public partial class Form1 : Form
     {
+        private SyncFilter<Dummy, IChangeHistory> ExclusiveChangeHistoryFilter
+        {
+            get
+            {
+                // Change filter: emulate serialization/deserialization.
+                // This is not necessary in real-world scenarios.
+                return new SyncFilter<Dummy, IChangeHistory>(
+                    changes => changes.Select(
+                        c => new SyncEntityVersion<Dummy, IChangeHistory>(
+                            c.Entity.Clone(),
+                            new ChangeHistory(c.Version)
+                        )
+                    )
+                );
+            }
+        }
+
         public Form1()
         {
             this.InitializeComponent();
@@ -39,52 +56,50 @@ namespace Ardex.TestClient
                 var sw = Stopwatch.StartNew();
 
                 {
+                    // --- BEGIN SYNC SETUP --- //
+
+                    // Let's say this is our database on the server.
+                    var db1 = new List<Dummy>();
+
+                    db1.Add(new Dummy { DummyID = 0, Text = "Pre-ch dummy" });
+
                     // In-memory storage.
-                    var repo1 = new SyncRepository<Dummy>();
+                    var repo1 = new SyncRepository<Dummy>(db1);
                     var repo2 = new SyncRepository<Dummy>();
                     var repo3 = new SyncRepository<Dummy>();
 
                     // Sync providers.
-                    var server = SyncProvider.Create("Server", repo1, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var server  = SyncProvider.Create("Server",   repo1, new UniqueIdMapping<Dummy>(d => d.DummyID));
                     var client1 = SyncProvider.Create("Client 1", repo2, new UniqueIdMapping<Dummy>(d => d.DummyID));
                     var client2 = SyncProvider.Create("Client 2", repo3, new UniqueIdMapping<Dummy>(d => d.DummyID));
 
-                    server.CleanUpMetadataAfterSync = false;
-                    server.ConflictResolutionStrategy = SyncConflictStrategy.Winner;
+                    server.CleanUpMetadata = false;
+                    server.ConflictStrategy = SyncConflictStrategy.Winner;
 
-                    client1.CleanUpMetadataAfterSync = true;
-                    client1.ConflictResolutionStrategy = SyncConflictStrategy.Loser;
+                    client1.CleanUpMetadata = true;
+                    client1.ConflictStrategy = SyncConflictStrategy.Loser;
 
-                    client2.CleanUpMetadataAfterSync = true;
-                    client2.ConflictResolutionStrategy = SyncConflictStrategy.Loser;
-
-                    // Change filter: emulate serialization/deserialization.
-                    // This is not necessary in real-world scenarios.
-                    var filter = new SyncFilter<Dummy, IChangeHistory>(
-                        changes => changes.Select(
-                            c => new SyncEntityVersion<Dummy, IChangeHistory>(
-                                c.Entity.Clone(),
-                                new ChangeHistory(c.Version)
-                            )
-                        )
-                    );
+                    client2.CleanUpMetadata = true;
+                    client2.ConflictStrategy = SyncConflictStrategy.Loser;
 
                     // Chain sync operations to produce an upload/download chain.
-                    var client1Upload = SyncOperation.Create(client1, server).Filtered(filter);
-                    var client1Download = SyncOperation.Create(server, client1).Filtered(filter);
-                    var client2Upload = SyncOperation.Create(client2, server).Filtered(filter);
-                    var client2Download = SyncOperation.Create(server, client2).Filtered(filter);
-                    var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(filter);
-                    var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(filter);
+                    var client1Upload = SyncOperation.Create(client1, server).Filtered(this.ExclusiveChangeHistoryFilter);
+                    var client1Download = SyncOperation.Create(server, client1).Filtered(this.ExclusiveChangeHistoryFilter);
+                    var client2Upload = SyncOperation.Create(client2, server).Filtered(this.ExclusiveChangeHistoryFilter);
+                    var client2Download = SyncOperation.Create(server, client2).Filtered(this.ExclusiveChangeHistoryFilter);
+                    var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(this.ExclusiveChangeHistoryFilter);
+                    var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(this.ExclusiveChangeHistoryFilter);
 
                     // Chain uploads and downloads to produce complete sync sessions.
                     var client1Sync = SyncOperation.Chain(client1Upload, client1Download);
                     var client2Sync = SyncOperation.Chain(client2Upload, client2Download);
 
+                    // --- END SYNC SETUP --- //
+
                     // Rolling primary key.
                     var dummyID = 1;
 
-                    const int NUM_ITERATIONS = 100;
+                    const int NUM_ITERATIONS = 1;
 
                     for (var iterations = 0; iterations < NUM_ITERATIONS; iterations++)
                     {
@@ -134,11 +149,11 @@ namespace Ardex.TestClient
                         // Sync 3.
                         var dummy4 = new Dummy { DummyID = dummyID++, Text = "Dummy 4" };
                         {
-                            var repo1Dummy1 = repo1.Single(d => d.DummyID == dummy1.DummyID);
+                            //var repo1Dummy1 = repo1.Single(d => d.DummyID == dummy1.DummyID);
 
-                            repo1Dummy1.Text = "First dummy upd repo 1";
+                            //repo1Dummy1.Text = "First dummy upd repo 1";
 
-                            repo1.Update(repo1Dummy1);
+                            //repo1.Update(repo1Dummy1);
 
                             var repo2Dummy2 = repo2.Single(d => d.DummyID == dummy2.DummyID);
 

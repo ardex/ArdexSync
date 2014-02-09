@@ -22,6 +22,11 @@ namespace Ardex.Sync.Providers
             }
         }
 
+        protected virtual IEnumerable<IChangeHistory> FilteredChangeHistory
+        {
+            get { return this.ChangeHistory; }
+        }
+
         public ChangeHistorySyncProvider(
             SyncID replicaID,
             SyncRepository<TEntity> repository,
@@ -36,7 +41,7 @@ namespace Ardex.Sync.Providers
             this.Repository.EntityDeleted += e => this.HandleRepositoryChange(e, ChangeHistoryAction.Delete);
         }
     
-        private void HandleRepositoryChange(TEntity entity, ChangeHistoryAction action)
+        internal void HandleRepositoryChange(TEntity entity, ChangeHistoryAction action)
         {
             if (this.ChangeTrackingEnabled)
             {
@@ -107,7 +112,7 @@ namespace Ardex.Sync.Providers
 
         public override Dictionary<SyncID, IChangeHistory> LastAnchor()
         {
-            return this.LastKnownVersionByReplica(this.ChangeHistory);
+            return this.LastKnownVersionByReplica(this.FilteredChangeHistory);
         }
 
         public override SyncDelta<TEntity, IChangeHistory> ResolveDelta(Dictionary<SyncID, IChangeHistory> anchor, CancellationToken ct)
@@ -118,7 +123,7 @@ namespace Ardex.Sync.Providers
             {
                 var myAnchor = this.LastAnchor();
 
-                var changes = this.ChangeHistory
+                var changes = this.FilteredChangeHistory
                     .Where(ch =>
                     {
                         var version = default(IChangeHistory);
@@ -150,7 +155,7 @@ namespace Ardex.Sync.Providers
         /// </summary>
         protected override void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, IChangeHistory>> appliedDelta)
         {
-            if (!this.CleanUpMetadataAfterSync)
+            if (!this.CleanUpMetadata)
                 return;
 
             var changeHistory = this.ChangeHistory;

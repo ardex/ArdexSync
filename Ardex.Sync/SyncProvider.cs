@@ -31,7 +31,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Conflict resolution strategy used by this provider.
         /// </summary>
-        public SyncConflictStrategy ConflictResolutionStrategy { get; set; }
+        public SyncConflictStrategy ConflictStrategy { get; set; }
 
         /// <summary>
         /// If true, the change history will be kept minimal
@@ -40,7 +40,7 @@ namespace Ardex.Sync
         /// on the client in a client-server sync topology.
         /// The default is false.
         /// </summary>
-        public bool CleanUpMetadataAfterSync { get; set; }
+        public bool CleanUpMetadata { get; set; }
 
         /// <summary>
         /// Comparer responsible for comparing timestamps
@@ -129,14 +129,14 @@ namespace Ardex.Sync
                         (local, remote) => SyncConflict.Create(local, remote));
 
                     // Resolve conflicts.
-                    if (this.ConflictResolutionStrategy == SyncConflictStrategy.Fail)
+                    if (this.ConflictStrategy == SyncConflictStrategy.Fail)
                     {
                         if (conflicts.Any())
                         {
                             throw new InvalidOperationException("Merge conflict detected.");
                         }
                     }
-                    else if (this.ConflictResolutionStrategy == SyncConflictStrategy.Winner)
+                    else if (this.ConflictStrategy == SyncConflictStrategy.Winner)
                     {
                         var ignoredChanges = conflicts.Select(c => c.Remote);
 
@@ -148,7 +148,7 @@ namespace Ardex.Sync
                         // Discard other replica's changes. Ours are better.
                         changes = changes.Except(ignoredChanges);
                     }
-                    else if (this.ConflictResolutionStrategy == SyncConflictStrategy.Loser)
+                    else if (this.ConflictStrategy == SyncConflictStrategy.Loser)
                     {
                         // We'll just pretend that nothing happened.
                     }
