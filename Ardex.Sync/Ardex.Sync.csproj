@@ -51,7 +51,6 @@
     <Compile Include="ChangeTracking\IChangeHistory.cs" />
     <Compile Include="ChangeTracking\ISharedChangeHistory.cs" />
     <Compile Include="ChangeTracking\SharedChangeHistory.cs" />
-    <Compile Include="CustomComparer.cs" />
     <Compile Include="SyncConflictStrategy.cs" />
     <Compile Include="SyncDelta.cs" />
     <Compile Include="SyncOperations\FilteredSyncOperation.cs" />
