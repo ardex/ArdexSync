@@ -91,9 +91,9 @@ namespace Ardex.TestClient
 
                     // Sync providers.
                     var changeHistory = new SyncRepository<ISharedChangeHistory>();
-                    var server = SyncProvider.Create("Server", "SERVER", repo1, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client1 = SyncProvider.Create("Client 1", "CLIENT 1", repo2, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client2 = SyncProvider.Create("Client 2", "CLIENT 2", repo3, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var server  = new SharedChangeHistorySyncProvider<Dummy>("Server",   "SERVER",   repo1, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client1 = new SharedChangeHistorySyncProvider<Dummy>("Client 1", "CLIENT 1", repo2, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client2 = new SharedChangeHistorySyncProvider<Dummy>("Client 2", "CLIENT 2", repo3, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
 
                     server.CleanUpMetadata = false;
                     server.ConflictStrategy = SyncConflictStrategy.Winner;
@@ -290,67 +290,80 @@ namespace Ardex.TestClient
                 var timestampMapping = new Func<DummyPermission, Timestamp>(d => d.Timestamp);
                 var comparer = new CustomComparer<Timestamp>((x, y) => x.CompareTo(y));
 
-                // Simulate network service.
-                var server = new SimpleCustomSyncProvider<DummyPermission, Timestamp>(
-                    new SyncID("Server"),
-                    () => SyncAnchor.Create(repo1, null, timestampMapping, comparer),
-                    (anchor, ct) =>
-                    {
-                        // Network delay.
-                        Thread.Sleep(500);
+                //// Simulate network service.
+                //var server = new SimpleCustomSyncProvider<DummyPermission, Timestamp>(
+                //    new SyncID("Server"),
+                //    () => SyncAnchor.Create(repo1, null, timestampMapping, comparer),
+                //    (anchor, ct) =>
+                //    {
+                //        // Network delay.
+                //        Thread.Sleep(500);
 
-                        // We know the other side won't have any
-                        // replica ID knowledge in a one-way sync.
-                        var lastSeenTimestamp = anchor[null];
+                //        // We know the other side won't have any
+                //        // replica ID knowledge in a one-way sync.
+                //        var lastSeenTimestamp = anchor[null];
 
-                        return repo1
-                            .Where(p => lastSeenTimestamp == null || p.Timestamp.CompareTo(lastSeenTimestamp) > 0)
-                            .OrderBy(p => p.Timestamp)
-                            .Select(p => SyncEntityVersion.Create(p, p.Timestamp));
-                    });
+                //        return repo1
+                //            .Where(p =>
+                //                lastSeenTimestamp == null ||
+                //                p.Timestamp.CompareTo(lastSeenTimestamp) > 0)
+                //            .OrderBy(p => p.Timestamp)
+                //            .Select(p => SyncEntityVersion.Create(p, p.Timestamp));
+                //    });
 
-                //var server = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Server", repo1, uniqueIdMapping, timestampMapping, comparer);
-                var client1 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Client 1", repo2, uniqueIdMapping, timestampMapping, comparer);
-                var client2 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Client 2", repo3, uniqueIdMapping, timestampMapping, comparer);
+                var ownerIdMapping = new UniqueIdMapping<DummyPermission>(d => d.SourceReplicaID);
+
+                var server = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Server", repo1, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var client1 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Client 1", repo2, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var client2 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Client 2", repo3, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
                 var filter = new SyncFilter<DummyPermission, Timestamp>(changes => changes.Select(c => SyncEntityVersion.Create(c.Entity.Clone(), new Timestamp(c.Version.ToLong()))));
-                var client1Sync = SyncOperation.Create(server, client1).Filtered(filter);
-                var client2Sync = SyncOperation.Create(server, client2).Filtered(filter);
+                
+                // Sync ops.
+                var client1Upload = SyncOperation.Create(client1, server).Filtered(filter);
+                var client1Download = SyncOperation.Create(server, client1).Filtered(filter);
+                var client2Upload = SyncOperation.Create(client2, server).Filtered(filter);
+                var client2Download = SyncOperation.Create(server, client2).Filtered(filter);
+
+                var client1Sync = SyncOperation.Chain(client1Upload, client1Download);
+                var client2Sync = SyncOperation.Chain(client2Upload, client2Download);
+
+                var nextTimestamp = new Func<SyncRepository<DummyPermission>, Timestamp>(repo =>
+                {
+                    var maxTimestamp = repo
+                        .Select(d => d.Timestamp)
+                        .DefaultIfEmpty()
+                        .Max();
+
+                    return maxTimestamp == null ? new Timestamp(1) : ++maxTimestamp;
+                });
 
                 // Begin.
-                var dummyPermissionID = 1;
-                var t = new Timestamp(1);
-
-                var permission1 = new DummyPermission { DummyPermissionID = dummyPermissionID++, Timestamp = t++ };
+                var permission1 = new DummyPermission { DummyPermissionID = Guid.NewGuid(), Timestamp = nextTimestamp(repo1), SourceReplicaID = server.ReplicaID };
                 {
+                    // Legal.
                     repo1.Insert(permission1);
 
                     await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                 }
 
-                Debug.Print("Sync 1 finished.");
-
-                // Conflict.
+                var permission2 = new DummyPermission { DummyPermissionID = Guid.NewGuid(), Timestamp = nextTimestamp(repo2), SourceReplicaID = client1.ReplicaID };
                 {
-                    var clientPermission1 = repo2.Single(p => p.DummyPermissionID == 1);
-
-                    clientPermission1.Expired = true;
-                    clientPermission1.Timestamp = new Timestamp(repo2.Max(p => p.Timestamp).ToLong() + 1);
-
-                    repo2.Update(clientPermission1);
+                    // Legal.
+                    repo2.Insert(permission2);
 
                     await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                 }
 
-                var permission2 = new DummyPermission { DummyPermissionID = dummyPermissionID++, Timestamp = t++ };
                 {
-                    repo1.Insert(permission2);
+                    // Illegal.
+                    var repo2Permission1 = repo2.Single(p => p.DummyPermissionID == permission1.DummyPermissionID);
 
-                    permission1.SourceReplicaID = new SyncID("Zzz");
-                    permission1.Expired = true;
-                    permission1.Timestamp = t++;
+                    repo2Permission1.SourceReplicaID = client1.ReplicaID;
+                    repo2Permission1.Timestamp = nextTimestamp(repo2);
 
-                    repo1.Update(permission1);
+                    repo2.Update(repo2Permission1);
 
+                    await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                     await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                 }
 
@@ -374,8 +387,134 @@ namespace Ardex.TestClient
             }
         }
 
+        public class FileAccessInfo
+        {
+            public string FileName { get; set; }
+            public DateTime LastModified { get; set; }
+
+            //public void WriteTo(string directoryPath)
+            //{
+            //    var filePath = Path.Combine(directoryPath, this.FileName);
+
+            //    for (var i = 0; i < 10; i++)
+            //    {
+            //        try
+            //        {
+            //            using (var s = this.OpenRead())
+            //            {
+            //                this.GetContentFunc().CopyTo(s);
+            //            }
+
+            //            return;
+            //        }
+            //        catch (IOException)
+            //        {
+
+            //        }
+            //    }
+            //}
+
+            //public Stream OpenRead()
+            //{
+            //    for (var i = 0; i < 10; i++)
+            //    {
+            //        try
+            //        {
+            //            return this.GetContentFunc();
+            //        }
+            //        catch (IOException)
+            //        {
+
+            //        }
+            //    }
+
+            //    throw new IOException();
+            //}
+        }
+
+        //public SyncRepository<FileAccessInfo> FileRepo(string directoryPath)
+        //{
+        //    var repo = new SyncRepository<FileAccessInfo>();
+
+        //    repo.EntityInserted += e => 
+        //    repo.EntityUpdated += e => e.WriteTo(directoryPath);
+        //    repo.EntityDeleted += e => e.WriteTo(directoryPath);
+
+        //    var watcher = new FileSystemWatcher(directoryPath);
+
+        //    watcher.Created += (s, e) =>
+        //    {
+        //        // See if we already have that entry.
+        //        var getContentsFunc = new Func<Stream>(() => this.OpenRead(e.FullPath));
+
+        //        using (var crypto = System.Security.Cryptography.SHA1.Create())
+        //        {
+        //            var hash = crypto.ComputeHash(getContentsFunc());
+
+        //            // See if file entry already exists.
+        //            var fai = repo.FirstOrDefault(f => f.FileName == e.Name);
+
+        //            if (fai != null)
+        //            {
+        //                // Update only if necessary.
+        //                if (fai.Checksum != hash)
+        //                {
+        //                    fai.Checksum = hash;
+        //                    fai.GetContentFunc = getContentsFunc;
+
+        //                    repo.Update(fai);
+        //                }
+        //            }
+        //            else
+        //            {
+        //                fai = new FileAccessInfo {
+        //                    FileName = e.Name,
+        //                    Checksum = hash,
+        //                    GetContentFunc = getContentsFunc
+        //                };
+
+        //                repo.Insert(fai);
+        //            }
+        //        }
+        //    };
+
+        //    watcher.EnableRaisingEvents = true;
+
+        //    return repo;
+        //}
+
         private async void button3_Click(object sender, EventArgs e)
         {
+            //this.button3.Enabled = false;
+
+            //try
+            //{
+            //    var path1 = @"C:\dev\DirectorySyncTest\Dir 1";
+            //    var path2 = @"C:\dev\DirectorySyncTest\Dir 2";
+
+            //    var repo1 = new SyncRepository<FileAccessInfo>();
+            //    var repo2 = new SyncRepository<FileAccessInfo>();
+
+            //    repo1.EntityInserted += f => File.WriteAllBytes()
+
+            //    var provider1 = new ExclusiveChangeHistorySyncProvider<FileAccessInfo>("Dir 1", repo1, new SyncRepository<IChangeHistory>(), new UniqueIdMapping<FileAccessInfo>(f => f.FileName));
+            //    var provider2 = new ExclusiveChangeHistorySyncProvider<FileAccessInfo>("Dir 2", repo2, new SyncRepository<IChangeHistory>(), new UniqueIdMapping<FileAccessInfo>(f => f.FileName));
+
+            //    var sync1 = SyncOperation.Create(provider1, provider2);
+            //    var sync2 = SyncOperation.Create(provider2, provider1);
+            //    var sync = SyncOperation.Chain(sync1, sync2);
+
+            //    while (true)
+            //    {
+            //        await Task.Delay(TimeSpan.FromSeconds(5));
+            //        await sync.SynchroniseDiffAsync();
+            //    }
+            //}
+            //finally
+            //{
+            //    this.button3.Enabled = true;
+            //}
+
             //this.button3.Enabled = false;
 
             //try
@@ -506,7 +645,7 @@ namespace Ardex.TestClient
 
     public class DummyPermission : IEquatable<DummyPermission>
     {
-        public int DummyPermissionID { get; set; }
+        public Guid DummyPermissionID { get; set; }
         public SyncID SourceReplicaID { get; set; }
         public int SourceDummyID { get; set; }
         public SyncID DestinationReplicaID { get; set; }
@@ -544,7 +683,7 @@ namespace Ardex.TestClient
 
         public override int GetHashCode()
         {
-            return this.DummyPermissionID;
+            return this.DummyPermissionID.GetHashCode();
         }
     }
 

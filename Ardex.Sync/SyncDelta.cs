@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Ardex.Sync
 {
@@ -6,7 +7,7 @@ namespace Ardex.Sync
     {
         public static SyncDelta<TEntity, TVersion> Create<TEntity, TVersion>(SyncAnchor<TVersion> anchor, IEnumerable<SyncEntityVersion<TEntity, TVersion>> changes)
         {
-            return new SyncDelta<TEntity, TVersion>(anchor, changes);
+            return new SyncDelta<TEntity, TVersion>(anchor, changes.ToArray());
         }
     }
 
@@ -23,12 +24,12 @@ namespace Ardex.Sync
         /// <summary>
         /// Contains changes resolved for the other party after receiving anchor.
         /// </summary>
-        public IEnumerable<SyncEntityVersion<TEntity, TVersion>> Changes { get; private set; }
+        public SyncEntityVersion<TEntity, TVersion>[] Changes { get; private set; }
 
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        public SyncDelta(SyncAnchor<TVersion> anchor, IEnumerable<SyncEntityVersion<TEntity, TVersion>> changes)
+        public SyncDelta(SyncAnchor<TVersion> anchor, SyncEntityVersion<TEntity, TVersion>[] changes)
         {
             this.Anchor = anchor;
             this.Changes = changes;

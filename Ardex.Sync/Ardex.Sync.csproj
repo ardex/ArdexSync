@@ -63,7 +63,6 @@
     <Compile Include="SyncFilter.cs" />
     <Compile Include="SyncID.cs" />
     <Compile Include="SyncOperation.cs" />
-    <Compile Include="SyncProviderFactory.cs" />
     <Compile Include="SyncRepository.cs" />
     <Compile Include="SyncResult.cs" />
     <Compile Include="Timestamp.cs" />

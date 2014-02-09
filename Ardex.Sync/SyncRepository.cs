@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
 using Ardex.Collections;
 
 namespace Ardex.Sync
@@ -24,8 +25,6 @@ namespace Ardex.Sync
         {
             get { return __lock; }
         }
-
-        //public ChangeTracking<TEntity> ChangeTracking { get; private set; }
 
         /// <summary>
         /// Gets the number of entities in the respository.
@@ -54,34 +53,17 @@ namespace Ardex.Sync
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public SyncRepository()
-        {
-            this.Initialise();
-        }
+        public SyncRepository() { }
 
         /// <summary>
         /// Initialises a new instance wrapping the given repository.
         /// </summary>
-        public SyncRepository(IRepository<TEntity> repository) : base(repository)
-        {
-            this.Initialise();
-        }
+        public SyncRepository(IRepository<TEntity> repository) : base(repository) { }
 
         /// <summary>
         /// Initialises a new instance pre-populated with the given entities.
         /// </summary>
-        public SyncRepository(IEnumerable<TEntity> entities) : base(entities)
-        {
-            this.Initialise();
-        }
-
-        /// <summary>
-        /// Prepares this instance for use (called from the constructor).
-        /// </summary>
-        private void Initialise()
-        {
-            //this.ChangeTracking = new ChangeTracking<TEntity>(this);
-        }
+        public SyncRepository(IEnumerable<TEntity> entities) : base(entities) { }
 
         /// <summary>
         /// Inserts the specified entity.

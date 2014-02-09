@@ -29,7 +29,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Conflict resolution strategy used by this provider.
         /// </summary>
-        public SyncConflictStrategy ConflictStrategy { get; set; }
+        public virtual SyncConflictStrategy ConflictStrategy { get; set; }
 
         /// <summary>
         /// If true, the change history will be kept minimal
@@ -38,7 +38,7 @@ namespace Ardex.Sync
         /// on the client in a client-server sync topology.
         /// The default is false.
         /// </summary>
-        public bool CleanUpMetadata { get; set; }
+        public virtual bool CleanUpMetadata { get; set; }
 
         /// <summary>
         /// Comparer responsible for comparing timestamps
@@ -102,7 +102,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TVersion> delta, CancellationToken ct)
+        public virtual SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TVersion> delta, CancellationToken ct)
         {
             if (this.Repository == null)
             {

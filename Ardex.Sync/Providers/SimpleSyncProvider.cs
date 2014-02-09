@@ -8,6 +8,30 @@ namespace Ardex.Sync.Providers
 {
     public abstract class SimpleSyncProvider<TEntity, TVersion> : SyncProvider<TEntity, TVersion>
     {
+        public override SyncConflictStrategy ConflictStrategy
+        {
+            get
+            {
+                return SyncConflictStrategy.Fail;
+            }
+            set
+            {
+                throw new NotSupportedException("Simple sync providers do not support conflict resolution.");
+            }
+        }
+
+        public override bool CleanUpMetadata
+        {
+            get
+            {
+                return false;
+            }
+            set
+            {
+                throw new NotSupportedException("Simple sync providers do not support metadata cleanup.");
+            }
+        }
+
         public SimpleSyncProvider(
             SyncID replicaID,
             SyncRepository<TEntity> repository,
