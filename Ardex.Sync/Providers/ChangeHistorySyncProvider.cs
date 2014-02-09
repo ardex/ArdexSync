@@ -24,10 +24,7 @@ namespace Ardex.Sync.Providers
             }
         }
 
-        protected virtual IEnumerable<TChangeHistory> FilteredChangeHistory
-        {
-            get { return this.ChangeHistory; }
-        }
+        protected abstract IEnumerable<TChangeHistory> FilteredChangeHistory { get; }
 
         public ChangeHistorySyncProvider(
             SyncID replicaID,
@@ -42,8 +39,11 @@ namespace Ardex.Sync.Providers
             this.Repository.EntityUpdated += e => this.HandleRepositoryChange(e, ChangeHistoryAction.Update);
             this.Repository.EntityDeleted += e => this.HandleRepositoryChange(e, ChangeHistoryAction.Delete);
         }
+
+        protected abstract TChangeHistory CreateChangeHistoryForLocalChange(TEntity entity, ChangeHistoryAction action);
+        protected abstract TChangeHistory CreateChangeHistoryForRemoteChange(SyncEntityVersion<TEntity, TChangeHistory> remoteVersionInfo);
     
-        internal virtual void HandleRepositoryChange(TEntity entity, ChangeHistoryAction action)
+        private void HandleRepositoryChange(TEntity entity, ChangeHistoryAction action)
         {
             if (this.ChangeTrackingEnabled)
             {
@@ -51,26 +51,7 @@ namespace Ardex.Sync.Providers
 
                 try
                 {
-                    var ch = (TChangeHistory)(IChangeHistory)new ChangeHistory();
-
-                    // Resolve pk.
-                    ch.ChangeHistoryID = this.ChangeHistory
-                        .Select(c => c.ChangeHistoryID)
-                        .DefaultIfEmpty()
-                        .Max() + 1;
-
-                    ch.Action = action;
-                    ch.ReplicaID = this.ReplicaID;
-                    ch.UniqueID = this.EntityIdMapping.Get(entity);
-
-                    // Resolve version.
-                    var timestamp = this.ChangeHistory
-                        .Where(c => c.ReplicaID == this.ReplicaID)
-                        .Select(c => c.Timestamp)
-                        .DefaultIfEmpty()
-                        .Max();
-
-                    ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
+                    var ch = this.CreateChangeHistoryForLocalChange(entity, action);
 
                     this.ChangeHistory.Insert(ch);
                 }
@@ -91,18 +72,7 @@ namespace Ardex.Sync.Providers
 
             try
             {
-                var ch = (TChangeHistory)(IChangeHistory)new ChangeHistory();
-
-                // Resolve pk.
-                ch.ChangeHistoryID = this.ChangeHistory
-                    .Select(c => c.ChangeHistoryID)
-                    .DefaultIfEmpty()
-                    .Max() + 1;
-
-                ch.Action = versionInfo.Version.Action;
-                ch.ReplicaID = versionInfo.Version.ReplicaID;
-                ch.UniqueID = versionInfo.Version.UniqueID;
-                ch.Timestamp = versionInfo.Version.Timestamp;
+                var ch = this.CreateChangeHistoryForRemoteChange(versionInfo);
 
                 this.ChangeHistory.Insert(ch);
             }
@@ -160,17 +130,15 @@ namespace Ardex.Sync.Providers
             if (!this.CleanUpMetadata)
                 return;
 
-            var changeHistory = this.ChangeHistory;
-
             // We need exclusive access to change
             // history during the cleanup operation.
-            changeHistory.Lock.EnterWriteLock();
+            this.ChangeHistory.Lock.EnterWriteLock();
 
             try
             {
                 var lastKnownVersionByReplica = this.LastKnownVersionByReplica(appliedDelta.Select(v => v.Version));
 
-                foreach (var ch in this.ChangeHistory)
+                foreach (var ch in this.FilteredChangeHistory)
                 {
                     // Ensure that this change is not the last for node.
                     var lastKnownVersion = default(TChangeHistory);
@@ -178,13 +146,13 @@ namespace Ardex.Sync.Providers
                     if (lastKnownVersionByReplica.TryGetValue(ch.ReplicaID, out lastKnownVersion) &&
                         this.VersionComparer.Compare(ch, lastKnownVersion) < 0)
                     {
-                        changeHistory.Delete(ch);
+                        this.ChangeHistory.Delete(ch);
                     }
                 }
             }
             finally
             {
-                changeHistory.Lock.ExitWriteLock();
+                this.ChangeHistory.Lock.ExitWriteLock();
             }
         }
 

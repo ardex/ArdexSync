@@ -30,12 +30,12 @@ namespace Ardex.Sync
             var changeHistory = new SyncRepository<IChangeHistory>();
             var provider = new ExclusiveChangeHistorySyncProvider<TEntity>(replicaID, repository, new SyncRepository<IChangeHistory>(), uniqueIdMapping);
 
-            // It is up to us to pre-populate change history.
-            // Pretend that all those entities have just been inserted.
-            foreach (var entity in repository)
-            {
-                provider.HandleRepositoryChange(entity, ChangeHistoryAction.Insert);
-            }
+            //// It is up to us to pre-populate change history.
+            //// Pretend that all those entities have just been inserted.
+            //foreach (var entity in repository)
+            //{
+            //    provider.HandleRepositoryChange(entity, ChangeHistoryAction.Insert);
+            //}
 
             return provider;
         }
