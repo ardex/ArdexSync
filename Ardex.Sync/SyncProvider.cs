@@ -4,8 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
-using Ardex.Sync.PropertyMapping;
-
 namespace Ardex.Sync
 {
     /// <summary>

@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Threading;
 
-using Ardex.Sync.PropertyMapping;
-
 namespace Ardex.Sync.Providers
 {
     /// <summary>

@@ -57,8 +57,7 @@
     <Compile Include="SyncOperations\FilteredSyncOperation.cs" />
     <Compile Include="ISyncProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="PropertyMapping\ComparableMapping.cs" />
-    <Compile Include="PropertyMapping\UniqueIdMapping.cs" />
+    <Compile Include="UniqueIdMapping.cs" />
     <Compile Include="SyncProvider.cs" />
     <Compile Include="SyncConflict.cs" />
     <Compile Include="SyncFilter.cs" />

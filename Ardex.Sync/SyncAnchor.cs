@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Ardex.Sync.PropertyMapping;
 
 namespace Ardex.Sync
 {

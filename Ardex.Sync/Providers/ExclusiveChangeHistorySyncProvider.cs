@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Ardex.Sync.ChangeTracking;
-using Ardex.Sync.PropertyMapping;
 
 namespace Ardex.Sync.Providers
 {

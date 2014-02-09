@@ -2,7 +2,6 @@
 using System.Linq;
 
 using Ardex.Sync.ChangeTracking;
-using Ardex.Sync.PropertyMapping;
 
 namespace Ardex.Sync.Providers
 {

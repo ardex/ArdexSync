@@ -13,7 +13,6 @@ using System.Windows.Forms;
 using Ardex.Collections;
 using Ardex.Sync;
 using Ardex.Sync.ChangeTracking;
-using Ardex.Sync.PropertyMapping;
 using Ardex.Sync.Providers;
 
 namespace Ardex.TestClient

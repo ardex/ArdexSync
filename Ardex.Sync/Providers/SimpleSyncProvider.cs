@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
-using Ardex.Sync.PropertyMapping;
-
 namespace Ardex.Sync.Providers
 {
     public abstract class SimpleSyncProvider<TEntity, TVersion> : SyncProvider<TEntity, TVersion>
