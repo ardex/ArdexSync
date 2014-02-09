@@ -346,14 +346,8 @@ namespace Ardex.TestClient
                     await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                 }
 
+                // Let's do a merge conflict.
                 {
-                    Debug.Print("SERVER");
-                    Debug.Print(repo1.ToString());
-                    Debug.Print("CLIENT 1");
-                    Debug.Print(repo2.ToString());
-                    Debug.Print("CLIENT 2");
-                    Debug.Print(repo3.ToString());
-
                     // Illegal.
                     var repo2Permission1 = repo2.Single(p => p.DummyPermissionID == permission1.DummyPermissionID);
 
@@ -362,17 +356,8 @@ namespace Ardex.TestClient
 
                     repo2.Update(repo2Permission1);
 
-                    Debug.Print("SERVER");
-                    Debug.Print(repo1.ToString());
-                    Debug.Print("CLIENT 1");
-                    Debug.Print(repo2.ToString());
-                    Debug.Print("CLIENT 2");
-                    Debug.Print(repo3.ToString());
-
-                    var anchor = client1.LastAnchor();
-
-                    await client1Sync.SynchroniseDiffAsync();
-                    await client2Sync.SynchroniseDiffAsync();
+                    await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
+                    await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                 }
 
                 // Done.

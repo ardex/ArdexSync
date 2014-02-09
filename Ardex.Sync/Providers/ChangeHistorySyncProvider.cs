@@ -94,7 +94,7 @@ namespace Ardex.Sync.Providers
             {
                 var myAnchor = this.LastAnchor();
 
-                var changes = this.FilteredChangeHistory
+                var myChanges = this.FilteredChangeHistory
                     .Where(ch =>
                     {
                         var version = default(TChangeHistory);
@@ -112,7 +112,7 @@ namespace Ardex.Sync.Providers
                     .OrderBy(c => c.Version, this.VersionComparer)
                     .AsEnumerable();
 
-                return SyncDelta.Create(myAnchor, changes);
+                return SyncDelta.Create(myAnchor, myChanges);
             }
             finally
             {

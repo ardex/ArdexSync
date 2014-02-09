@@ -33,10 +33,10 @@ namespace Ardex.Sync.Providers
 
         public override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor, CancellationToken ct)
         {
-            var lastAnchor = this.LastAnchor();
-            var changes = __resolveChangesFunc(remoteAnchor, ct);
+            var myAnchor = this.LastAnchor();
+            var myChanges = __resolveChangesFunc(remoteAnchor, ct);
 
-            return SyncDelta.Create(lastAnchor, changes);
+            return SyncDelta.Create(myAnchor, myChanges);
         }
     }
 }
