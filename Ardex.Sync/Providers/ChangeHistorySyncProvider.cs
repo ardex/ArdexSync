@@ -19,7 +19,7 @@ namespace Ardex.Sync.Providers
         {
             get
             {
-                return new ComparisonComparer<TChangeHistory>(
+                return new CustomComparer<TChangeHistory>(
                     (x, y) => x.Timestamp.CompareTo(y.Timestamp));
             }
         }
@@ -82,12 +82,12 @@ namespace Ardex.Sync.Providers
             }
         }
 
-        public override Dictionary<SyncID, TChangeHistory> LastAnchor()
+        public override SyncAnchor<TChangeHistory> LastAnchor()
         {
             return this.LastKnownVersionByReplica(this.FilteredChangeHistory);
         }
 
-        public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(Dictionary<SyncID, TChangeHistory> anchor, CancellationToken ct)
+        public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> anchor, CancellationToken ct)
         {
             this.ChangeHistory.Lock.EnterReadLock();
 
@@ -127,9 +127,6 @@ namespace Ardex.Sync.Providers
         /// </summary>
         protected override void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, TChangeHistory>> appliedDelta)
         {
-            if (!this.CleanUpMetadata)
-                return;
-
             // We need exclusive access to change
             // history during the cleanup operation.
             this.ChangeHistory.Lock.EnterWriteLock();
@@ -159,9 +156,9 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Returns last seen version value for each known node.
         /// </summary>
-        protected Dictionary<SyncID, TChangeHistory> LastKnownVersionByReplica(IEnumerable<TChangeHistory> changeHistory)
+        protected SyncAnchor<TChangeHistory> LastKnownVersionByReplica(IEnumerable<TChangeHistory> changeHistory)
         {
-            var dict = new Dictionary<SyncID, TChangeHistory>();
+            var dict = new SyncAnchor<TChangeHistory>();
 
             foreach (var ch in changeHistory)
             {

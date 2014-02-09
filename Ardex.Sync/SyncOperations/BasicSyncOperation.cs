@@ -23,20 +23,20 @@ namespace Ardex.Sync.SyncOperations
         /// Resolves the change delta in a differential sync operation
         /// based on anchor info provided by the sync target.
         /// </summary>
-        public ISyncSource<TEntity, TVersion> Source { get; private set; }
+        public ISyncProvider<TEntity, TVersion> Source { get; private set; }
 
         /// <summary>
         /// Sync operation target or provider.
         /// Produces anchor info for the
         /// source and accepts changes.
         /// </summary>
-        public ISyncTarget<TEntity, TVersion> Target { get; private set; }
+        public ISyncProvider<TEntity, TVersion> Target { get; private set; }
 
         /// <summary>
         /// Creates a new SyncOperation instance.
         /// Consider using SyncOperation.Create for convenience.
         /// </summary>
-        public BasicSyncOperation(ISyncSource<TEntity, TVersion> source, ISyncTarget<TEntity, TVersion> target)
+        public BasicSyncOperation(ISyncProvider<TEntity, TVersion> source, ISyncProvider<TEntity, TVersion> target)
         {
             this.Source = source;
             this.Target = target;
@@ -57,12 +57,12 @@ namespace Ardex.Sync.SyncOperations
             return this.AcceptChanges(delta, ct);
         }
 
-        protected virtual Dictionary<SyncID, TVersion> LastAnchor()
+        protected virtual SyncAnchor<TVersion> LastAnchor()
         {
             return this.Target.LastAnchor();
         }
 
-        protected virtual SyncDelta<TEntity, TVersion> ResolveDelta(Dictionary<SyncID, TVersion> anchor, CancellationToken ct)
+        protected virtual SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> anchor, CancellationToken ct)
         {
             return this.Source.ResolveDelta(anchor, ct);
         }

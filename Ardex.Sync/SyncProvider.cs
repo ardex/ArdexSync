@@ -80,12 +80,12 @@ namespace Ardex.Sync
         /// the change delta that needs to be transferred
         /// and to detect and resolve conflicts.
         /// </summary>
-        public abstract Dictionary<SyncID, TVersion> LastAnchor();
+        public abstract SyncAnchor<TVersion> LastAnchor();
         
         /// <summary>
         /// Resolves the changes made since the last reported anchor.
         /// </summary>
-        public abstract SyncDelta<TEntity, TVersion> ResolveDelta(Dictionary<SyncID, TVersion> anchor, CancellationToken ct);
+        public abstract SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> anchor, CancellationToken ct);
 
         /// <summary>
         /// When overridden in a derived class, performs
@@ -106,6 +106,12 @@ namespace Ardex.Sync
         /// </summary>
         public SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TVersion> delta, CancellationToken ct)
         {
+            if (this.Repository == null)
+            {
+                throw new NotSupportedException(
+                    "AcceptChanges cannot be called on a SyncProvider which is not backed by a repository.");
+            }
+
             // Critical region: protected with exclusive lock.
             this.Repository.Lock.EnterWriteLock();
 
@@ -204,7 +210,10 @@ namespace Ardex.Sync
                     var result = new SyncResult(inserts, updates, deletes);
 
                     // Perform metadata cleanup.
-                    this.CleanUpSyncMetadata(changes);
+                    if (this.CleanUpMetadata)
+                    {
+                        this.CleanUpSyncMetadata(changes);
+                    }
 
                     return result;
                 }

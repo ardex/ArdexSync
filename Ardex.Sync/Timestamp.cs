@@ -6,7 +6,7 @@ namespace Ardex.Sync
     /// <summary>
     /// Data type used by timestamp columns.
     /// </summary>
-    public sealed class Timestamp : IEquatable<Timestamp>, IComparable<Timestamp>, IComparable
+    public sealed class Timestamp : IEquatable<Timestamp>, IComparable<Timestamp>
     {
         /// <summary>
         /// 8-byte backing array.
@@ -214,23 +214,6 @@ namespace Ardex.Sync
         #endregion
 
         #region IComparable implementation
-
-        public int CompareTo(object value)
-        {
-            if (value == null)
-            {
-                return 1;
-            }
-
-            var timestamp = value as Timestamp;
-
-            if (timestamp != null)
-            {
-                return this.CompareTo(timestamp);
-            }
-
-            throw new InvalidOperationException("Invalid comparison.");
-        }
 
         /// <summary>
         /// Compares this instance with the other instance.

@@ -14,7 +14,7 @@ using Ardex.Collections;
 using Ardex.Sync;
 using Ardex.Sync.ChangeTracking;
 using Ardex.Sync.PropertyMapping;
-using Ardex.Sync.Providers.Simple;
+using Ardex.Sync.Providers;
 
 namespace Ardex.TestClient
 {
@@ -279,79 +279,100 @@ namespace Ardex.TestClient
 
         private async void button2_Click(object sender, EventArgs e)
         {
-            //this.button2.Enabled = false;
+            this.button2.Enabled = false;
 
-            //try
-            //{
-            //    var repo1 = new SyncRepository<DummyPermission>();
-            //    var repo2 = new SyncRepository<DummyPermission>();
-            //    var repo3 = new SyncRepository<DummyPermission>();
+            try
+            {
+                var repo1 = new SyncRepository<DummyPermission>();
+                var repo2 = new SyncRepository<DummyPermission>();
+                var repo3 = new SyncRepository<DummyPermission>();
 
-            //    var uniqueIdMapping = new UniqueIdMapping<DummyPermission>(d => d.DummyPermissionID);
-            //    var timestampMapping = new ComparableMapping<DummyPermission>(d => d.Timestamp);
+                var uniqueIdMapping = new UniqueIdMapping<DummyPermission>(d => d.DummyPermissionID);
+                var timestampMapping = new Func<DummyPermission, Timestamp>(d => d.Timestamp);
+                var comparer = new CustomComparer<Timestamp>((x, y) => x.CompareTo(y));
 
-            //    // Simulate network service.
-            //    var server = new VersionDelegateSyncSource<DummyPermission>(new SyncID("Server"), (lastSeenTimestamp, ct) =>
-            //    {
-            //        // Network delay.
-            //        Thread.Sleep(500);
+                // Simulate network service.
+                var server = new SimpleCustomSyncProvider<DummyPermission, Timestamp>(
+                    new SyncID("Server"),
+                    () => SyncAnchor.Create(repo1, null, timestampMapping, comparer),
+                    (anchor, ct) =>
+                    {
+                        // Network delay.
+                        Thread.Sleep(500);
 
-            //        return repo1
-            //            .Where(p => lastSeenTimestamp == null || p.Timestamp.CompareTo(lastSeenTimestamp) > 0)
-            //            .OrderBy(p => p.Timestamp)
-            //            .Select(p => SyncEntityVersion.Create(p, (IComparable)p.Timestamp));
-            //    });
+                        // We know the other side won't have any
+                        // replica ID knowledge in a one-way sync.
+                        var lastSeenTimestamp = anchor[null];
 
-            //    var client1 = new VersionRepositorySyncProvider<DummyPermission>(new SyncID("Client 1"), repo2, uniqueIdMapping, timestampMapping);
-            //    var client2 = new VersionRepositorySyncProvider<DummyPermission>(new SyncID("Client 2"), repo3, uniqueIdMapping, timestampMapping);
-            //    var filter = new SyncFilter<DummyPermission, IComparable>(changes => changes.Select(c => SyncEntityVersion.Create(c.Entity, c.Version)));
-            //    var client1Sync = SyncOperation.Create(server, client1).Filtered(filter);
-            //    var client2Sync = SyncOperation.Create(server, client2).Filtered(filter);
+                        return repo1
+                            .Where(p => lastSeenTimestamp == null || p.Timestamp.CompareTo(lastSeenTimestamp) > 0)
+                            .OrderBy(p => p.Timestamp)
+                            .Select(p => SyncEntityVersion.Create(p, p.Timestamp));
+                    });
 
-            //    // Begin.
-            //    var dummyPermissionID = 1;
-            //    var t = new Timestamp(1);
+                //var server = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Server", repo1, uniqueIdMapping, timestampMapping, comparer);
+                var client1 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Client 1", repo2, uniqueIdMapping, timestampMapping, comparer);
+                var client2 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Client 2", repo3, uniqueIdMapping, timestampMapping, comparer);
+                var filter = new SyncFilter<DummyPermission, Timestamp>(changes => changes.Select(c => SyncEntityVersion.Create(c.Entity.Clone(), new Timestamp(c.Version.ToLong()))));
+                var client1Sync = SyncOperation.Create(server, client1).Filtered(filter);
+                var client2Sync = SyncOperation.Create(server, client2).Filtered(filter);
 
-            //    var permission1 = new DummyPermission { DummyPermissionID = dummyPermissionID++, Timestamp = t++ };
-            //    {
-            //        repo1.Insert(permission1);
+                // Begin.
+                var dummyPermissionID = 1;
+                var t = new Timestamp(1);
 
-            //        await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
-            //    }
+                var permission1 = new DummyPermission { DummyPermissionID = dummyPermissionID++, Timestamp = t++ };
+                {
+                    repo1.Insert(permission1);
 
-            //    Debug.Print("Sync 1 finished.");
+                    await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
+                }
 
-            //    var permission2 = new DummyPermission { DummyPermissionID = dummyPermissionID++, Timestamp = t++ };
-            //    {
-            //        repo1.Insert(permission2);
+                Debug.Print("Sync 1 finished.");
 
-            //        permission1.SourceReplicaID = new SyncID("Zzz");
-            //        permission1.Expired = true;
-            //        permission1.Timestamp = t++;
+                // Conflict.
+                {
+                    var clientPermission1 = repo2.Single(p => p.DummyPermissionID == 1);
 
-            //        repo1.Update(permission1);
+                    clientPermission1.Expired = true;
+                    clientPermission1.Timestamp = new Timestamp(repo2.Max(p => p.Timestamp).ToLong() + 1);
 
-            //        await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
-            //    }
+                    repo2.Update(clientPermission1);
 
-            //    // Done.
-            //    Debug.Print("SERVER");
-            //    Debug.Print(repo1.ToString());
-            //    Debug.Print("CLIENT 1");
-            //    Debug.Print(repo2.ToString());
-            //    Debug.Print("CLIENT 2");
-            //    Debug.Print(repo3.ToString());
+                    await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
+                }
 
-            //    MessageBox.Show(string.Format(
-            //        "Sync complete.{0}Repo 1 and 2 equal = {1}{0}Repo 2 and 3 equal = {2}",
-            //        Environment.NewLine,
-            //        repo1.OrderBy(p => p.DummyPermissionID).SequenceEqual(repo2.OrderBy(p => p.DummyPermissionID)),
-            //        repo2.OrderBy(p => p.DummyPermissionID).SequenceEqual(repo3.OrderBy(p => p.DummyPermissionID))));
-            //}
-            //finally
-            //{
-            //    this.button2.Enabled = true;
-            //}
+                var permission2 = new DummyPermission { DummyPermissionID = dummyPermissionID++, Timestamp = t++ };
+                {
+                    repo1.Insert(permission2);
+
+                    permission1.SourceReplicaID = new SyncID("Zzz");
+                    permission1.Expired = true;
+                    permission1.Timestamp = t++;
+
+                    repo1.Update(permission1);
+
+                    await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
+                }
+
+                // Done.
+                Debug.Print("SERVER");
+                Debug.Print(repo1.ToString());
+                Debug.Print("CLIENT 1");
+                Debug.Print(repo2.ToString());
+                Debug.Print("CLIENT 2");
+                Debug.Print(repo3.ToString());
+
+                MessageBox.Show(string.Format(
+                    "Sync complete.{0}Repo 1 and 2 equal = {1}{0}Repo 2 and 3 equal = {2}",
+                    Environment.NewLine,
+                    repo1.OrderBy(p => p.DummyPermissionID).SequenceEqual(repo2.OrderBy(p => p.DummyPermissionID)),
+                    repo2.OrderBy(p => p.DummyPermissionID).SequenceEqual(repo3.OrderBy(p => p.DummyPermissionID))));
+            }
+            finally
+            {
+                this.button2.Enabled = true;
+            }
         }
 
         private async void button3_Click(object sender, EventArgs e)

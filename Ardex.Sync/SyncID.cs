@@ -46,6 +46,16 @@ namespace Ardex.Sync
 
         public static bool operator ==(SyncID left, SyncID right)
         {
+            if (object.ReferenceEquals(right, null))
+            {
+                if (object.ReferenceEquals(left, null))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
             return left.Equals(right);
         }
 

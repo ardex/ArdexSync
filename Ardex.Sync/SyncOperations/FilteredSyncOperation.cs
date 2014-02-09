@@ -14,14 +14,14 @@ namespace Ardex.Sync.SyncOperations
         public SyncFilter<TEntity, TVersion> Filter { get; private set; }
 
         public FilteredSyncOperation(
-            ISyncSource<TEntity, TVersion> source,
-            ISyncTarget<TEntity, TVersion> target,
+            ISyncProvider<TEntity, TVersion> source,
+            ISyncProvider<TEntity, TVersion> target,
             SyncFilter<TEntity, TVersion> filter) : base(source, target)
         {
             this.Filter = filter;
         }
 
-        protected override SyncDelta<TEntity, TVersion> ResolveDelta(Dictionary<SyncID, TVersion> anchor, CancellationToken ct)
+        protected override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> anchor, CancellationToken ct)
         {
             var delta = base.ResolveDelta(anchor, ct);
 
