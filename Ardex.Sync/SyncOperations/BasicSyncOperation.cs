@@ -62,14 +62,14 @@ namespace Ardex.Sync.SyncOperations
             return this.Target.LastAnchor();
         }
 
-        protected virtual SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> anchor, CancellationToken ct)
+        protected virtual SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor, CancellationToken ct)
         {
-            return this.Source.ResolveDelta(anchor, ct);
+            return this.Source.ResolveDelta(remoteAnchor, ct);
         }
 
-        protected virtual SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> delta, CancellationToken ct)
+        protected virtual SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta, CancellationToken ct)
         {
-            return this.Target.AcceptChanges(this.Source.ReplicaID, delta, ct);
+            return this.Target.AcceptChanges(this.Source.ReplicaID, remoteDelta, ct);
         }
     }
 }

@@ -317,9 +317,10 @@ namespace Ardex.TestClient
                 var client1Sync = SyncOperation.Chain(client1Upload, client1Download);
                 var client2Sync = SyncOperation.Chain(client2Upload, client2Download);
 
-                var nextTimestamp = new Func<SyncRepository<DummyPermission>, Timestamp>(repo =>
+                var nextTimestamp = new Func<SyncProvider<DummyPermission, Timestamp>, Timestamp>(provider =>
                 {
-                    var maxTimestamp = repo
+                    var maxTimestamp = provider.Repository
+                        .Where(d => d.SourceReplicaID == provider.ReplicaID)
                         .Select(d => d.Timestamp)
                         .DefaultIfEmpty()
                         .Max();
@@ -328,7 +329,7 @@ namespace Ardex.TestClient
                 });
 
                 // Begin.
-                var permission1 = new DummyPermission { DummyPermissionID = Guid.NewGuid(), Timestamp = nextTimestamp(repo1), SourceReplicaID = server.ReplicaID };
+                var permission1 = new DummyPermission { DummyPermissionID = Guid.NewGuid(), Timestamp = nextTimestamp(server), SourceReplicaID = server.ReplicaID };
                 {
                     // Legal.
                     repo1.Insert(permission1);
@@ -336,25 +337,42 @@ namespace Ardex.TestClient
                     await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                 }
 
-                var permission2 = new DummyPermission { DummyPermissionID = Guid.NewGuid(), Timestamp = nextTimestamp(repo2), SourceReplicaID = client1.ReplicaID };
+                var permission2 = new DummyPermission { DummyPermissionID = Guid.NewGuid(), Timestamp = nextTimestamp(client1), SourceReplicaID = client1.ReplicaID };
                 {
                     // Legal.
                     repo2.Insert(permission2);
 
                     await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
+                    await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                 }
 
                 {
+                    Debug.Print("SERVER");
+                    Debug.Print(repo1.ToString());
+                    Debug.Print("CLIENT 1");
+                    Debug.Print(repo2.ToString());
+                    Debug.Print("CLIENT 2");
+                    Debug.Print(repo3.ToString());
+
                     // Illegal.
                     var repo2Permission1 = repo2.Single(p => p.DummyPermissionID == permission1.DummyPermissionID);
 
                     repo2Permission1.SourceReplicaID = client1.ReplicaID;
-                    repo2Permission1.Timestamp = nextTimestamp(repo2);
+                    repo2Permission1.Timestamp = nextTimestamp(client1);
 
                     repo2.Update(repo2Permission1);
 
-                    await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
-                    await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
+                    Debug.Print("SERVER");
+                    Debug.Print(repo1.ToString());
+                    Debug.Print("CLIENT 1");
+                    Debug.Print(repo2.ToString());
+                    Debug.Print("CLIENT 2");
+                    Debug.Print(repo3.ToString());
+
+                    var anchor = client1.LastAnchor();
+
+                    await client1Sync.SynchroniseDiffAsync();
+                    await client2Sync.SynchroniseDiffAsync();
                 }
 
                 // Done.

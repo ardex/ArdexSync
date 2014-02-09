@@ -30,11 +30,11 @@ namespace Ardex.Sync
         /// <summary>
         /// Resolves the changes made since the last reported anchor.
         /// </summary>
-        SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> anchor, CancellationToken ct);
+        SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor, CancellationToken ct);
 
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TVersion> delta, CancellationToken ct);
+        SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TVersion> remoteDelta, CancellationToken ct);
     }
 }

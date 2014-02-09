@@ -39,10 +39,10 @@ namespace Ardex.Sync.Providers
             return SyncAnchor.Create(this.Repository, this.OwnerReplicaIdMapping, this.EntityVersionMapping, this.VersionComparer);
         }
 
-        public override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> anchor, CancellationToken ct)
+        public override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor, CancellationToken ct)
         {
             var myAnchor = this.LastAnchor();
-            var changes = new List<SyncEntityVersion<TEntity, TVersion>>();
+            var myChanges = new List<SyncEntityVersion<TEntity, TVersion>>();
             
             foreach (var entity in this.Repository)
             {
@@ -50,14 +50,14 @@ namespace Ardex.Sync.Providers
                 var entityVersion = this.EntityVersionMapping(entity);
                 var maxVersion = default(TVersion);
 
-                if (!anchor.TryGetValue(entityOwnerReplicaID, out maxVersion) ||
+                if (!remoteAnchor.TryGetValue(entityOwnerReplicaID, out maxVersion) ||
                     this.VersionComparer.Compare(entityVersion, maxVersion) > 0)
                 {
-                    changes.Add(SyncEntityVersion.Create(entity, entityVersion));
+                    myChanges.Add(SyncEntityVersion.Create(entity, entityVersion));
                 }
             }
 
-            return SyncDelta.Create(anchor, changes);
+            return SyncDelta.Create(myAnchor, myChanges);
         }
 
         private SyncID GetOwnerReplicaID(TEntity entity)

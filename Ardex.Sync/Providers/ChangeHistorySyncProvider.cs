@@ -86,7 +86,7 @@ namespace Ardex.Sync.Providers
             return this.LastKnownVersionByReplica(this.FilteredChangeHistory);
         }
 
-        public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> anchor, CancellationToken ct)
+        public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor, CancellationToken ct)
         {
             this.ChangeHistory.Lock.EnterReadLock();
 
@@ -100,7 +100,7 @@ namespace Ardex.Sync.Providers
                         var version = default(TChangeHistory);
 
                         return
-                            !anchor.TryGetValue(ch.ReplicaID, out version) ||
+                            !remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
                             this.VersionComparer.Compare(ch, version) > 0;
                     })
                     .Join(

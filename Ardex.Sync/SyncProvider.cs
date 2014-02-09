@@ -83,7 +83,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Resolves the changes made since the last reported anchor.
         /// </summary>
-        public abstract SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> anchor, CancellationToken ct);
+        public abstract SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor, CancellationToken ct);
 
         /// <summary>
         /// When overridden in a derived class, performs
@@ -102,7 +102,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public virtual SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TVersion> delta, CancellationToken ct)
+        public virtual SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TVersion> remoteDelta, CancellationToken ct)
         {
             if (this.Repository == null)
             {
@@ -121,10 +121,10 @@ namespace Ardex.Sync
                 try
                 {
                     // Materialise changes.
-                    var changes = delta.Changes;
+                    var changes = remoteDelta.Changes;
 
                     // Detect conflicts.
-                    var myDelta = this.ResolveDelta(delta.Anchor, ct);
+                    var myDelta = this.ResolveDelta(remoteDelta.Anchor, ct);
 
                     var conflicts = myDelta.Changes.Join(
                         changes,
