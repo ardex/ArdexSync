@@ -46,6 +46,7 @@
     <Compile Include="Providers\SharedChangeHistorySyncProvider.cs" />
     <Compile Include="Providers\SimpleSyncProvider.cs" />
     <Compile Include="SyncAnchor.cs" />
+    <Compile Include="SyncConflictException.cs" />
     <Compile Include="SyncOperations\BasicSyncOperation.cs" />
     <Compile Include="ChangeTracking\ChangeHistory.cs" />
     <Compile Include="ChangeTracking\IChangeHistory.cs" />

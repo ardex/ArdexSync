@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
 namespace Ardex.Sync
 {
@@ -73,7 +72,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Resolves the changes made since the last reported anchor.
         /// </summary>
-        public abstract SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor, CancellationToken ct);
+        public abstract SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor);
 
         /// <summary>
         /// When overridden in a derived class, performs
@@ -92,7 +91,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public virtual SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta, CancellationToken ct)
+        public virtual SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta)
         {
             if (this.Repository == null)
             {
@@ -109,7 +108,7 @@ namespace Ardex.Sync
                 var changes = remoteDelta.Changes;
 
                 // Detect conflicts.
-                var myDelta = this.ResolveDelta(remoteDelta.Anchor, ct);
+                var myDelta = this.ResolveDelta(remoteDelta.Anchor);
 
                 var conflicts = myDelta.Changes.Join(
                     changes,
@@ -153,8 +152,6 @@ namespace Ardex.Sync
                 // an order that if we fail, we'll be able to resume later.
                 foreach (var change in changes.OrderBy(c => c.Version, this.VersionComparer))
                 {
-                    ct.ThrowIfCancellationRequested();
-
                     var changeUniqueID = this.EntityIdMapping.Get(change.Entity);
                     var found = false;
 
@@ -185,8 +182,6 @@ namespace Ardex.Sync
                     // Write remote change history entry to local change history.
                     this.WriteRemoteVersion(change);
                 }
-
-                ct.ThrowIfCancellationRequested();
 
                 Debug.Print("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaID, inserts.Count, type.Name, remoteDelta.ReplicaID);
                 Debug.Print("{0} applied {1} {2} updates originating at {3}.", this.ReplicaID, updates.Count, type.Name, remoteDelta.ReplicaID);

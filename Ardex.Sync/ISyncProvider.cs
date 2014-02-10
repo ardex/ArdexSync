@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace Ardex.Sync
+﻿namespace Ardex.Sync
 {
     /// <summary>
     /// Complete sync provider, which includes both
@@ -25,11 +18,11 @@ namespace Ardex.Sync
         /// <summary>
         /// Resolves the changes made since the last reported anchor.
         /// </summary>
-        SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor, CancellationToken ct);
+        SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor);
 
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta, CancellationToken ct);
+        SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta);
     }
 }

@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
 
 using Ardex.Sync.ChangeTracking;
 
@@ -81,7 +78,7 @@ namespace Ardex.Sync.Providers
             return this.LastKnownVersionByReplica(this.FilteredChangeHistory);
         }
 
-        public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor, CancellationToken ct)
+        public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor)
         {
             this.ChangeHistory.Lock.EnterReadLock();
 

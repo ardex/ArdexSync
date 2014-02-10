@@ -51,10 +51,10 @@ namespace Ardex.Sync.SyncOperations
             var anchor = this.LastAnchor();
             ct.ThrowIfCancellationRequested();
 
-            var delta = this.ResolveDelta(anchor, ct);
+            var delta = this.ResolveDelta(anchor);
             ct.ThrowIfCancellationRequested();
 
-            return this.AcceptChanges(delta, ct);
+            return this.AcceptChanges(delta);
         }
 
         protected virtual SyncAnchor<TVersion> LastAnchor()
@@ -62,14 +62,14 @@ namespace Ardex.Sync.SyncOperations
             return this.Target.LastAnchor();
         }
 
-        protected virtual SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor, CancellationToken ct)
+        protected virtual SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor)
         {
-            return this.Source.ResolveDelta(remoteAnchor, ct);
+            return this.Source.ResolveDelta(remoteAnchor);
         }
 
-        protected virtual SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta, CancellationToken ct)
+        protected virtual SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta)
         {
-            return this.Target.AcceptChanges(remoteDelta, ct);
+            return this.Target.AcceptChanges(remoteDelta);
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Threading;
 
 namespace Ardex.Sync.SyncOperations
 {
@@ -21,9 +20,9 @@ namespace Ardex.Sync.SyncOperations
             this.Filter = filter;
         }
 
-        protected override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor, CancellationToken ct)
+        protected override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor)
         {
-            var delta = base.ResolveDelta(remoteAnchor, ct);
+            var delta = base.ResolveDelta(remoteAnchor);
             var filteredChanges = this.Filter(delta.Changes);
 
             return SyncDelta.Create(delta.ReplicaID, delta.Anchor, filteredChanges);

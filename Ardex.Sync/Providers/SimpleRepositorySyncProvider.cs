@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 
 namespace Ardex.Sync.Providers
 {
@@ -39,7 +38,7 @@ namespace Ardex.Sync.Providers
             return SyncAnchor.Create(this.Repository, this.OwnerReplicaIdMapping, this.EntityVersionMapping, this.VersionComparer);
         }
 
-        public override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor, CancellationToken ct)
+        public override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor)
         {
             var myAnchor = this.LastAnchor();
             var myChanges = new List<SyncEntityVersion<TEntity, TVersion>>();
