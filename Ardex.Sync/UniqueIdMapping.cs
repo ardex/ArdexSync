@@ -18,7 +18,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Returns the unique ID value of the given entity.
         /// </summary>
-        internal SyncID Get(TEntity entity)
+        public SyncID Get(TEntity entity)
         {
             return __getter(entity);
         }
