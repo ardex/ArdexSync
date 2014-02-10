@@ -272,6 +272,10 @@ namespace Ardex.TestClient
 
             try
             {
+                var serverID = new ByteArray(255, 255, 255, 255);
+                var client1ID = new ByteArray(0, 0, 0, 1);
+                var client2ID = new ByteArray(0, 0, 0, 2);
+
                 var repo1 = new SyncRepository<DummyPermission>();
                 var repo2 = new SyncRepository<DummyPermission>();
                 var repo3 = new SyncRepository<DummyPermission>();
@@ -301,11 +305,10 @@ namespace Ardex.TestClient
                 //            .Select(p => SyncEntityVersion.Create(p, p.Timestamp));
                 //    });
 
-                var ownerIdMapping = new UniqueIdMapping<DummyPermission>(d => d.SourceReplicaID);
-
-                var server = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Server", repo1, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
-                var client1 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Client 1", repo2, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
-                var client2 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("Client 2", repo3, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var ownerIdMapping = new UniqueIdMapping<DummyPermission>(d => new GuidBuilder(d.DummyPermissionID).Segment1.ToString());
+                var server = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("1", repo1, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var client1 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("2", repo2, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var client2 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("3", repo3, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
                 var filter = new SyncFilter<DummyPermission, Timestamp>(changes => changes.Select(c => SyncEntityVersion.Create(c.Entity.Clone(), new Timestamp(c.Version.ToLong()))));
                 
                 // Sync ops.
@@ -320,7 +323,7 @@ namespace Ardex.TestClient
                 var nextTimestamp = new Func<SyncProvider<DummyPermission, Timestamp>, Timestamp>(provider =>
                 {
                     var maxTimestamp = provider.Repository
-                        .Where(d => d.SourceReplicaID == provider.ReplicaID)
+                        .Where(d => ownerIdMapping.Get(d) == provider.ReplicaID)
                         .Select(d => d.Timestamp)
                         .DefaultIfEmpty()
                         .Max();
@@ -329,7 +332,10 @@ namespace Ardex.TestClient
                 });
 
                 // Begin.
-                var permission1 = new DummyPermission { DummyPermissionID = Guid.NewGuid(), Timestamp = nextTimestamp(server), SourceReplicaID = server.ReplicaID };
+                var permission1 = new DummyPermission {
+                    DummyPermissionID = Guid.Parse("00000001-0000-0000-0000-000000000001"),
+                    Timestamp = nextTimestamp(server),
+                    SourceReplicaID = server.ReplicaID };
                 {
                     // Legal.
                     repo1.Insert(permission1);
@@ -337,7 +343,10 @@ namespace Ardex.TestClient
                     await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
                 }
 
-                var permission2 = new DummyPermission { DummyPermissionID = Guid.NewGuid(), Timestamp = nextTimestamp(client1), SourceReplicaID = client1.ReplicaID };
+                var permission2 = new DummyPermission {
+                    DummyPermissionID = Guid.Parse("00000002-0000-0000-0000-000000000001"),
+                    Timestamp = nextTimestamp(client1),
+                    SourceReplicaID = client1.ReplicaID };
                 {
                     // Legal.
                     repo2.Insert(permission2);
@@ -349,10 +358,11 @@ namespace Ardex.TestClient
                 // Let's do a merge conflict.
                 {
                     // Illegal.
-                    var repo2Permission1 = repo2.Single(p => p.DummyPermissionID == permission1.DummyPermissionID);
+                    var repo2Permission1 = server.Repository.Single(p => p.DummyPermissionID == permission1.DummyPermissionID);
 
-                    repo2Permission1.SourceReplicaID = client1.ReplicaID;
-                    repo2Permission1.Timestamp = nextTimestamp(client1);
+                    repo2Permission1.SourceReplicaID = server.ReplicaID;
+                    repo2Permission1.Expired = true;
+                    repo2Permission1.Timestamp = nextTimestamp(server);
 
                     repo2.Update(repo2Permission1);
 
@@ -362,11 +372,11 @@ namespace Ardex.TestClient
 
                 // Done.
                 Debug.Print("SERVER");
-                Debug.Print(repo1.ToString());
+                Debug.Print(this.ToString(repo1));
                 Debug.Print("CLIENT 1");
-                Debug.Print(repo2.ToString());
+                Debug.Print(this.ToString(repo2));
                 Debug.Print("CLIENT 2");
-                Debug.Print(repo3.ToString());
+                Debug.Print(this.ToString(repo3));
 
                 MessageBox.Show(string.Format(
                     "Sync complete.{0}Repo 1 and 2 equal = {1}{0}Repo 2 and 3 equal = {2}",
@@ -378,6 +388,11 @@ namespace Ardex.TestClient
             {
                 this.button2.Enabled = true;
             }
+        }
+
+        private string ToString<T>(IRepository<T> repo)
+        {
+            return string.Join(Environment.NewLine, repo.Select(e => Reflect.ToString(e)));
         }
 
         public class FileAccessInfo
@@ -611,7 +626,7 @@ namespace Ardex.TestClient
 
     public class Dummy : IEquatable<Dummy>
     {
-        public int DummyID { get; set; }
+        public Guid DummyID { get; set; }
         public string Text { get; set; }
 
         public override string ToString()
@@ -644,7 +659,7 @@ namespace Ardex.TestClient
 
         public override int GetHashCode()
         {
-            return this.DummyID;
+            return this.DummyID.GetHashCode();
         }
     }
 
