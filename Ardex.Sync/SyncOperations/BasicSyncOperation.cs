@@ -69,7 +69,7 @@ namespace Ardex.Sync.SyncOperations
 
         protected virtual SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta, CancellationToken ct)
         {
-            return this.Target.AcceptChanges(this.Source.ReplicaID, remoteDelta, ct);
+            return this.Target.AcceptChanges(remoteDelta, ct);
         }
     }
 }

@@ -5,9 +5,10 @@ namespace Ardex.Sync
 {
     public static class SyncDelta
     {
-        public static SyncDelta<TEntity, TVersion> Create<TEntity, TVersion>(SyncAnchor<TVersion> anchor, IEnumerable<SyncEntityVersion<TEntity, TVersion>> changes)
+        public static SyncDelta<TEntity, TVersion> Create<TEntity, TVersion>(
+            SyncID replicaID, SyncAnchor<TVersion> anchor, IEnumerable<SyncEntityVersion<TEntity, TVersion>> changes)
         {
-            return new SyncDelta<TEntity, TVersion>(anchor, changes.ToArray());
+            return new SyncDelta<TEntity, TVersion>(replicaID, anchor, changes.ToArray());
         }
     }
 
@@ -16,6 +17,11 @@ namespace Ardex.Sync
     /// </summary>
     public class SyncDelta<TEntity, TVersion>
     {
+        /// <summary>
+        /// ID of the replica which created this delta.
+        /// </summary>
+        public SyncID ReplicaID { get; private set; }
+
         /// <summary>
         /// Contains most up-to date change knowledge of a particular party.
         /// </summary>
@@ -29,8 +35,9 @@ namespace Ardex.Sync
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        public SyncDelta(SyncAnchor<TVersion> anchor, SyncEntityVersion<TEntity, TVersion>[] changes)
+        public SyncDelta(SyncID replicaID, SyncAnchor<TVersion> anchor, SyncEntityVersion<TEntity, TVersion>[] changes)
         {
+            this.ReplicaID = replicaID;
             this.Anchor = anchor;
             this.Changes = changes;
         }

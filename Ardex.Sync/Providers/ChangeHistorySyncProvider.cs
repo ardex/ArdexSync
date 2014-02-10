@@ -107,7 +107,7 @@ namespace Ardex.Sync.Providers
                     .OrderBy(c => c.Version, this.VersionComparer)
                     .AsEnumerable();
 
-                return SyncDelta.Create(myAnchor, myChanges);
+                return SyncDelta.Create(this.ReplicaID, myAnchor, myChanges);
             }
             finally
             {
@@ -166,6 +166,24 @@ namespace Ardex.Sync.Providers
             }
 
             return dict;
+        }
+
+        private bool _disposed;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            // Unhook events to help the GC do its job.
+            this.Repository.TrackedChange -= this.HandleTrackedChange;
+
+            // Release refs.
+            this.ChangeHistory = null;
+
+            base.Dispose(disposing);
+
+            _disposed = true;
         }
     }
 }

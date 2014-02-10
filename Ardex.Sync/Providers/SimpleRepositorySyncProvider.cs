@@ -57,7 +57,7 @@ namespace Ardex.Sync.Providers
                 }
             }
 
-            return SyncDelta.Create(myAnchor, myChanges);
+            return SyncDelta.Create(this.ReplicaID, myAnchor, myChanges);
         }
 
         private SyncID GetOwnerReplicaID(TEntity entity)

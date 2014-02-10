@@ -10,26 +10,14 @@ namespace Ardex.Sync.Providers
     {
         public override SyncConflictStrategy ConflictStrategy
         {
-            get
-            {
-                return SyncConflictStrategy.Fail;
-            }
-            set
-            {
-                throw new NotSupportedException("Simple sync providers do not support conflict resolution.");
-            }
+            get { return SyncConflictStrategy.Fail; }
+            set { throw new NotSupportedException("Simple sync providers do not support conflict resolution."); }
         }
 
         public override bool CleanUpMetadata
         {
-            get
-            {
-                return false;
-            }
-            set
-            {
-                throw new NotSupportedException("Simple sync providers do not support metadata cleanup.");
-            }
+            get { return false; }
+            set { throw new NotSupportedException("Simple sync providers do not support metadata cleanup."); }
         }
 
         public SimpleSyncProvider(
@@ -42,7 +30,7 @@ namespace Ardex.Sync.Providers
 
         protected override void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, TVersion>> appliedChanges)
         {
-            throw new NotSupportedException();
+            throw new NotSupportedException("Simple sync providers do not support metadata cleanup.");
         }
 
         protected override void WriteRemoteVersion(SyncEntityVersion<TEntity, TVersion> versionInfo)

@@ -21,11 +21,12 @@ namespace Ardex.Sync.SyncOperations
             this.Filter = filter;
         }
 
-        protected override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> anchor, CancellationToken ct)
+        protected override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor, CancellationToken ct)
         {
-            var delta = base.ResolveDelta(anchor, ct);
+            var delta = base.ResolveDelta(remoteAnchor, ct);
+            var filteredChanges = this.Filter(delta.Changes);
 
-            return SyncDelta.Create(delta.Anchor, this.Filter(delta.Changes));
+            return SyncDelta.Create(delta.ReplicaID, delta.Anchor, filteredChanges);
         }
     }
 }

@@ -36,7 +36,7 @@ namespace Ardex.Sync.Providers
             var myAnchor = this.LastAnchor();
             var myChanges = __resolveChangesFunc(remoteAnchor, ct);
 
-            return SyncDelta.Create(myAnchor, myChanges);
+            return SyncDelta.Create(this.ReplicaID, myAnchor, myChanges);
         }
     }
 }

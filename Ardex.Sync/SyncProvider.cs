@@ -92,7 +92,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public virtual SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TVersion> remoteDelta, CancellationToken ct)
+        public virtual SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta, CancellationToken ct)
         {
             if (this.Repository == null)
             {
@@ -122,7 +122,7 @@ namespace Ardex.Sync
                 {
                     if (conflicts.Any())
                     {
-                        throw new InvalidOperationException("Merge conflict detected.");
+                        throw new SyncConflictException("Merge conflict detected.");
                     }
                 }
                 else if (this.ConflictStrategy == SyncConflictStrategy.Winner)
@@ -188,9 +188,9 @@ namespace Ardex.Sync
 
                 ct.ThrowIfCancellationRequested();
 
-                Debug.Print("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaID, inserts.Count, type.Name, sourceReplicaID);
-                Debug.Print("{0} applied {1} {2} updates originating at {3}.", this.ReplicaID, updates.Count, type.Name, sourceReplicaID);
-                Debug.Print("{0} applied {1} {2} deletes originating at {3}.", this.ReplicaID, deletes.Count, type.Name, sourceReplicaID);
+                Debug.Print("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaID, inserts.Count, type.Name, remoteDelta.ReplicaID);
+                Debug.Print("{0} applied {1} {2} updates originating at {3}.", this.ReplicaID, updates.Count, type.Name, remoteDelta.ReplicaID);
+                Debug.Print("{0} applied {1} {2} deletes originating at {3}.", this.ReplicaID, deletes.Count, type.Name, remoteDelta.ReplicaID);
 
                 var result = new SyncResult(inserts, updates, deletes);
 
@@ -235,5 +235,30 @@ namespace Ardex.Sync
 
             return changeCount;
         }
+
+        #region IDisposable implementation
+
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                this.EntityIdMapping = null;
+                this.Repository = null;
+            }
+
+            _disposed = true;
+        }
+
+        #endregion
     }
 }

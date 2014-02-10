@@ -14,11 +14,6 @@ namespace Ardex.Sync
     public interface ISyncProvider<TEntity, TVersion>
     {
         /// <summary>
-        /// Gets this replica's unique identifier.
-        /// </summary>
-        SyncID ReplicaID { get; }
-
-        /// <summary>
         /// Retrieves the last anchor containing
         /// this replica's latest change knowledge.
         /// It is used by the other side in order to detect
@@ -35,6 +30,6 @@ namespace Ardex.Sync
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        SyncResult AcceptChanges(SyncID sourceReplicaID, SyncDelta<TEntity, TVersion> remoteDelta, CancellationToken ct);
+        SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta, CancellationToken ct);
     }
 }
