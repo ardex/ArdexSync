@@ -34,20 +34,16 @@ namespace Ardex.Sync
         {
             get
             {
-                var count = 0;
-
                 this.Lock.EnterReadLock();
 
                 try
                 {
-                    count = base.Count;
+                    return base.Count;
                 }
                 finally
                 {
                     this.Lock.ExitReadLock();
                 }
-
-                return count;
             }
         }
 
@@ -86,15 +82,15 @@ namespace Ardex.Sync
             try
             {
                 base.Insert(entity);
-
-                if (this.TrackedChange != null)
-                {
-                    this.TrackedChange(entity, ChangeHistoryAction.Insert);
-                }
             }
             finally
             {
                 this.Lock.ExitWriteLock();
+            }
+
+            if (this.TrackedChange != null)
+            {
+                this.TrackedChange(entity, ChangeHistoryAction.Insert);
             }
         }
 
@@ -108,15 +104,15 @@ namespace Ardex.Sync
             try
             {
                 base.Update(entity);
-
-                if (this.TrackedChange != null)
-                {
-                    this.TrackedChange(entity, ChangeHistoryAction.Update);
-                }
             }
             finally
             {
                 this.Lock.ExitWriteLock();
+            }
+
+            if (this.TrackedChange != null)
+            {
+                this.TrackedChange(entity, ChangeHistoryAction.Update);
             }
         }
 
@@ -130,15 +126,15 @@ namespace Ardex.Sync
             try
             {
                 base.Delete(entity);
-
-                if (this.TrackedChange != null)
-                {
-                    this.TrackedChange(entity, ChangeHistoryAction.Delete);
-                }
             }
             finally
             {
                 this.Lock.ExitWriteLock();
+            }
+
+            if (this.TrackedChange != null)
+            {
+                this.TrackedChange(entity, ChangeHistoryAction.Delete);
             }
         }
 
@@ -153,21 +149,19 @@ namespace Ardex.Sync
         /// </summary>
         public override IEnumerator<TEntity> GetEnumerator()
         {
-            // We'll create a clone.
-            var snapshot = default(List<TEntity>);
-
             this.Lock.EnterReadLock();
 
             try
             {
-                snapshot = this.InnerRepository.ToList();
+                // We'll create a clone.
+                var snapshot = this.InnerRepository.ToList();
+
+                return snapshot.GetEnumerator();
             }
             finally
             {
                 this.Lock.ExitReadLock();
             }
-
-            return snapshot.GetEnumerator();
         }
 
         /// <summary>
@@ -180,15 +174,15 @@ namespace Ardex.Sync
             try
             {
                 base.Insert(entity);
-
-                if (this.UntrackedChange != null)
-                {
-                    this.UntrackedChange(entity, ChangeHistoryAction.Insert);
-                }
             }
             finally
             {
                 this.Lock.ExitWriteLock();
+            }
+
+            if (this.UntrackedChange != null)
+            {
+                this.UntrackedChange(entity, ChangeHistoryAction.Insert);
             }
         }
 
@@ -202,15 +196,15 @@ namespace Ardex.Sync
             try
             {
                 base.Update(entity);
-
-                if (this.UntrackedChange != null)
-                {
-                    this.UntrackedChange(entity, ChangeHistoryAction.Update);
-                }
             }
             finally
             {
                 this.Lock.ExitWriteLock();
+            }
+
+            if (this.UntrackedChange != null)
+            {
+                this.UntrackedChange(entity, ChangeHistoryAction.Update);
             }
         }
 
@@ -224,15 +218,15 @@ namespace Ardex.Sync
             try
             {
                 base.Delete(entity);
-
-                if (this.UntrackedChange != null)
-                {
-                    this.UntrackedChange(entity, ChangeHistoryAction.Delete);
-                }
             }
             finally
             {
                 this.Lock.ExitWriteLock();
+            }
+
+            if (this.UntrackedChange != null)
+            {
+                this.UntrackedChange(entity, ChangeHistoryAction.Delete);
             }
         }
 
