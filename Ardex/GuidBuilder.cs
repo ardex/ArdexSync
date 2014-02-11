@@ -142,9 +142,9 @@ namespace Ardex
         public byte[] ToByteArray()
         {
             var segments = new[] {
-                this.Segment1.ToArray(),
-                this.Segment2.ToArray(),
-                this.Segment3.ToArray(),
+                this.Segment1.ToArray().Reverse().ToArray(),
+                this.Segment2.ToArray().Reverse().ToArray(),
+                this.Segment3.ToArray().Reverse().ToArray(),
                 this.Segment4.ToArray(),
                 this.Segment5.ToArray()
             };

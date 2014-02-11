@@ -73,7 +73,7 @@ namespace Ardex.TestClient
 
                 {
                     // --- BEGIN SYNC SETUP --- //
-                    var serverID = new ByteArray("00-00-FF-FF");
+                    var serverID = new ByteArray("FF-FF-FF-FF");
                     var client1ID = new ByteArray("00-00-00-01");
                     var client2ID = new ByteArray("00-00-00-02");
 
@@ -119,8 +119,9 @@ namespace Ardex.TestClient
 
                     // --- END SYNC SETUP --- //
 
-                    // Rolling primary key.
-                    var serverDummyID = new ByteArray(1, 6);
+                    // Rolling primary key
+                    // (6-byte long entity ids).
+                    var serverDummyID  = new ByteArray(1, 6);
                     var client1DummyID = new ByteArray(1, 6);
                     var client2DummyID = new ByteArray(1, 6);
 
