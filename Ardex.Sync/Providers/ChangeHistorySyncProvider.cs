@@ -82,35 +82,45 @@ namespace Ardex.Sync.Providers
 
         public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor)
         {
-            this.ChangeHistory.Lock.EnterReadLock();
+            // We need locks on both repositories.
+            this.Repository.Lock.EnterReadLock();
 
             try
             {
-                var myAnchor = this.LastAnchor();
+                this.ChangeHistory.Lock.EnterReadLock();
 
-                var myChanges = this.FilteredChangeHistory
-                    .Where(ch =>
-                    {
-                        var version = default(TChangeHistory);
+                try
+                {
+                    var myAnchor = this.LastAnchor();
 
-                        return
-                            !remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
-                            this.VersionComparer.Compare(ch, version) > 0;
-                    })
-                    .Join(
-                        this.Repository.AsEnumerable(),
-                        ch => ch.UniqueID,
-                        this.EntityIdMapping.Get,
-                        (ch, entity) => SyncEntityVersion.Create(entity, ch))
-                    // Ensure that the oldest changes for each replica are sync first.
-                    .OrderBy(c => c.Version, this.VersionComparer)
-                    .AsEnumerable();
+                    var myChanges = this.FilteredChangeHistory
+                        .Where(ch =>
+                        {
+                            var version = default(TChangeHistory);
 
-                return SyncDelta.Create(this.ReplicaID, myAnchor, myChanges);
+                            return
+                                !remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
+                                this.VersionComparer.Compare(ch, version) > 0;
+                        })
+                        .Join(
+                            this.Repository.AsEnumerable(),
+                            ch => ch.UniqueID,
+                            this.EntityIdMapping.Get,
+                            (ch, entity) => SyncEntityVersion.Create(entity, ch))
+                        // Ensure that the oldest changes for each replica are sync first.
+                        .OrderBy(c => c.Version, this.VersionComparer)
+                        .AsEnumerable();
+
+                    return SyncDelta.Create(this.ReplicaID, myAnchor, myChanges);
+                }
+                finally
+                {
+                    this.ChangeHistory.Lock.ExitReadLock();
+                }
             }
             finally
             {
-                this.ChangeHistory.Lock.ExitReadLock();
+                this.Repository.Lock.ExitReadLock();
             }
         }
 

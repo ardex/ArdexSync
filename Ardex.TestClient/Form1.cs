@@ -124,7 +124,7 @@ namespace Ardex.TestClient
                     var client1DummyID = 1L;
                     var client2DummyID = 1L;
 
-                    const int NUM_ITERATIONS = 1;
+                    const int NUM_ITERATIONS = 100;
 
                     for (var iterations = 0; iterations < NUM_ITERATIONS; iterations++)
                     {
