@@ -38,6 +38,7 @@ namespace Ardex.Sync.Providers
         {
             var anchor = new SyncAnchor<TVersion>();
 
+            // Lock taken by SyncRepository.GetEnumerator().
             foreach (var entity in this.Repository)
             {
                 var entityOwnerReplicaID = this.OwnerReplicaIdMapping == null ? 0 : this.OwnerReplicaIdMapping.Get(entity);
@@ -56,23 +57,32 @@ namespace Ardex.Sync.Providers
 
         public override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor)
         {
-            var myAnchor = this.LastAnchor();
-            var myChanges = new List<SyncEntityVersion<TEntity, TVersion>>();
-            
-            foreach (var entity in this.Repository)
+            this.Repository.Lock.EnterReadLock();
+
+            try
             {
-                var entityOwnerReplicaID = this.GetOwnerReplicaID(entity);
-                var entityVersion = this.EntityVersionMapping(entity);
-                var maxVersion = default(TVersion);
+                var myAnchor = this.LastAnchor();
+                var myChanges = new List<SyncEntityVersion<TEntity, TVersion>>();
 
-                if (!remoteAnchor.TryGetValue(entityOwnerReplicaID, out maxVersion) ||
-                    this.VersionComparer.Compare(entityVersion, maxVersion) > 0)
+                foreach (var entity in this.Repository)
                 {
-                    myChanges.Add(SyncEntityVersion.Create(entity, entityVersion));
-                }
-            }
+                    var entityOwnerReplicaID = this.GetOwnerReplicaID(entity);
+                    var entityVersion = this.EntityVersionMapping(entity);
+                    var maxVersion = default(TVersion);
 
-            return SyncDelta.Create(this.ReplicaID, myAnchor, myChanges);
+                    if (!remoteAnchor.TryGetValue(entityOwnerReplicaID, out maxVersion) ||
+                        this.VersionComparer.Compare(entityVersion, maxVersion) > 0)
+                    {
+                        myChanges.Add(SyncEntityVersion.Create(entity, entityVersion));
+                    }
+                }
+
+                return SyncDelta.Create(this.ReplicaID, myAnchor, myChanges);
+            }
+            finally
+            {
+                this.Repository.Lock.ExitWriteLock();
+            }
         }
 
         private int GetOwnerReplicaID(TEntity entity)
