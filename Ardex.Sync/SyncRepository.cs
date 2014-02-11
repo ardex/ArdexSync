@@ -28,6 +28,22 @@ namespace Ardex.Sync
         }
 
         /// <summary>
+        /// Overridden to always return False.
+        /// Event forwarding is not supported.
+        /// </summary>
+        public override bool ForwardEvents
+        {
+            get
+            {
+                return false;
+            }
+            set
+            {
+                throw new NotSupportedException("Event forwarding is not supported by SyncRepository.");
+            }
+        }
+
+        /// <summary>
         /// Gets the number of entities in the respository.
         /// </summary>
         public override int Count

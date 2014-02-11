@@ -51,6 +51,15 @@ namespace Ardex.Collections
         }
 
         /// <summary>
+        /// Gets or sets the value which determines
+        /// whether the EntityInserted/Updated/Deleted
+        /// events of the inner repository are being
+        /// forwarded as EntityInserted/Updated/Deleted
+        /// events by this instance.
+        /// </summary>
+        public virtual bool ForwardEvents { get; set; }
+
+        /// <summary>
         /// Occurs when entity is inserted.
         /// </summary>
         public event Action<TEntity> EntityInserted;
@@ -74,7 +83,7 @@ namespace Ardex.Collections
             __innerRepository = new ListRepository<TEntity>();
             this.DisposeInnerRepository = true;
 
-            this.ForwardEvents();
+            this.SubscribeToInnerEvents();
         }
 
         /// <summary>
@@ -89,7 +98,7 @@ namespace Ardex.Collections
             __innerRepository = new ListRepository<TEntity>(entities);
             this.DisposeInnerRepository = true;
 
-            this.ForwardEvents();
+            this.SubscribeToInnerEvents();
         }
 
         /// <summary>
@@ -109,42 +118,45 @@ namespace Ardex.Collections
             __innerRepository = repository;
             this.DisposeInnerRepository = false;
 
-            this.ForwardEvents();
+            this.SubscribeToInnerEvents();
         }
 
-        private void ForwardEvents()
+        private void SubscribeToInnerEvents()
         {
-            this.InnerRepository.EntityInserted += this.OnEntityInserted;
-            this.InnerRepository.EntityUpdated += this.OnEntityUpdated;
-            this.InnerRepository.EntityDeleted += this.OnEntityDeleted;
+            this.InnerRepository.EntityInserted += this.OnInnerEntityInserted;
+            this.InnerRepository.EntityUpdated += this.OnInnerEntityUpdated;
+            this.InnerRepository.EntityDeleted += this.OnInnerEntityDeleted;
         }
 
-        private void UnforwardEvents()
+        private void UnsubscribeFromInnerEvents()
         {
-            this.InnerRepository.EntityInserted -= this.OnEntityInserted;
-            this.InnerRepository.EntityUpdated -= this.OnEntityUpdated;
-            this.InnerRepository.EntityDeleted -= this.OnEntityDeleted;
+            this.InnerRepository.EntityInserted -= this.OnInnerEntityInserted;
+            this.InnerRepository.EntityUpdated -= this.OnInnerEntityUpdated;
+            this.InnerRepository.EntityDeleted -= this.OnInnerEntityDeleted;
         }
 
-        protected virtual void OnEntityInserted(TEntity entity)
+        protected virtual void OnInnerEntityInserted(TEntity entity)
         {
-            if (this.EntityInserted != null)
+            if (this.ForwardEvents &&
+                this.EntityInserted != null)
             {
                 this.EntityInserted(entity);
             }
         }
 
-        protected virtual void OnEntityUpdated(TEntity entity)
+        protected virtual void OnInnerEntityUpdated(TEntity entity)
         {
-            if (this.EntityUpdated != null)
+            if (this.ForwardEvents &&
+                this.EntityUpdated != null)
             {
                 this.EntityUpdated(entity);
             }
         }
 
-        protected virtual void OnEntityDeleted(TEntity entity)
+        protected virtual void OnInnerEntityDeleted(TEntity entity)
         {
-            if (this.EntityDeleted != null)
+            if (this.ForwardEvents &&
+                this.EntityDeleted != null)
             {
                 this.EntityDeleted(entity);
             }
@@ -170,6 +182,14 @@ namespace Ardex.Collections
         {
             this.ThrowIfDisposed();
             this.InnerRepository.Insert(entity);
+
+            if (!this.ForwardEvents)
+            {
+                if (this.EntityInserted != null)
+                {
+                    this.EntityInserted(entity);
+                }
+            }
         }
 
         /// <summary>
@@ -179,6 +199,14 @@ namespace Ardex.Collections
         {
             this.ThrowIfDisposed();
             this.InnerRepository.Update(entity);
+
+            if (!this.ForwardEvents)
+            {
+                if (this.EntityUpdated != null)
+                {
+                    this.EntityUpdated(entity);
+                }
+            }
         }
 
         /// <summary>
@@ -188,6 +216,14 @@ namespace Ardex.Collections
         {
             this.ThrowIfDisposed();
             this.InnerRepository.Delete(entity);
+
+            if (!this.ForwardEvents)
+            {
+                if (this.EntityDeleted != null)
+                {
+                    this.EntityDeleted(entity);
+                }
+            }
         }
 
         #region IEnumerable implementation
@@ -263,7 +299,7 @@ namespace Ardex.Collections
 
             if (disposing)
             {
-                this.UnforwardEvents();
+                this.UnsubscribeFromInnerEvents();
 
                 this.EntityInserted = null;
                 this.EntityUpdated = null;
