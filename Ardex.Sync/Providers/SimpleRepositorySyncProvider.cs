@@ -36,7 +36,22 @@ namespace Ardex.Sync.Providers
 
         public override SyncAnchor<TVersion> LastAnchor()
         {
-            return SyncAnchor.Create(this.Repository, this.OwnerReplicaIdMapping, this.EntityVersionMapping, this.VersionComparer);
+            var anchor = new SyncAnchor<TVersion>();
+
+            foreach (var entity in this.Repository)
+            {
+                var entityOwnerReplicaID = this.OwnerReplicaIdMapping == null ? 0 : this.OwnerReplicaIdMapping.Get(entity);
+                var entityVersion = this.EntityVersionMapping(entity);
+                var maxVersion = default(TVersion);
+
+                if (!anchor.TryGetValue(entityOwnerReplicaID, out maxVersion) ||
+                    this.VersionComparer.Compare(entityVersion, maxVersion) > 0)
+                {
+                    anchor[entityOwnerReplicaID] = entityVersion;
+                }
+            }
+
+            return anchor;
         }
 
         public override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor)

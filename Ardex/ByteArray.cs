@@ -133,7 +133,7 @@ namespace Ardex
         /// </summary>
         public int ToInt32()
         {
-            var hexString = "0x" + this.ToString().Replace("-", string.Empty);
+            var hexString = this.ToString().Replace("-", string.Empty);
 
             return Convert.ToInt32(hexString, 16);
         }
@@ -143,7 +143,7 @@ namespace Ardex
         /// </summary>
         public long ToInt64()
         {
-            var hexString = "0x" + this.ToString().Replace("-", string.Empty);
+            var hexString = this.ToString().Replace("-", string.Empty);
 
             return Convert.ToInt64(hexString, 16);
         }
