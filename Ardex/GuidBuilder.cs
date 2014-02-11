@@ -24,12 +24,7 @@ namespace Ardex
             }
             set
             {
-                if (value.Value.Length != 4)
-                {
-                    throw new InvalidOperationException("Invalid segment length.");
-                }
-
-                _segment1 = value;
+                this.ReplaceSegment(ref _segment1, value);
             }
         }
 
@@ -44,12 +39,7 @@ namespace Ardex
             }
             set
             {
-                if (value.Value.Length != 2)
-                {
-                    throw new InvalidOperationException("Invalid segment length.");
-                }
-
-                _segment2 = value;
+                this.ReplaceSegment(ref _segment2, value);
             }
         }
 
@@ -64,12 +54,7 @@ namespace Ardex
             }
             set
             {
-                if (value.Value.Length != 2)
-                {
-                    throw new InvalidOperationException("Invalid segment length.");
-                }
-
-                _segment3 = value;
+                this.ReplaceSegment(ref _segment3, value);
             }
         }
 
@@ -84,12 +69,7 @@ namespace Ardex
             }
             set
             {
-                if (value.Value.Length != 2)
-                {
-                    throw new InvalidOperationException("Invalid segment length.");
-                }
-
-                _segment4 = value;
+                this.ReplaceSegment(ref _segment4, value);
             }
         }
 
@@ -104,12 +84,7 @@ namespace Ardex
             }
             set
             {
-                if (value.Value.Length != 6)
-                {
-                    throw new InvalidOperationException("Invalid segment length.");
-                }
-
-                _segment5 = value;
+                this.ReplaceSegment(ref _segment5, value);
             }
         }
 
@@ -138,21 +113,40 @@ namespace Ardex
                 }
             }
 
-            this.Segment1 = new ByteArray(segments[0]);
-            this.Segment2 = new ByteArray(segments[1]);
-            this.Segment3 = new ByteArray(segments[2]);
-            this.Segment4 = new ByteArray(segments[3]);
-            this.Segment5 = new ByteArray(segments[4]);
+            _segment1 = new ByteArray(segments[0]);
+            _segment2 = new ByteArray(segments[1]);
+            _segment3 = new ByteArray(segments[2]);
+            _segment4 = new ByteArray(segments[3]);
+            _segment5 = new ByteArray(segments[4]);
+        }
+
+        public GuidBuilder(int head, short segment2, short segment3, short segment4, long tail)
+        {
+            _segment1 = new ByteArray(head, 4);
+            _segment2 = new ByteArray(segment2, 2);
+            _segment3 = new ByteArray(segment3, 2);
+            _segment4 = new ByteArray(segment4, 2);
+            _segment5 = new ByteArray(tail, 6);
+        }
+
+        private void ReplaceSegment(ref ByteArray segment, ByteArray newValue)
+        {
+            if (newValue.Length != segment.Length)
+            {
+                throw new InvalidOperationException("Invalid segment length.");
+            }
+
+            segment = newValue;
         }
 
         public byte[] ToByteArray()
         {
             var segments = new[] {
-                this.Segment1.Value,
-                this.Segment2.Value,
-                this.Segment3.Value,
-                this.Segment4.Value,
-                this.Segment5.Value
+                this.Segment1.ToArray(),
+                this.Segment2.ToArray(),
+                this.Segment3.ToArray(),
+                this.Segment4.ToArray(),
+                this.Segment5.ToArray()
             };
 
             var bytes = new byte[16];

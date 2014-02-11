@@ -73,6 +73,11 @@ namespace Ardex.TestClient
 
                 {
                     // --- BEGIN SYNC SETUP --- //
+                    var serverID = new ByteArray("00-00-FF-FF");
+                    var client1ID = new ByteArray("00-00-00-01");
+                    var client2ID = new ByteArray("00-00-00-02");
+
+                    var z = client1ID.ToInt32();
 
                     // In-memory storage.
                     var repo1 = new SyncRepository<Dummy>();
@@ -81,9 +86,9 @@ namespace Ardex.TestClient
 
                     // Sync providers.
                     var changeHistory = new SyncRepository<ISharedChangeHistory>();
-                    var server  = new SharedChangeHistorySyncProvider<Dummy>("Server",   "SERVER",   repo1, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client1 = new SharedChangeHistorySyncProvider<Dummy>("Client 1", "CLIENT 1", repo2, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client2 = new SharedChangeHistorySyncProvider<Dummy>("Client 2", "CLIENT 2", repo3, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var server  = new SharedChangeHistorySyncProvider<Dummy>(serverID.ToString(),  "SERVER",   repo1, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client1 = new SharedChangeHistorySyncProvider<Dummy>(client1ID.ToString(), "CLIENT 1", repo2, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client2 = new SharedChangeHistorySyncProvider<Dummy>(client2ID.ToString(), "CLIENT 2", repo3, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
 
                     server.CleanUpMetadata = false;
                     server.ConflictStrategy = SyncConflictStrategy.Winner;
@@ -115,15 +120,25 @@ namespace Ardex.TestClient
                     // --- END SYNC SETUP --- //
 
                     // Rolling primary key.
-                    var dummyID = 1;
+                    var serverDummyID = new ByteArray(1, 6);
+                    var client1DummyID = new ByteArray(1, 6);
+                    var client2DummyID = new ByteArray(1, 6);
 
                     const int NUM_ITERATIONS = 1;
 
                     for (var iterations = 0; iterations < NUM_ITERATIONS; iterations++)
                     {
                         // Sync 1.
-                        var dummy1 = new Dummy { DummyID = dummyID++, Text = "First dummy" };
-                        var dummy2 = new Dummy { DummyID = dummyID++, Text = "Second dummy" };
+                        var dummy1 = new Dummy {
+                            DummyID = new GuidBuilder { Segment1 = serverID, Segment5 = serverDummyID++ }.ToGuid(),
+                            Text = "First dummy"
+                        };
+
+                        var dummy2 = new Dummy {
+                            DummyID = new GuidBuilder { Segment1 = serverID, Segment5 = serverDummyID++ }.ToGuid(),
+                            Text = "Second dummy"
+                        };
+
                         {
                             repo1.Insert(dummy1);
                             repo1.Insert(dummy2);
@@ -138,8 +153,8 @@ namespace Ardex.TestClient
 
                         // Let's create an update conflict.
                         {
-                            var d1 = repo1.Single(d => d.DummyID == 1);
-                            var d2 = repo2.Single(d => d.DummyID == 1);
+                            var d1 = repo1.Single(d => d.DummyID == dummy1.DummyID);
+                            var d2 = repo2.Single(d => d.DummyID == dummy1.DummyID);
 
                             d1.Text = "Server conflict";
                             d2.Text = "Client conflict";
@@ -154,7 +169,11 @@ namespace Ardex.TestClient
                         }
 
                         // Sync 2.
-                        var dummy3 = new Dummy { DummyID = dummyID++, Text = "Third dummy" };
+                        var dummy3 = new Dummy {
+                            DummyID = new GuidBuilder { Segment1 = client1ID, Segment5 = client1DummyID++ }.ToGuid(),
+                            Text = "Third dummy"
+                        };
+
                         {
                             repo2.Insert(dummy3);
 
@@ -165,7 +184,11 @@ namespace Ardex.TestClient
                         }
 
                         // Sync 3.
-                        var dummy4 = new Dummy { DummyID = dummyID++, Text = "Dummy 4" };
+                        var dummy4 = new Dummy {
+                            DummyID = new GuidBuilder { Segment1 = client1ID, Segment5 = client1DummyID++ }.ToGuid(),
+                            Text = "Dummy 4"
+                        };
+
                         {
                             //var repo1Dummy1 = repo1.Single(d => d.DummyID == dummy1.DummyID);
 
@@ -183,7 +206,11 @@ namespace Ardex.TestClient
                             // Let's spice things up a bit by pushing things out furhter to the thread pool.
                             var t1 = await Task.Run(async () => await client1Sync.SynchroniseDiffAsync());
                             var t2 = await Task.Run(async () => await client2Sync.SynchroniseDiffAsync());
-                            var t3 = Task.Run(() => repo1.Insert(new Dummy { DummyID = dummyID++, Text = "Dodgy concurrent insert" }));
+
+                            var t3 = Task.Run(() => repo1.Insert(new Dummy {
+                                DummyID = new GuidBuilder { Segment1 = serverID, Segment5 = serverDummyID++ }.ToGuid(),
+                                Text = "Dodgy concurrent insert"
+                            }));
 
                             var t4 = Task.Run(() =>
                             {
@@ -210,7 +237,11 @@ namespace Ardex.TestClient
                         }
 
                         // Sync 4, 5.
-                        var dummy5 = new Dummy { DummyID = dummyID++, Text = "Client 2 dummy" };
+                        var dummy5 = new Dummy {
+                            DummyID = new GuidBuilder { Segment1 = client2ID, Segment5 = client2DummyID++ }.ToGuid(),
+                            Text = "Client 2 dummy"
+                        };
+
                         {
                             repo3.Insert(dummy5);
 
@@ -221,7 +252,11 @@ namespace Ardex.TestClient
                         }
 
                         // Sync 6, 7.
-                        var dummy6 = new Dummy { DummyID = dummyID++, Text = "Dummy 6" };
+                        var dummy6 = new Dummy {
+                            DummyID = new GuidBuilder { Segment1 = client2ID, Segment5 = client2DummyID++ }.ToGuid(),
+                            Text = "Dummy 6"
+                        };
+
                         {
                             repo3.Insert(dummy6);
 
@@ -244,11 +279,11 @@ namespace Ardex.TestClient
 
                     // Done.
                     Debug.Print("SERVER");
-                    Debug.Print(repo1.ToString());
+                    Debug.Print(this.ToString(repo1));
                     Debug.Print("CLIENT 1");
-                    Debug.Print(repo2.ToString());
+                    Debug.Print(this.ToString(repo2));
                     Debug.Print("CLIENT 2");
-                    Debug.Print(repo3.ToString());
+                    Debug.Print(this.ToString(repo3));
 
                     sw.Stop();
 
@@ -272,9 +307,9 @@ namespace Ardex.TestClient
 
             try
             {
-                var serverID = new ByteArray(255, 255, 255, 255);
-                var client1ID = new ByteArray(0, 0, 0, 1);
-                var client2ID = new ByteArray(0, 0, 0, 2);
+                var serverID = new ByteArray(0xFFFF);
+                var client1ID = new ByteArray(0x0001);
+                var client2ID = new ByteArray(0x0002);
 
                 var repo1 = new SyncRepository<DummyPermission>();
                 var repo2 = new SyncRepository<DummyPermission>();

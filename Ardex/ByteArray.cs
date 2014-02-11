@@ -12,23 +12,42 @@ namespace Ardex
         private readonly byte[] __bytes;
 
         /// <summary>
-        /// Returns a copy of the underlying value.
+        /// Returns the length of byte array.
         /// </summary>
-        public byte[] Value
+        public int Length
         {
-            get
-            {
-                return __bytes.ToArray();
-            }
+            get { return __bytes.Length; }
         }
 
         /// <summary>
         /// Creates a byte array by copying
         /// the specified byte array.
         /// </summary>
-        public ByteArray(params byte[] initialValue)
+        public ByteArray(byte[] initialValue)
         {
             __bytes = initialValue.ToArray();
+        }
+
+        public ByteArray(string hex)
+        {
+            if (string.IsNullOrEmpty(hex)) throw new ArgumentException("hex");
+            if (hex.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase)) hex = hex.Substring(2);
+
+            hex = hex.Replace("-", string.Empty);
+
+            var numOfChars = hex.Length;
+
+            if (numOfChars % 2 != 0)
+            {
+                throw new InvalidOperationException("Number of characters must be even.");
+            }
+
+            __bytes = new byte[numOfChars / 2];
+
+            for (int i = 0; i < numOfChars; i += 2)
+            {
+                __bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+            }
         }
 
         /// <summary>
@@ -85,11 +104,29 @@ namespace Ardex
         }
 
         /// <summary>
+        /// Returns a copy of the underlying value.
+        /// </summary>
+        public byte[] ToArray()
+        {
+            return __bytes.ToArray();
+        }
+
+        /// <summary>
         /// Returns the timestamp as a 32-bit signed integer.
+        /// </summary>
+        public long ToInt32()
+        {
+            var hexString = "0x" + this.ToString().Replace("-", string.Empty);
+
+            return Convert.ToInt32(hexString, 16);
+        }
+
+        /// <summary>
+        /// Returns the timestamp as a 64-bit signed integer.
         /// </summary>
         public long ToLong()
         {
-            var hexString = "0x" + this.ToString();
+            var hexString = "0x" + this.ToString().Replace("-", string.Empty);
 
             return Convert.ToInt64(hexString, 16);
         }
@@ -106,12 +143,46 @@ namespace Ardex
                 return false;
             }
 
-            return object.Equals(this.Value, other.Value);
+            return object.Equals(this.__bytes, other.__bytes);
+        }
+
+        public override int GetHashCode()
+        {
+            return __bytes.GetHashCode();
         }
 
         public int CompareTo(ByteArray other)
         {
             throw new NotImplementedException();
+        }
+
+        public static bool operator ==(ByteArray x, ByteArray y)
+        {
+            return object.Equals(x, y);
+        }
+
+        public static bool operator !=(ByteArray x, ByteArray y)
+        {
+            return !object.Equals(x, y);
+        }
+
+        public static implicit operator ByteArray(string hex)
+        {
+            return new ByteArray(hex);
+        }
+
+        public static ByteArray operator ++(ByteArray bytes)
+        {
+            var lng = bytes.ToLong() + 1;
+
+            return new ByteArray(lng, bytes.Length);
+        }
+
+        public static ByteArray operator --(ByteArray bytes)
+        {
+            var lng = bytes.ToLong() - 1;
+
+            return new ByteArray(lng, bytes.Length);
         }
     }
 }
