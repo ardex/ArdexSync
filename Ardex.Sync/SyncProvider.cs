@@ -106,44 +106,7 @@ namespace Ardex.Sync
 
             try
             {
-                // Materialise changes.
-                var changes = remoteDelta.Changes;
-
-                // Detect conflicts.
-                var myDelta = this.ResolveDelta(remoteDelta.Anchor);
-
-                var conflicts = myDelta.Changes.Join(
-                    changes,
-                    c => this.EntityIdMapping.Get(c.Entity),
-                    c => this.EntityIdMapping.Get(c.Entity),
-                    (local, remote) => SyncConflict.Create(local, remote));
-
-                // Resolve conflicts.
-                if (this.ConflictStrategy == SyncConflictStrategy.Fail)
-                {
-                    if (conflicts.Any())
-                    {
-                        throw new SyncConflictException("Merge conflict detected.");
-                    }
-                }
-                else if (this.ConflictStrategy == SyncConflictStrategy.Winner)
-                {
-                    var ignoredChanges = conflicts.Select(c => c.Remote);
-
-                    foreach (var ignoredChange in ignoredChanges)
-                    {
-                        this.WriteRemoteVersion(ignoredChange);
-                    }
-
-                    // Discard other replica's changes. Ours are better.
-                    changes = changes
-                        .Except(ignoredChanges)
-                        .ToArray();
-                }
-                else if (this.ConflictStrategy == SyncConflictStrategy.Loser)
-                {
-                    // We'll just pretend that nothing happened.
-                }
+                this.ResolveConflicts(remoteDelta);
 
                 var type = typeof(TEntity);
                 var inserts = new List<object>();
@@ -152,7 +115,7 @@ namespace Ardex.Sync
 
                 // We need to ensure that all changes are processed in such
                 // an order that if we fail, we'll be able to resume later.
-                foreach (var change in changes.OrderBy(c => c.Version, this.VersionComparer))
+                foreach (var change in remoteDelta.Changes.OrderBy(c => c.Version, this.VersionComparer))
                 {
                     var changeUniqueID = this.EntityIdMapping.Get(change.Entity);
                     var found = false;
@@ -194,7 +157,7 @@ namespace Ardex.Sync
                 // Perform metadata cleanup.
                 if (this.CleanUpMetadata)
                 {
-                    this.CleanUpSyncMetadata(changes);
+                    this.CleanUpSyncMetadata(remoteDelta.Changes);
                 }
 
                 return result;
@@ -203,6 +166,49 @@ namespace Ardex.Sync
             {
                 this.Repository.Lock.ExitWriteLock();
             }
+        }
+
+        protected virtual SyncDelta<TEntity, TVersion> ResolveConflicts(SyncDelta<TEntity, TVersion> remoteDelta)
+        {
+            // Detect conflicts.
+            var myDelta = this.ResolveDelta(remoteDelta.Anchor);
+
+            var conflicts = myDelta.Changes.Join(
+                remoteDelta.Changes,
+                c => this.EntityIdMapping.Get(c.Entity),
+                c => this.EntityIdMapping.Get(c.Entity),
+                (local, remote) => SyncConflict.Create(local, remote));
+
+            // Default: fail if merge conflicts detected.
+            if (this.ConflictStrategy == SyncConflictStrategy.Fail)
+            {
+                if (conflicts.Any())
+                {
+                    throw new SyncConflictException("Merge conflict detected.");
+                }
+            }
+
+            // Ignore changes which conflict with ours.
+            if (this.ConflictStrategy == SyncConflictStrategy.Winner)
+            {
+                var ignoredChanges = conflicts.Select(c => c.Remote);
+
+                foreach (var ignoredChange in ignoredChanges)
+                {
+                    this.WriteRemoteVersion(ignoredChange);
+                }
+
+                // Discard other replica's changes. Ours are better.
+                return SyncDelta.Create(remoteDelta.ReplicaID, remoteDelta.Anchor, remoteDelta.Changes.Except(ignoredChanges));
+            }
+
+            // Do nothing: allow our changes to be overwritten.
+            if (this.ConflictStrategy == SyncConflictStrategy.Loser)
+            {
+                return remoteDelta;
+            }
+
+            throw new InvalidOperationException("Unknown ConflictStrategy.");
         }
 
         /// <summary>
