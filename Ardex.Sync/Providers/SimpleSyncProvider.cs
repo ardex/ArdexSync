@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync.Providers
 {
@@ -18,7 +19,7 @@ namespace Ardex.Sync.Providers
         }
 
         public SimpleSyncProvider(
-            SyncID replicaID,
+            int replicaID,
             SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> entityIdMapping) : base(replicaID, repository, entityIdMapping)
         {

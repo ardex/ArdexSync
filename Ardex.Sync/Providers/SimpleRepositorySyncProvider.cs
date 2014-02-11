@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync.Providers
 {
@@ -9,7 +10,7 @@ namespace Ardex.Sync.Providers
     public class SimpleRepositorySyncProvider<TEntity, TVersion> : SimpleSyncProvider<TEntity, TVersion>
     {
         public Func<TEntity, TVersion> EntityVersionMapping { get; private set; }
-        public UniqueIdMapping<TEntity> OwnerReplicaIdMapping { get; private set; }
+        public ReplicaIdMapping<TEntity> OwnerReplicaIdMapping { get; private set; }
 
         private readonly IComparer<TVersion> __versionComparer;
 
@@ -19,12 +20,12 @@ namespace Ardex.Sync.Providers
         }
 
         public SimpleRepositorySyncProvider(
-            SyncID replicaID,
+            int replicaID,
             SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> entityIdMapping,
             Func<TEntity, TVersion> entityVersionMapping,
             IComparer<TVersion> versionComparer,
-            UniqueIdMapping<TEntity> ownerReplicaIdMapping = null)
+            ReplicaIdMapping<TEntity> ownerReplicaIdMapping = null)
             : base(replicaID, repository, entityIdMapping)
         {
             this.EntityVersionMapping = entityVersionMapping;
@@ -59,12 +60,12 @@ namespace Ardex.Sync.Providers
             return SyncDelta.Create(this.ReplicaID, myAnchor, myChanges);
         }
 
-        private SyncID GetOwnerReplicaID(TEntity entity)
+        private int GetOwnerReplicaID(TEntity entity)
         {
             // Owner replica ID mapping is optional.
             if (this.OwnerReplicaIdMapping == null)
             {
-                return default(SyncID);
+                return 0;
             }
 
             return this.OwnerReplicaIdMapping.Get(entity);

@@ -54,7 +54,6 @@
     <Compile Include="Collections\ListRepository.cs" />
     <Compile Include="Collections\ProxyRepository.cs" />
     <Compile Include="CustomComparer.cs" />
-    <Compile Include="GuidBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Util\Dates.cs" />
     <Compile Include="Util\DelegateTimer.cs" />

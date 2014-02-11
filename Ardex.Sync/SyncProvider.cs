@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
+using Ardex.Sync.EntityMapping;
+
 namespace Ardex.Sync
 {
     /// <summary>
@@ -13,7 +15,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Unique ID of this replica.
         /// </summary>
-        public SyncID ReplicaID { get; private set; }
+        public int ReplicaID { get; private set; }
 
         /// <summary>
         /// Repository which is being synchronised.
@@ -49,7 +51,7 @@ namespace Ardex.Sync
         /// Creates a new instance of the class.
         /// </summary>
         protected SyncProvider(
-            SyncID replicaID,
+            int replicaID,
             SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> entityIdMapping)
         {

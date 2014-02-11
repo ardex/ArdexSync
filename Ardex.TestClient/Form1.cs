@@ -13,6 +13,7 @@ using System.Windows.Forms;
 using Ardex.Collections;
 using Ardex.Sync;
 using Ardex.Sync.ChangeTracking;
+using Ardex.Sync.EntityMapping;
 using Ardex.Sync.Providers;
 
 namespace Ardex.TestClient
@@ -73,7 +74,7 @@ namespace Ardex.TestClient
 
                 {
                     // --- BEGIN SYNC SETUP --- //
-                    var serverID = 1;
+                    var serverID = new ByteArray("FF-FF-FF-FF").ToInt32();
                     var client1ID = 1;
                     var client2ID = 2;
 
@@ -84,9 +85,9 @@ namespace Ardex.TestClient
 
                     // Sync providers.
                     var changeHistory = new SyncRepository<ISharedChangeHistory>();
-                    var server  = new SharedChangeHistorySyncProvider<Dummy>("Server",   "SERVER",   repo1, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client1 = new SharedChangeHistorySyncProvider<Dummy>("Client 1", "CLIENT 1", repo2, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client2 = new SharedChangeHistorySyncProvider<Dummy>("Client 2", "CLIENT 2", repo3, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var server  = new SharedChangeHistorySyncProvider<Dummy>(serverID, 1, repo1, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client1 = new SharedChangeHistorySyncProvider<Dummy>(client1ID, 2, repo2, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client2 = new SharedChangeHistorySyncProvider<Dummy>(client2ID, 3, repo3, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
 
                     server.CleanUpMetadata = false;
                     server.ConflictStrategy = SyncConflictStrategy.Winner;
@@ -306,9 +307,9 @@ namespace Ardex.TestClient
 
             try
             {
-                var serverID = new ByteArray(0xFFFF);
-                var client1ID = new ByteArray(0x0001);
-                var client2ID = new ByteArray(0x0002);
+                var serverID = 0xFFFF;
+                var client1ID = 0x0001;
+                var client2ID = 0x0002;
 
                 var repo1 = new SyncRepository<DummyPermission>();
                 var repo2 = new SyncRepository<DummyPermission>();
@@ -339,11 +340,11 @@ namespace Ardex.TestClient
                 //            .Select(p => SyncEntityVersion.Create(p, p.Timestamp));
                 //    });
 
-                var ownerIdMapping = new UniqueIdMapping<DummyPermission>(d => new SyncGuid(d.DummyPermissionID).ReplicaID.ToString());
-                var server = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("1", repo1, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
-                var client1 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("2", repo2, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
-                var client2 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>("3", repo3, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
-                var filter = new SyncFilter<DummyPermission, Timestamp>(changes => changes.Select(c => SyncEntityVersion.Create(c.Entity.Clone(), new Timestamp(c.Version.ToLong()))));
+                var ownerIdMapping = new ReplicaIdMapping<DummyPermission>(d => new SyncGuid(d.DummyPermissionID).ReplicaID);
+                var server = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(serverID, repo1, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var client1 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(client1ID, repo2, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var client2 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(client2ID, repo3, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var filter = new SyncFilter<DummyPermission, Timestamp>(changes => changes.Select(c => SyncEntityVersion.Create(c.Entity.Clone(), new Timestamp(c.Version))));
                 
                 // Sync ops.
                 var client1Upload = SyncOperation.Create(client1, server).Filtered(filter);
@@ -527,49 +528,49 @@ namespace Ardex.TestClient
 
         private async void button3_Click(object sender, EventArgs e)
         {
-            this.button3.Enabled = false;
+            //this.button3.Enabled = false;
 
-            try
-            {
-                var path1 = @"C:\dev\DirectorySyncTest\Dir 1";
-                var path2 = @"C:\dev\DirectorySyncTest\Dir 2";
+            //try
+            //{
+            //    var path1 = @"C:\dev\DirectorySyncTest\Dir 1";
+            //    var path2 = @"C:\dev\DirectorySyncTest\Dir 2";
 
-                var repo1 = new SyncRepository<FileAccessInfo>();
-                var repo2 = new SyncRepository<FileAccessInfo>();
+            //    var repo1 = new SyncRepository<FileAccessInfo>();
+            //    var repo2 = new SyncRepository<FileAccessInfo>();
 
-                repo1.TrackedChange += (file, action) =>
-                {
-                    var bytes = File.ReadAllBytes(Path.Combine(path2, file.FileName));
+            //    repo1.TrackedChange += (file, action) =>
+            //    {
+            //        var bytes = File.ReadAllBytes(Path.Combine(path2, file.FileName));
 
-                    File.WriteAllBytes(Path.Combine(path1, file.FileName), bytes);
-                };
+            //        File.WriteAllBytes(Path.Combine(path1, file.FileName), bytes);
+            //    };
 
-                repo2.TrackedChange += (file, action) =>
-                {
-                    var bytes = File.ReadAllBytes(Path.Combine(path2, file.FileName));
+            //    repo2.TrackedChange += (file, action) =>
+            //    {
+            //        var bytes = File.ReadAllBytes(Path.Combine(path2, file.FileName));
 
-                    File.WriteAllBytes(Path.Combine(path1, file.FileName), bytes);
-                };
+            //        File.WriteAllBytes(Path.Combine(path1, file.FileName), bytes);
+            //    };
 
-                var provider1 = new ExclusiveChangeHistorySyncProvider<FileAccessInfo>("Dir 1", repo1, new SyncRepository<IChangeHistory>(), new UniqueIdMapping<FileAccessInfo>(f => f.FileName));
-                var provider2 = new ExclusiveChangeHistorySyncProvider<FileAccessInfo>("Dir 2", repo2, new SyncRepository<IChangeHistory>(), new UniqueIdMapping<FileAccessInfo>(f => f.FileName));
+            //    var provider1 = new ExclusiveChangeHistorySyncProvider<FileAccessInfo>("Dir 1", repo1, new SyncRepository<IChangeHistory>(), new UniqueIdMapping<FileAccessInfo>(f => f.FileName));
+            //    var provider2 = new ExclusiveChangeHistorySyncProvider<FileAccessInfo>("Dir 2", repo2, new SyncRepository<IChangeHistory>(), new UniqueIdMapping<FileAccessInfo>(f => f.FileName));
 
-                var sync1 = SyncOperation.Create(provider1, provider2);
-                var sync2 = SyncOperation.Create(provider2, provider1);
-                var sync = SyncOperation.Chain(sync1, sync2);
+            //    var sync1 = SyncOperation.Create(provider1, provider2);
+            //    var sync2 = SyncOperation.Create(provider2, provider1);
+            //    var sync = SyncOperation.Chain(sync1, sync2);
 
-                while (true)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(5));
-                    await sync.SynchroniseDiffAsync();
-                }
-            }
-            finally
-            {
-                this.button3.Enabled = true;
-            }
+            //    while (true)
+            //    {
+            //        await Task.Delay(TimeSpan.FromSeconds(5));
+            //        await sync.SynchroniseDiffAsync();
+            //    }
+            //}
+            //finally
+            //{
+            //    this.button3.Enabled = true;
+            //}
 
-            this.button3.Enabled = false;
+            //this.button3.Enabled = false;
 
             //try
             //{
@@ -700,9 +701,9 @@ namespace Ardex.TestClient
     public class DummyPermission : IEquatable<DummyPermission>
     {
         public Guid DummyPermissionID { get; set; }
-        public SyncID SourceReplicaID { get; set; }
+        public int SourceReplicaID { get; set; }
         public int SourceDummyID { get; set; }
-        public SyncID DestinationReplicaID { get; set; }
+        public int DestinationReplicaID { get; set; }
         public bool Expired { get; set; }
         public Timestamp Timestamp { get; set; }
 

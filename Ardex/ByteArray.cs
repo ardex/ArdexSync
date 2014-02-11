@@ -167,7 +167,7 @@ namespace Ardex
         }
 
         /// <summary>
-        /// Compares this instance with another byte array.
+        /// Compares this instance with another ByteArray.
         /// </summary>
         public bool Equals(ByteArray other)
         {

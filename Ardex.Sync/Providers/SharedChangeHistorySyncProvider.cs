@@ -1,13 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using Ardex.Sync.ChangeTracking;
+using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync.Providers
 {
     public class SharedChangeHistorySyncProvider<TEntity> : ChangeHistorySyncProvider<TEntity, ISharedChangeHistory>
     {
-        public SyncID ArticleID { get; private set; }
+        public short ArticleID { get; private set; }
 
         protected override IEnumerable<ISharedChangeHistory> FilteredChangeHistory
         {
@@ -18,8 +20,8 @@ namespace Ardex.Sync.Providers
         }
 
         public SharedChangeHistorySyncProvider(
-            SyncID replicaID,
-            SyncID articleID,
+            int replicaID,
+            short articleID,
             SyncRepository<TEntity> repository,
             SyncRepository<ISharedChangeHistory> changeHistory,
             UniqueIdMapping<TEntity> entityIdMapping) : base(replicaID, repository, changeHistory, entityIdMapping)

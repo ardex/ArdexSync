@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using Ardex.Sync.ChangeTracking;
+using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync.Providers
 {
@@ -23,7 +25,7 @@ namespace Ardex.Sync.Providers
         protected abstract IEnumerable<TChangeHistory> FilteredChangeHistory { get; }
 
         public ChangeHistorySyncProvider(
-            SyncID replicaID,
+            int replicaID,
             SyncRepository<TEntity> repository,
             SyncRepository<TChangeHistory> changeHistory,
             UniqueIdMapping<TEntity> entityIdMapping) : base(replicaID, repository, entityIdMapping)

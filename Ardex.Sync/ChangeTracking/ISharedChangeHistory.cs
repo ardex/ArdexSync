@@ -10,6 +10,6 @@
         /// Unique ID of the sync article that
         /// this change history entry relates to.
         /// </summary>
-        SyncID ArticleID { get; set; }
+        short ArticleID { get; set; }
     }
 }

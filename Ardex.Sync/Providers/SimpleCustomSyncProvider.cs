@@ -14,7 +14,7 @@ namespace Ardex.Sync.Providers
         }
 
         public SimpleCustomSyncProvider(
-            SyncID replicaID,
+            int replicaID,
             Func<SyncAnchor<TVersion>> lastAnchorFunc,
             Func<SyncAnchor<TVersion>, IEnumerable<SyncEntityVersion<TEntity, TVersion>>> resolveChangesFunc) : base(replicaID, null, null)
         {

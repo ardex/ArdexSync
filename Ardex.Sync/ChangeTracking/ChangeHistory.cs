@@ -22,7 +22,7 @@ namespace Ardex.Sync.ChangeTracking
         /// <summary>
         /// ID of the replica (local or remote) which made the change.
         /// </summary>
-        public string ReplicaID { get; set; }
+        public int ReplicaID { get; set; }
 
         /// <summary>
         /// Replica-generated timestamp for the change.
@@ -36,23 +36,11 @@ namespace Ardex.Sync.ChangeTracking
 
         #region Tricky conversions
 
-        SyncID IChangeHistory.ReplicaID
+        Guid IChangeHistory.UniqueID
         {
             get
             {
-                return new SyncID(this.ReplicaID);
-            }
-            set
-            {
-                this.ReplicaID = value.ToString();
-            }
-        }
-
-        SyncID IChangeHistory.UniqueID
-        {
-            get
-            {
-                return new SyncID(this.UniqueID);
+                return Guid.Parse(this.UniqueID);
             }
             set
             {

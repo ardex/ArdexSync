@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using Ardex.Sync.ChangeTracking;
+using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync.Providers
 {
@@ -13,7 +15,7 @@ namespace Ardex.Sync.Providers
         }
 
         public ExclusiveChangeHistorySyncProvider(
-            SyncID replicaID,
+            int replicaID,
             SyncRepository<TEntity> repository,
             SyncRepository<IChangeHistory> changeHistory,
             UniqueIdMapping<TEntity> entityIdMapping) : base(replicaID, repository, changeHistory, entityIdMapping)

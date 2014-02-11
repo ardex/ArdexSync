@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using Ardex.Sync.EntityMapping;
+
 namespace Ardex.Sync
 {
     public static class SyncAnchor
     {
         public static SyncAnchor<TVersion> Create<TEntity, TVersion>(
             IEnumerable<TEntity> entities,
-            UniqueIdMapping<TEntity> ownerReplicaIdMapping,
+            ReplicaIdMapping<TEntity> ownerReplicaIdMapping,
             Func<TEntity, TVersion> entityVersionMapping,
             IComparer<TVersion> versionComparer)
         {
@@ -15,7 +17,7 @@ namespace Ardex.Sync
 
             foreach (var entity in entities)
             {
-                var entityOwnerReplicaID = ownerReplicaIdMapping == null ? default(SyncID) : ownerReplicaIdMapping.Get(entity);
+                var entityOwnerReplicaID = ownerReplicaIdMapping == null ? 0 : ownerReplicaIdMapping.Get(entity);
                 var entityVersion = entityVersionMapping(entity);
                 var maxVersion = default(TVersion);
 
@@ -34,7 +36,7 @@ namespace Ardex.Sync
     {
         private readonly List<SyncAnchorEntry<TVersion>> __entries = new List<SyncAnchorEntry<TVersion>>();
 
-        public TVersion this[SyncID replicaID]
+        public TVersion this[int replicaID]
         {
             get
             { 
@@ -63,7 +65,7 @@ namespace Ardex.Sync
             }
         }
 
-        public bool TryGetValue(SyncID replicaID, out TVersion maxVersion)
+        public bool TryGetValue(int replicaID, out TVersion maxVersion)
         {
             foreach (var entry in __entries)
             {
@@ -83,10 +85,10 @@ namespace Ardex.Sync
 
     internal class SyncAnchorEntry<TVersion>
     {
-        public SyncID ReplicaID { get; private set; }
+        public int ReplicaID { get; private set; }
         public TVersion MaxVersion { get; set; }
 
-        public SyncAnchorEntry(SyncID replicaID)
+        public SyncAnchorEntry(int replicaID)
         {
             this.ReplicaID = replicaID;
         }
