@@ -25,7 +25,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Entity primary key / unique identifier mapping.
         /// </summary>
-        public UniqueIdMapping<TEntity> EntityIdMapping { get; private set; }
+        public SyncGuidMapping<TEntity> EntityGuidMapping { get; private set; }
 
         /// <summary>
         /// Gets or sets the entity change reconciler used
@@ -59,11 +59,11 @@ namespace Ardex.Sync
         protected SyncProvider(
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
-            UniqueIdMapping<TEntity> entityIdMapping)
+            SyncGuidMapping<TEntity> entityGuidMapping)
         {
             this.ReplicaInfo = replicaInfo;
             this.Repository = repository;
-            this.EntityIdMapping = entityIdMapping;
+            this.EntityGuidMapping = entityGuidMapping;
 
             // Defaults.
             this.EntityChangeReconciler = new SyncEntityChangeReconciler<TEntity>();
@@ -126,12 +126,12 @@ namespace Ardex.Sync
                 // an order that if we fail, we'll be able to resume later.
                 foreach (var change in remoteDelta.Changes.OrderBy(c => c.Version, this.VersionComparer))
                 {
-                    var changeUniqueID = this.EntityIdMapping.Get(change.Entity);
+                    var changeGuid = this.EntityGuidMapping.Get(change.Entity);
                     var found = false;
 
                     foreach (var existingEntity in this.Repository)
                     {
-                        if (changeUniqueID == this.EntityIdMapping.Get(existingEntity))
+                        if (changeGuid == this.EntityGuidMapping.Get(existingEntity))
                         {
                             // Found.
                             var changeCount = this.EntityChangeReconciler.ApplyDataChange(existingEntity, change.Entity);
@@ -177,6 +177,12 @@ namespace Ardex.Sync
             }
         }
 
+        /// <summary>
+        /// Resolves conflicts and returns the original
+        /// remote delta instance, or a new delta instance
+        /// with changes filtered according to the conflict
+        /// resolution strategy.
+        /// </summary>
         protected virtual SyncDelta<TEntity, TVersion> ResolveConflicts(SyncDelta<TEntity, TVersion> remoteDelta)
         {
             // Detect conflicts.
@@ -184,8 +190,8 @@ namespace Ardex.Sync
 
             var conflicts = myDelta.Changes.Join(
                 remoteDelta.Changes,
-                c => this.EntityIdMapping.Get(c.Entity),
-                c => this.EntityIdMapping.Get(c.Entity),
+                c => this.EntityGuidMapping.Get(c.Entity),
+                c => this.EntityGuidMapping.Get(c.Entity),
                 (local, remote) => new SyncConflict<TEntity, TVersion>(local, remote));
 
             // Default: fail if merge conflicts detected.
@@ -238,7 +244,7 @@ namespace Ardex.Sync
 
             if (disposing)
             {
-                this.EntityIdMapping = null;
+                this.EntityGuidMapping = null;
                 this.Repository = null;
             }
 

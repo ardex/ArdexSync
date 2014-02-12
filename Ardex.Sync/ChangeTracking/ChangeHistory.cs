@@ -17,7 +17,7 @@ namespace Ardex.Sync.ChangeTracking
         /// <summary>
         /// Unique identifier of the entity that was affected by the change.
         /// </summary>
-        public string UniqueID { get; set; }
+        public string EntityGuid { get; set; }
 
         /// <summary>
         /// ID of the replica (local or remote) which made the change.
@@ -36,15 +36,15 @@ namespace Ardex.Sync.ChangeTracking
 
         #region Tricky conversions
 
-        Guid IChangeHistory.UniqueID
+        Guid IChangeHistory.EntityGuid
         {
             get
             {
-                return Guid.Parse(this.UniqueID);
+                return Guid.Parse(this.EntityGuid);
             }
             set
             {
-                this.UniqueID = value.ToString();
+                this.EntityGuid = value.ToString();
             }
         }
 
@@ -92,7 +92,7 @@ namespace Ardex.Sync.ChangeTracking
             proxy.ChangeHistoryID = other.ChangeHistoryID;
             proxy.ReplicaID = other.ReplicaID;
             proxy.Timestamp = other.Timestamp;
-            proxy.UniqueID = other.UniqueID;
+            proxy.EntityGuid = other.EntityGuid;
             proxy.Action = other.Action;
         }
     }

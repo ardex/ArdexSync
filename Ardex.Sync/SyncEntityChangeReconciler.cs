@@ -57,7 +57,7 @@ namespace Ardex.Sync
         /// Excludes the given property from
         /// the list of reconciled properties.
         /// </summary>
-        public void Ignore<T>(Expression<Func<TEntity, T>> expr)
+        public void Exclude<T>(Expression<Func<TEntity, T>> expr)
         {
             var memberExpr = (MemberExpression)expr.Body;
             var prop = memberExpr.Member as PropertyInfo;

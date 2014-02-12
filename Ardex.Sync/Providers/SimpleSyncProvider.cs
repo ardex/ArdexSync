@@ -21,7 +21,7 @@ namespace Ardex.Sync.Providers
         public SimpleSyncProvider(
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
-            UniqueIdMapping<TEntity> entityIdMapping) : base(replicaInfo, repository, entityIdMapping)
+            SyncGuidMapping<TEntity> entityGuidMapping) : base(replicaInfo, repository, entityGuidMapping)
         {
         
         }

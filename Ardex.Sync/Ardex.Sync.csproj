@@ -45,7 +45,7 @@
     <Compile Include="Providers\SimpleRepositorySyncProvider.cs" />
     <Compile Include="Providers\SharedChangeHistorySyncProvider.cs" />
     <Compile Include="Providers\SimpleSyncProvider.cs" />
-    <Compile Include="EntityMapping\ReplicaIdMapping.cs" />
+    <Compile Include="EntityMapping\SyncReplicaIdMapping.cs" />
     <Compile Include="SyncEntityChangeReconciler.cs" />
     <Compile Include="SyncReplicaInfo.cs" />
     <Compile Include="SyncAnchor.cs" />
@@ -61,7 +61,7 @@
     <Compile Include="SyncOperations\FilteredSyncOperation.cs" />
     <Compile Include="ISyncProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="EntityMapping\UniqueIdMapping.cs" />
+    <Compile Include="EntityMapping\SyncGuidMapping.cs" />
     <Compile Include="SyncProvider.cs" />
     <Compile Include="SyncConflict.cs" />
     <Compile Include="SyncFilter.cs" />

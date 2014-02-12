@@ -5,12 +5,12 @@ namespace Ardex.Sync.EntityMapping
     /// <summary>
     /// Provides mapping for entity members essential to two-way synchronisation.
     /// </summary>
-    public class ReplicaIdMapping<TEntity>
+    public class SyncReplicaIdMapping<TEntity>
     {
         private readonly Func<TEntity, int> __getter;
 
         // Constructors.
-        public ReplicaIdMapping(Func<TEntity, int> getter) { __getter = getter; }
+        public SyncReplicaIdMapping(Func<TEntity, int> getter) { __getter = getter; }
 
         /// <summary>
         /// Returns the replica ID value of the given entity.
@@ -20,9 +20,9 @@ namespace Ardex.Sync.EntityMapping
             return __getter(entity);
         }
 
-        public static implicit operator ReplicaIdMapping<TEntity>(Func<TEntity, int> getter)
+        public static implicit operator SyncReplicaIdMapping<TEntity>(Func<TEntity, int> getter)
         {
-            return new ReplicaIdMapping<TEntity>(getter);
+            return new SyncReplicaIdMapping<TEntity>(getter);
         }
     }
 }

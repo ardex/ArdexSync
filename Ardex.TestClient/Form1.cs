@@ -86,12 +86,12 @@ namespace Ardex.TestClient
                     // Sync providers.
                     var reconciler = new SyncEntityChangeReconciler<Dummy>();
 
-                    reconciler.Ignore(d => d.DummyID);
+                    reconciler.Exclude(d => d.DummyID);
 
                     var changeHistory = new SyncRepository<ISharedChangeHistory>();
-                    var server = new SharedChangeHistorySyncProvider<Dummy>(serverInfo, 1, repo1, changeHistory, new UniqueIdMapping<Dummy>(d => d.EntityGuid));
-                    var client1 = new SharedChangeHistorySyncProvider<Dummy>(client1Info, 2, repo2, changeHistory, new UniqueIdMapping<Dummy>(d => d.EntityGuid));
-                    var client2 = new SharedChangeHistorySyncProvider<Dummy>(client2Info, 3, repo3, changeHistory, new UniqueIdMapping<Dummy>(d => d.EntityGuid));
+                    var server = new SharedChangeHistorySyncProvider<Dummy>(serverInfo, 1, repo1, changeHistory, new SyncGuidMapping<Dummy>(d => d.EntityGuid));
+                    var client1 = new SharedChangeHistorySyncProvider<Dummy>(client1Info, 2, repo2, changeHistory, new SyncGuidMapping<Dummy>(d => d.EntityGuid));
+                    var client2 = new SharedChangeHistorySyncProvider<Dummy>(client2Info, 3, repo3, changeHistory, new SyncGuidMapping<Dummy>(d => d.EntityGuid));
 
                     server.EntityChangeReconciler = reconciler;
                     client1.EntityChangeReconciler = reconciler;
@@ -327,7 +327,7 @@ namespace Ardex.TestClient
                 var repo2 = new SyncRepository<DummyPermission>();
                 var repo3 = new SyncRepository<DummyPermission>();
 
-                var uniqueIdMapping = new UniqueIdMapping<DummyPermission>(d => d.DummyPermissionID);
+                var uniqueIdMapping = new SyncGuidMapping<DummyPermission>(d => d.DummyPermissionID);
                 var timestampMapping = new Func<DummyPermission, Timestamp>(d => d.Timestamp);
                 var comparer = new CustomComparer<Timestamp>((x, y) => x.CompareTo(y));
 
@@ -352,7 +352,7 @@ namespace Ardex.TestClient
                 //            .Select(p => SyncEntityVersion.Create(p, p.Timestamp));
                 //    });
 
-                var ownerIdMapping = new ReplicaIdMapping<DummyPermission>(d => new SyncGuid(d.DummyPermissionID).ReplicaID);
+                var ownerIdMapping = new SyncReplicaIdMapping<DummyPermission>(d => new SyncGuid(d.DummyPermissionID).ReplicaID);
                 var server = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(serverInfo, repo1, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
                 var client1 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(client1Info, repo2, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
                 var client2 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(client2Info, repo3, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);

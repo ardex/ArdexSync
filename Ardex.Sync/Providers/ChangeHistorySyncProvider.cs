@@ -28,7 +28,7 @@ namespace Ardex.Sync.Providers
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
             SyncRepository<TChangeHistory> changeHistory,
-            UniqueIdMapping<TEntity> entityIdMapping) : base(replicaInfo, repository, entityIdMapping)
+            SyncGuidMapping<TEntity> entityGuidMapping) : base(replicaInfo, repository, entityGuidMapping)
         {
             this.ChangeHistory = changeHistory;
 
@@ -104,8 +104,8 @@ namespace Ardex.Sync.Providers
                         })
                         .Join(
                             this.Repository.AsEnumerable(),
-                            ch => ch.UniqueID,
-                            this.EntityIdMapping.Get,
+                            ch => ch.EntityGuid,
+                            this.EntityGuidMapping.Get,
                             (ch, entity) => SyncEntityVersion.Create(entity, ch))
                         // Ensure that the oldest changes for each replica are sync first.
                         .OrderBy(c => c.Version, this.VersionComparer)

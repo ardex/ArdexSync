@@ -51,7 +51,7 @@ namespace Ardex.Sync
         }
 
         /// <summary>
-        /// Replica-specific entity identifier.
+        /// Replica and article-specific entity identifier.
         /// </summary>
         public long EntityID
         {

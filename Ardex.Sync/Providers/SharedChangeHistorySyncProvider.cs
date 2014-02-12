@@ -24,7 +24,7 @@ namespace Ardex.Sync.Providers
             short articleID,
             SyncRepository<TEntity> repository,
             SyncRepository<ISharedChangeHistory> changeHistory,
-            UniqueIdMapping<TEntity> entityIdMapping) : base(replicaInfo, repository, changeHistory, entityIdMapping)
+            SyncGuidMapping<TEntity> entityGuidMapping) : base(replicaInfo, repository, changeHistory, entityGuidMapping)
         {
             this.ArticleID = articleID;
         }
@@ -42,7 +42,7 @@ namespace Ardex.Sync.Providers
             ch.Action = action;
             ch.ArticleID = this.ArticleID;
             ch.ReplicaID = this.ReplicaInfo.ReplicaID;
-            ch.UniqueID = this.EntityIdMapping.Get(entity);
+            ch.EntityGuid = this.EntityGuidMapping.Get(entity);
 
             // Resolve version.
             var timestamp = this.ChangeHistory
@@ -73,7 +73,7 @@ namespace Ardex.Sync.Providers
             ch.Action = versionInfo.Version.Action;
             ch.ArticleID = this.ArticleID;
             ch.ReplicaID = versionInfo.Version.ReplicaID;
-            ch.UniqueID = versionInfo.Version.UniqueID;
+            ch.EntityGuid = versionInfo.Version.EntityGuid;
             ch.Timestamp = versionInfo.Version.Timestamp;
 
             return ch;
