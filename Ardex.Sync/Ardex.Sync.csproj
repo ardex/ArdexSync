@@ -46,6 +46,7 @@
     <Compile Include="Providers\SharedChangeHistorySyncProvider.cs" />
     <Compile Include="Providers\SimpleSyncProvider.cs" />
     <Compile Include="EntityMapping\ReplicaIdMapping.cs" />
+    <Compile Include="SyncEntityChangeReconciler.cs" />
     <Compile Include="SyncReplicaInfo.cs" />
     <Compile Include="SyncAnchor.cs" />
     <Compile Include="SyncConflictException.cs" />

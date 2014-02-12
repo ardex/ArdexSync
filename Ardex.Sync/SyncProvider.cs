@@ -28,6 +28,12 @@ namespace Ardex.Sync
         public UniqueIdMapping<TEntity> EntityIdMapping { get; private set; }
 
         /// <summary>
+        /// Gets or sets the entity change reconciler used
+        /// by this sync provider to apply changes.
+        /// </summary>
+        public SyncEntityChangeReconciler<TEntity> EntityChangeReconciler { get; set; }
+
+        /// <summary>
         /// Conflict resolution strategy used by this provider.
         /// </summary>
         public virtual SyncConflictStrategy ConflictStrategy { get; set; }
@@ -58,6 +64,9 @@ namespace Ardex.Sync
             this.ReplicaInfo = replicaInfo;
             this.Repository = repository;
             this.EntityIdMapping = entityIdMapping;
+
+            // Defaults.
+            this.EntityChangeReconciler = new SyncEntityChangeReconciler<TEntity>();
         }
 
         #region Abstract methods
@@ -125,7 +134,7 @@ namespace Ardex.Sync
                         if (changeUniqueID == this.EntityIdMapping.Get(existingEntity))
                         {
                             // Found.
-                            var changeCount = this.ApplyDataChange(existingEntity, change.Entity);
+                            var changeCount = this.EntityChangeReconciler.ApplyDataChange(existingEntity, change.Entity);
 
                             if (changeCount != 0)
                             {
@@ -211,34 +220,6 @@ namespace Ardex.Sync
             }
 
             throw new InvalidOperationException("Unknown ConflictStrategy.");
-        }
-
-        /// <summary>
-        /// Reconciles the differences where necessary,
-        /// and returns the number of changes applied.
-        /// </summary>
-        protected virtual int ApplyDataChange(TEntity original, TEntity modified)
-        {
-            var changeCount = 0;
-            var type = typeof(TEntity);
-            var props = type.GetProperties();
-
-            foreach (var prop in props)
-            {
-                if (prop.CanRead && prop.CanWrite)
-                {
-                    var oldValue = prop.GetValue(original);
-                    var newValue = prop.GetValue(modified);
-
-                    if (!object.Equals(oldValue, newValue))
-                    {
-                        prop.SetValue(original, newValue);
-                        changeCount++;
-                    }
-                }
-            }
-
-            return changeCount;
         }
 
         #region IDisposable implementation

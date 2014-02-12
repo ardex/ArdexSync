@@ -31,5 +31,27 @@ namespace Ardex
 
             return sb.ToString();
         }
+
+        public static bool Equals<T>(T x, T y)
+        {
+            if (object.ReferenceEquals(x, null) && object.ReferenceEquals(y, null)) return true;
+            if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
+
+            foreach (var prop in typeof(T).GetProperties())
+            {
+                if (prop.CanRead)
+                {
+                    var valueX = prop.GetValue(x, null);
+                    var valueY = prop.GetValue(y, null);
+
+                    if (!object.Equals(valueX, valueY))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
     }
 }
