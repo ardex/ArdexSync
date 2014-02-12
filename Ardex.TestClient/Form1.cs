@@ -100,10 +100,6 @@ namespace Ardex.TestClient
 
                     // Tell the sync to ignore the local PK
                     // and teach it how to generate them.
-                    var reconciler = new SyncEntityChangeReconciler<Dummy>();
-
-                    reconciler.Exclude(d => d.DummyID);
-
                     server.EntityChangeReconciler.Exclude(d => d.DummyID);
                     server.EntityLocalKeyGenerator = dummy => dummy.DummyID = server.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
 
@@ -112,6 +108,9 @@ namespace Ardex.TestClient
 
                     client2.EntityChangeReconciler.Exclude(d => d.DummyID);
                     client2.EntityLocalKeyGenerator = dummy => dummy.DummyID = client2.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
+
+                    // Prepare comparer which knows to ignore the DummyID column.
+                    var comparer = new CustomEqualityComparer<Dummy>(new SyncEntityChangeReconciler<Dummy>().Exclude(d => d.DummyID).Equals);
 
                     // Chain sync operations to produce an upload/download chain.
                     //var client1Upload = SyncOperation.Create(client1, server).Filtered(this.ExclusiveChangeHistoryFilter);
@@ -162,8 +161,8 @@ namespace Ardex.TestClient
                             //await client2Sync.SynchroniseDiffAsync();
                             await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid));
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid));
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
                         }
 
                         // Let's create an update conflict.
@@ -179,8 +178,8 @@ namespace Ardex.TestClient
 
                             await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid));
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid));
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
                         }
 
                         // Sync 2.
@@ -194,8 +193,8 @@ namespace Ardex.TestClient
 
                             await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid));
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid));
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
                         }
 
                         // Sync 3.
@@ -247,8 +246,8 @@ namespace Ardex.TestClient
 
                             //await Task.WhenAll(t1, t2, t3, t4);
 
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid));
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid));
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
                         }
 
                         // Sync 4, 5.
@@ -262,8 +261,8 @@ namespace Ardex.TestClient
 
                             await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid));
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid));
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
                         }
 
                         // Sync 6, 7.
@@ -287,8 +286,8 @@ namespace Ardex.TestClient
 
                             await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid));
-                            this.DumpEqual(reconciler, repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid));
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
+                            this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
                         }
                     }
 
@@ -306,8 +305,8 @@ namespace Ardex.TestClient
 
                     MessageBox.Show(string.Format(
                         "Sync complete. Repo 1 and 2 equal = {0}, Repo 2 and 3 equal = {1}.",
-                        repo1.OrderBy(p => p.EntityGuid).SequenceEqual(repo2.OrderBy(p => p.EntityGuid), new CustomEqualityComparer<Dummy>(reconciler.Equals)),
-                        repo2.OrderBy(p => p.EntityGuid).SequenceEqual(repo3.OrderBy(p => p.EntityGuid), new CustomEqualityComparer<Dummy>(reconciler.Equals))));
+                        repo1.OrderBy(p => p.EntityGuid).SequenceEqual(repo2.OrderBy(p => p.EntityGuid), comparer),
+                        repo2.OrderBy(p => p.EntityGuid).SequenceEqual(repo3.OrderBy(p => p.EntityGuid), comparer)));
                 }
             }
             finally
@@ -638,10 +637,8 @@ namespace Ardex.TestClient
             Debug.Print("---");
         }
 
-        public void DumpEqual<T>(SyncEntityChangeReconciler<T> reconciler, IEnumerable<T> repo1, IEnumerable<T> repo2)
+        public void DumpEqual<T>(IEnumerable<T> repo1, IEnumerable<T> repo2, IEqualityComparer<T> comparer)
         {
-            var comparer = new CustomEqualityComparer<T>(reconciler.Equals);
-
             Debug.Print("Equal: {0}.", repo1.SequenceEqual(repo2), comparer);
             Debug.Print("---");
         }

@@ -56,8 +56,9 @@ namespace Ardex.Sync
         /// <summary>
         /// Excludes the given property from
         /// the list of reconciled properties.
+        /// Returns the mutated instance.
         /// </summary>
-        public void Exclude<T>(Expression<Func<TEntity, T>> expr)
+        public SyncEntityChangeReconciler<TEntity> Exclude<T>(Expression<Func<TEntity, T>> expr)
         {
             var memberExpr = (MemberExpression)expr.Body;
             var prop = memberExpr.Member as PropertyInfo;
@@ -72,6 +73,8 @@ namespace Ardex.Sync
                 throw new InvalidOperationException(
                     "Specified property was not found in the list of reconciled properties.");
             }
+
+            return this;
         }
 
         /// <summary>
