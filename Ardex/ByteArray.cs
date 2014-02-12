@@ -139,6 +139,16 @@ namespace Ardex
         }
 
         /// <summary>
+        /// Returns the timestamp as a 32-bit unsigned integer.
+        /// </summary>
+        public uint ToUInt32()
+        {
+            var hexString = this.ToString().Replace("-", string.Empty);
+
+            return Convert.ToUInt32(hexString, 16);
+        }
+
+        /// <summary>
         /// Returns the timestamp as a 64-bit signed integer.
         /// </summary>
         public long ToInt64()
@@ -146,6 +156,16 @@ namespace Ardex
             var hexString = this.ToString().Replace("-", string.Empty);
 
             return Convert.ToInt64(hexString, 16);
+        }
+
+        /// <summary>
+        /// Returns the timestamp as a 64-bit unsigned integer.
+        /// </summary>
+        public ulong ToUInt64()
+        {
+            var hexString = this.ToString().Replace("-", string.Empty);
+
+            return Convert.ToUInt64(hexString, 16);
         }
 
         /// <summary>
