@@ -177,7 +177,7 @@ namespace Ardex.Sync
                 remoteDelta.Changes,
                 c => this.EntityIdMapping.Get(c.Entity),
                 c => this.EntityIdMapping.Get(c.Entity),
-                (local, remote) => SyncConflict.Create(local, remote));
+                (local, remote) => new SyncConflict<TEntity, TVersion>(local, remote));
 
             // Default: fail if merge conflicts detected.
             if (this.ConflictStrategy == SyncConflictStrategy.Fail)

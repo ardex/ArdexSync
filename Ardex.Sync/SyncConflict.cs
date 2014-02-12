@@ -1,19 +1,24 @@
 ﻿namespace Ardex.Sync
 {
-    public static class SyncConflict
+    /// <summary>
+    /// Contains information about a merge sync conflict.
+    /// </summary>
+    public class SyncConflict<TEntity, TVersion>
     {
-        public static SyncConflict<TEntity> Create<TEntity>(TEntity local, TEntity remote)
-        {
-            return new SyncConflict<TEntity>(local, remote);
-        }
-    }
+        /// <summary>
+        /// Local entity involved in the conflict, and its version.
+        /// </summary>
+        public SyncEntityVersion<TEntity, TVersion> Local { get; private set; }
 
-    public class SyncConflict<TEntity>
-    {
-        public TEntity Local { get; private set; }
-        public TEntity Remote { get; private set; }
+        /// <summary>
+        /// Remote entity involved in the conflict, and its version.
+        /// </summary>
+        public SyncEntityVersion<TEntity, TVersion> Remote { get; private set; }
 
-        public SyncConflict(TEntity local, TEntity remote)
+        /// <summary>
+        /// Creates a new instance of the class.
+        /// </summary>
+        public SyncConflict(SyncEntityVersion<TEntity, TVersion> local, SyncEntityVersion<TEntity, TVersion> remote)
         {
             this.Local = local;
             this.Remote = remote;
