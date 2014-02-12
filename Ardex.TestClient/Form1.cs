@@ -329,7 +329,6 @@ namespace Ardex.TestClient
                 var repo2 = new SyncRepository<DummyPermission>();
                 var repo3 = new SyncRepository<DummyPermission>();
 
-                var uniqueIdMapping = new SyncGuidMapping<DummyPermission>(d => d.DummyPermissionID);
                 var timestampMapping = new Func<DummyPermission, Timestamp>(d => d.Timestamp);
                 var comparer = new CustomComparer<Timestamp>((x, y) => x.CompareTo(y));
 
@@ -354,10 +353,10 @@ namespace Ardex.TestClient
                 //            .Select(p => SyncEntityVersion.Create(p, p.Timestamp));
                 //    });
 
-                var ownerIdMapping = new SyncReplicaIdMapping<DummyPermission>(d => new SyncGuid(d.DummyPermissionID).ReplicaID);
-                var server = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(serverInfo, repo1, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
-                var client1 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(client1Info, repo2, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
-                var client2 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(client2Info, repo3, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var ownerIdMapping = new SyncEntityOwnerMapping<DummyPermission>(d => new SyncGuid(d.DummyPermissionID).ReplicaID);
+                var server = new SimpleRepositorySyncProvider<DummyPermission, Guid, Timestamp>(serverInfo, repo1, d => d.DummyPermissionID, d => d.Timestamp, comparer, ownerIdMapping);
+                var client1 = new SimpleRepositorySyncProvider<DummyPermission, Guid, Timestamp>(client1Info, repo2, d => d.DummyPermissionID, d => d.Timestamp, comparer, ownerIdMapping);
+                var client2 = new SimpleRepositorySyncProvider<DummyPermission, Guid, Timestamp>(client2Info, repo3, d => d.DummyPermissionID, d => d.Timestamp, comparer, ownerIdMapping);
                 var filter = new SyncFilter<DummyPermission, Timestamp>(changes => changes.Select(c => SyncEntityVersion.Create(c.Entity.Clone(), new Timestamp(c.Version))));
                 
                 // Sync ops.
@@ -369,7 +368,7 @@ namespace Ardex.TestClient
                 var client1Sync = SyncOperation.Chain(client1Upload, client1Download);
                 var client2Sync = SyncOperation.Chain(client2Upload, client2Download);
 
-                var nextTimestamp = new Func<SyncProvider<DummyPermission, Timestamp>, Timestamp>(provider =>
+                var nextTimestamp = new Func<SyncProvider<DummyPermission, Guid, Timestamp>, Timestamp>(provider =>
                 {
                     var maxTimestamp = provider.Repository
                         .Where(d => ownerIdMapping(d) == provider.ReplicaInfo.ReplicaID)

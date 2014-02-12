@@ -8,7 +8,7 @@ using Ardex.Sync.EntityMapping;
 namespace Ardex.Sync.Providers
 {
     public abstract class ChangeHistorySyncProvider<TEntity, TChangeHistory> :
-        SyncProvider<TEntity, TChangeHistory>
+        SyncProvider<TEntity, Guid, TChangeHistory>
         where TChangeHistory : IChangeHistory
     {
         public SyncRepository<TChangeHistory> ChangeHistory { get; private set; }
@@ -28,7 +28,7 @@ namespace Ardex.Sync.Providers
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
             SyncRepository<TChangeHistory> changeHistory,
-            SyncGuidMapping<TEntity> entityGuidMapping) : base(replicaInfo, repository, entityGuidMapping)
+            SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping) : base(replicaInfo, repository, entityKeyMapping)
         {
             this.ChangeHistory = changeHistory;
 
@@ -105,7 +105,7 @@ namespace Ardex.Sync.Providers
                         .Join(
                             this.Repository.AsEnumerable(),
                             ch => ch.EntityGuid,
-                            ch => this.EntityGuidMapping(ch),
+                            ch => this.EntityKeyMapping(ch),
                             (ch, entity) => SyncEntityVersion.Create(entity, ch))
                         // Ensure that the oldest changes for each replica are sync first.
                         .OrderBy(c => c.Version, this.VersionComparer)

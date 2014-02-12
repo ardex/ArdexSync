@@ -4,7 +4,7 @@ using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync.Providers
 {
-    public abstract class SimpleSyncProvider<TEntity, TVersion> : SyncProvider<TEntity, TVersion>
+    public abstract class SimpleSyncProvider<TEntity, TKey, TVersion> : SyncProvider<TEntity, TKey, TVersion>
     {
         public override SyncConflictStrategy ConflictStrategy
         {
@@ -21,7 +21,8 @@ namespace Ardex.Sync.Providers
         public SimpleSyncProvider(
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
-            SyncGuidMapping<TEntity> entityGuidMapping) : base(replicaInfo, repository, entityGuidMapping)
+            SyncEntityKeyMapping<TEntity, TKey> entityKeyMapping)
+            : base(replicaInfo, repository, entityKeyMapping)
         {
         
         }

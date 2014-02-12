@@ -3,14 +3,14 @@ using System.Collections.Generic;
 
 namespace Ardex.Sync.Providers
 {
-    public class SimpleCustomSyncProvider<TEntity, TVersion> : SimpleSyncProvider<TEntity, TVersion>
+    public class SimpleCustomSyncProvider<TEntity, TKey, TVersion> : SimpleSyncProvider<TEntity, TKey, TVersion>
     {
         private readonly Func<SyncAnchor<TVersion>> __lastAnchorFunc;
         private readonly Func<SyncAnchor<TVersion>, IEnumerable<SyncEntityVersion<TEntity, TVersion>>> __resolveChangesFunc;
 
         protected override IComparer<TVersion> VersionComparer
         {
-            get { throw new NotImplementedException(); }
+            get { throw new NotSupportedException(); }
         }
 
         public SimpleCustomSyncProvider(

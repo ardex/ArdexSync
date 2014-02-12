@@ -39,6 +39,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EntityMapping\SyncEntityKeyMapping.cs" />
+    <Compile Include="EntityMapping\SyncEntityVersionMapping.cs" />
     <Compile Include="Providers\ChangeHistorySyncProvider.cs" />
     <Compile Include="Providers\ExclusiveChangeHistorySyncProvider.cs" />
     <Compile Include="Providers\SimpleCustomSyncProvider.cs" />
@@ -63,7 +65,6 @@
     <Compile Include="SyncOperations\FilteredSyncOperation.cs" />
     <Compile Include="ISyncProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="EntityMapping\SyncGuidMapping.cs" />
     <Compile Include="SyncProvider.cs" />
     <Compile Include="SyncConflict.cs" />
     <Compile Include="SyncFilter.cs" />

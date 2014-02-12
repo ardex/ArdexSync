@@ -7,10 +7,10 @@ namespace Ardex.Sync.Providers
     /// <summary>
     /// Sync provider for entities with integrated versioning support.
     /// </summary>
-    public class SimpleRepositorySyncProvider<TEntity, TVersion> : SimpleSyncProvider<TEntity, TVersion>
+    public class SimpleRepositorySyncProvider<TEntity, TKey, TVersion> : SimpleSyncProvider<TEntity, TKey, TVersion>
     {
-        public Func<TEntity, TVersion> EntityVersionMapping { get; private set; }
-        public SyncReplicaIdMapping<TEntity> OwnerReplicaIdMapping { get; private set; }
+        public SyncEntityVersionMapping<TEntity, TVersion> EntityVersionMapping { get; private set; }
+        public SyncEntityOwnerMapping<TEntity> OwnerReplicaIdMapping { get; private set; }
 
         private readonly IComparer<TVersion> __versionComparer;
 
@@ -22,11 +22,11 @@ namespace Ardex.Sync.Providers
         public SimpleRepositorySyncProvider(
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
-            SyncGuidMapping<TEntity> entityGuidMapping,
-            Func<TEntity, TVersion> entityVersionMapping,
+            SyncEntityKeyMapping<TEntity, TKey> entityKeyMapping,
+            SyncEntityVersionMapping<TEntity, TVersion> entityVersionMapping,
             IComparer<TVersion> versionComparer,
-            SyncReplicaIdMapping<TEntity> ownerReplicaIdMapping = null)
-            : base(replicaInfo, repository, entityGuidMapping)
+            SyncEntityOwnerMapping<TEntity> ownerReplicaIdMapping = null)
+            : base(replicaInfo, repository, entityKeyMapping)
         {
             this.EntityVersionMapping = entityVersionMapping;
             this.OwnerReplicaIdMapping = ownerReplicaIdMapping;
