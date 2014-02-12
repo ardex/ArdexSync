@@ -20,11 +20,11 @@ namespace Ardex.Sync.Providers
         }
 
         public SharedChangeHistorySyncProvider(
-            int replicaID,
+            SyncReplicaInfo replicaInfo,
             short articleID,
             SyncRepository<TEntity> repository,
             SyncRepository<ISharedChangeHistory> changeHistory,
-            UniqueIdMapping<TEntity> entityIdMapping) : base(replicaID, repository, changeHistory, entityIdMapping)
+            UniqueIdMapping<TEntity> entityIdMapping) : base(replicaInfo, repository, changeHistory, entityIdMapping)
         {
             this.ArticleID = articleID;
         }
@@ -41,12 +41,12 @@ namespace Ardex.Sync.Providers
 
             ch.Action = action;
             ch.ArticleID = this.ArticleID;
-            ch.ReplicaID = this.ReplicaID;
+            ch.ReplicaID = this.ReplicaInfo.ReplicaID;
             ch.UniqueID = this.EntityIdMapping.Get(entity);
 
             // Resolve version.
             var timestamp = this.ChangeHistory
-                .Where(c => c.ReplicaID == this.ReplicaID)
+                .Where(c => c.ReplicaID == this.ReplicaInfo.ReplicaID)
                 .Select(c => c.Timestamp)
                 .DefaultIfEmpty()
                 .Max();

@@ -25,10 +25,10 @@ namespace Ardex.Sync.Providers
         protected abstract IEnumerable<TChangeHistory> FilteredChangeHistory { get; }
 
         public ChangeHistorySyncProvider(
-            int replicaID,
+            SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
             SyncRepository<TChangeHistory> changeHistory,
-            UniqueIdMapping<TEntity> entityIdMapping) : base(replicaID, repository, entityIdMapping)
+            UniqueIdMapping<TEntity> entityIdMapping) : base(replicaInfo, repository, entityIdMapping)
         {
             this.ChangeHistory = changeHistory;
 
@@ -111,7 +111,7 @@ namespace Ardex.Sync.Providers
                         .OrderBy(c => c.Version, this.VersionComparer)
                         .AsEnumerable();
 
-                    return SyncDelta.Create(this.ReplicaID, myAnchor, myChanges);
+                    return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
                 }
                 finally
                 {

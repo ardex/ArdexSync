@@ -15,7 +15,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Unique ID of this replica.
         /// </summary>
-        public int ReplicaID { get; private set; }
+        public SyncReplicaInfo ReplicaInfo { get; private set; }
 
         /// <summary>
         /// Repository which is being synchronised.
@@ -51,11 +51,11 @@ namespace Ardex.Sync
         /// Creates a new instance of the class.
         /// </summary>
         protected SyncProvider(
-            int replicaID,
+            SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> entityIdMapping)
         {
-            this.ReplicaID = replicaID;
+            this.ReplicaInfo = replicaInfo;
             this.Repository = repository;
             this.EntityIdMapping = entityIdMapping;
         }
@@ -93,7 +93,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public virtual SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta)
+        public SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta)
         {
             if (this.Repository == null)
             {
@@ -106,7 +106,7 @@ namespace Ardex.Sync
 
             try
             {
-                this.ResolveConflicts(remoteDelta);
+                remoteDelta = this.ResolveConflicts(remoteDelta);
 
                 var type = typeof(TEntity);
                 var inserts = new List<object>();
@@ -148,9 +148,9 @@ namespace Ardex.Sync
                     this.WriteRemoteVersion(change);
                 }
 
-                Debug.Print("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaID, inserts.Count, type.Name, remoteDelta.ReplicaID);
-                Debug.Print("{0} applied {1} {2} updates originating at {3}.", this.ReplicaID, updates.Count, type.Name, remoteDelta.ReplicaID);
-                Debug.Print("{0} applied {1} {2} deletes originating at {3}.", this.ReplicaID, deletes.Count, type.Name, remoteDelta.ReplicaID);
+                Debug.Print("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaInfo, inserts.Count, type.Name, remoteDelta.ReplicaInfo);
+                Debug.Print("{0} applied {1} {2} updates originating at {3}.", this.ReplicaInfo, updates.Count, type.Name, remoteDelta.ReplicaInfo);
+                Debug.Print("{0} applied {1} {2} deletes originating at {3}.", this.ReplicaInfo, deletes.Count, type.Name, remoteDelta.ReplicaInfo);
 
                 var result = new SyncResult(inserts, updates, deletes);
 
@@ -186,6 +186,8 @@ namespace Ardex.Sync
                 {
                     throw new SyncConflictException("Merge conflict detected.");
                 }
+
+                return remoteDelta;
             }
 
             // Ignore changes which conflict with ours.
@@ -199,7 +201,7 @@ namespace Ardex.Sync
                 }
 
                 // Discard other replica's changes. Ours are better.
-                return SyncDelta.Create(remoteDelta.ReplicaID, remoteDelta.Anchor, remoteDelta.Changes.Except(ignoredChanges));
+                return SyncDelta.Create(remoteDelta.ReplicaInfo, remoteDelta.Anchor, remoteDelta.Changes.Except(ignoredChanges));
             }
 
             // Do nothing: allow our changes to be overwritten.

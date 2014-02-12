@@ -20,13 +20,13 @@ namespace Ardex.Sync.Providers
         }
 
         public SimpleRepositorySyncProvider(
-            int replicaID,
+            SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
             UniqueIdMapping<TEntity> entityIdMapping,
             Func<TEntity, TVersion> entityVersionMapping,
             IComparer<TVersion> versionComparer,
             ReplicaIdMapping<TEntity> ownerReplicaIdMapping = null)
-            : base(replicaID, repository, entityIdMapping)
+            : base(replicaInfo, repository, entityIdMapping)
         {
             this.EntityVersionMapping = entityVersionMapping;
             this.OwnerReplicaIdMapping = ownerReplicaIdMapping;
@@ -77,11 +77,11 @@ namespace Ardex.Sync.Providers
                     }
                 }
 
-                return SyncDelta.Create(this.ReplicaID, myAnchor, myChanges);
+                return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
             }
             finally
             {
-                this.Repository.Lock.ExitWriteLock();
+                this.Repository.Lock.ExitReadLock();
             }
         }
 

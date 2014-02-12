@@ -15,10 +15,10 @@ namespace Ardex.Sync.Providers
         }
 
         public ExclusiveChangeHistorySyncProvider(
-            int replicaID,
+            SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
             SyncRepository<IChangeHistory> changeHistory,
-            UniqueIdMapping<TEntity> entityIdMapping) : base(replicaID, repository, changeHistory, entityIdMapping)
+            UniqueIdMapping<TEntity> entityIdMapping) : base(replicaInfo, repository, changeHistory, entityIdMapping)
         {
             
         }
@@ -34,12 +34,12 @@ namespace Ardex.Sync.Providers
                 .Max() + 1;
 
             ch.Action = action;
-            ch.ReplicaID = this.ReplicaID;
+            ch.ReplicaID = this.ReplicaInfo.ReplicaID;
             ch.UniqueID = this.EntityIdMapping.Get(entity);
 
             // Resolve version.
             var timestamp = this.ChangeHistory
-                .Where(c => c.ReplicaID == this.ReplicaID)
+                .Where(c => c.ReplicaID == this.ReplicaInfo.ReplicaID)
                 .Select(c => c.Timestamp)
                 .DefaultIfEmpty()
                 .Max();

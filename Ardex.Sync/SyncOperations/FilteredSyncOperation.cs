@@ -25,7 +25,7 @@ namespace Ardex.Sync.SyncOperations
             var delta = base.ResolveDelta(remoteAnchor);
             var filteredChanges = this.Filter(delta.Changes);
 
-            return SyncDelta.Create(delta.ReplicaID, delta.Anchor, filteredChanges);
+            return SyncDelta.Create(delta.ReplicaInfo, delta.Anchor, filteredChanges);
         }
     }
 }

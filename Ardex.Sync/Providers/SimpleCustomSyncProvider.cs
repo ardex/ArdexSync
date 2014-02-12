@@ -14,9 +14,9 @@ namespace Ardex.Sync.Providers
         }
 
         public SimpleCustomSyncProvider(
-            int replicaID,
+            SyncReplicaInfo replicaInfo,
             Func<SyncAnchor<TVersion>> lastAnchorFunc,
-            Func<SyncAnchor<TVersion>, IEnumerable<SyncEntityVersion<TEntity, TVersion>>> resolveChangesFunc) : base(replicaID, null, null)
+            Func<SyncAnchor<TVersion>, IEnumerable<SyncEntityVersion<TEntity, TVersion>>> resolveChangesFunc) : base(replicaInfo, null, null)
         {
             __lastAnchorFunc = lastAnchorFunc;
             __resolveChangesFunc = resolveChangesFunc;
@@ -32,7 +32,7 @@ namespace Ardex.Sync.Providers
             var myAnchor = this.LastAnchor();
             var myChanges = __resolveChangesFunc(remoteAnchor);
 
-            return SyncDelta.Create(this.ReplicaID, myAnchor, myChanges);
+            return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
         }
     }
 }

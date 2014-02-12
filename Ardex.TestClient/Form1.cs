@@ -74,9 +74,9 @@ namespace Ardex.TestClient
 
                 {
                     // --- BEGIN SYNC SETUP --- //
-                    var serverID = new ByteArray("FF-FF-FF-FF").ToInt32();
-                    var client1ID = 1;
-                    var client2ID = 2;
+                    var serverInfo = new SyncReplicaInfo(new ByteArray("FF-FF-FF-FF").ToInt32(), "Server");
+                    var client1Info = new SyncReplicaInfo(1, "Client 1");
+                    var client2Info = new SyncReplicaInfo(2, "Client 2");
 
                     // In-memory storage.
                     var repo1 = new SyncRepository<Dummy>();
@@ -85,9 +85,9 @@ namespace Ardex.TestClient
 
                     // Sync providers.
                     var changeHistory = new SyncRepository<ISharedChangeHistory>();
-                    var server  = new SharedChangeHistorySyncProvider<Dummy>(serverID, 1, repo1, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client1 = new SharedChangeHistorySyncProvider<Dummy>(client1ID, 2, repo2, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
-                    var client2 = new SharedChangeHistorySyncProvider<Dummy>(client2ID, 3, repo3, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var server = new SharedChangeHistorySyncProvider<Dummy>(serverInfo, 1, repo1, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client1 = new SharedChangeHistorySyncProvider<Dummy>(client1Info, 2, repo2, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
+                    var client2 = new SharedChangeHistorySyncProvider<Dummy>(client2Info, 3, repo3, changeHistory, new UniqueIdMapping<Dummy>(d => d.DummyID));
 
                     server.CleanUpMetadata = false;
                     server.ConflictStrategy = SyncConflictStrategy.Winner;
@@ -130,12 +130,12 @@ namespace Ardex.TestClient
                     {
                         // Sync 1.
                         var dummy1 = new Dummy {
-                            DummyID = new SyncGuid(serverID, serverDummyID++),
+                            DummyID = new SyncGuid(serverInfo.ReplicaID, serverDummyID++),
                             Text = "First dummy"
                         };
 
                         var dummy2 = new Dummy {
-                            DummyID = new SyncGuid(serverID, serverDummyID++),
+                            DummyID = new SyncGuid(serverInfo.ReplicaID, serverDummyID++),
                             Text = "Second dummy"
                         };
 
@@ -170,7 +170,7 @@ namespace Ardex.TestClient
 
                         // Sync 2.
                         var dummy3 = new Dummy {
-                            DummyID = new SyncGuid(client1ID, client1DummyID++),
+                            DummyID = new SyncGuid(client1Info.ReplicaID, client1DummyID++),
                             Text = "Third dummy"
                         };
 
@@ -185,7 +185,7 @@ namespace Ardex.TestClient
 
                         // Sync 3.
                         var dummy4 = new Dummy {
-                            DummyID = new SyncGuid(client1ID, client1DummyID++),
+                            DummyID = new SyncGuid(client1Info.ReplicaID, client1DummyID++),
                             Text = "Dummy 4"
                         };
 
@@ -208,7 +208,7 @@ namespace Ardex.TestClient
                             var t2 = await Task.Run(async () => await client2Sync.SynchroniseDiffAsync());
 
                             var t3 = Task.Run(() => repo1.Insert(new Dummy {
-                                DummyID = new SyncGuid(serverID, serverDummyID++),
+                                DummyID = new SyncGuid(serverInfo.ReplicaID, serverDummyID++),
                                 Text = "Dodgy concurrent insert"
                             }));
 
@@ -238,7 +238,7 @@ namespace Ardex.TestClient
 
                         // Sync 4, 5.
                         var dummy5 = new Dummy {
-                            DummyID = new SyncGuid(client2ID, client2DummyID++),
+                            DummyID = new SyncGuid(client2Info.ReplicaID, client2DummyID++),
                             Text = "Client 2 dummy"
                         };
 
@@ -253,7 +253,7 @@ namespace Ardex.TestClient
 
                         // Sync 6, 7.
                         var dummy6 = new Dummy {
-                            DummyID = new SyncGuid(client2ID, client2DummyID++),
+                            DummyID = new SyncGuid(client2Info.ReplicaID, client2DummyID++),
                             Text = "Dummy 6"
                         };
 
@@ -307,9 +307,9 @@ namespace Ardex.TestClient
 
             try
             {
-                var serverID = 0xFFFF;
-                var client1ID = 0x0001;
-                var client2ID = 0x0002;
+                var serverInfo = new SyncReplicaInfo(0xFFFF, "Server");
+                var client1Info = new SyncReplicaInfo(0x0001, "Client 1");
+                var client2Info = new SyncReplicaInfo(0x0002, "Client 2");
 
                 var repo1 = new SyncRepository<DummyPermission>();
                 var repo2 = new SyncRepository<DummyPermission>();
@@ -341,9 +341,9 @@ namespace Ardex.TestClient
                 //    });
 
                 var ownerIdMapping = new ReplicaIdMapping<DummyPermission>(d => new SyncGuid(d.DummyPermissionID).ReplicaID);
-                var server = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(serverID, repo1, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
-                var client1 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(client1ID, repo2, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
-                var client2 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(client2ID, repo3, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var server = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(serverInfo, repo1, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var client1 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(client1Info, repo2, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
+                var client2 = new SimpleRepositorySyncProvider<DummyPermission, Timestamp>(client2Info, repo3, uniqueIdMapping, timestampMapping, comparer, ownerIdMapping);
                 var filter = new SyncFilter<DummyPermission, Timestamp>(changes => changes.Select(c => SyncEntityVersion.Create(c.Entity.Clone(), new Timestamp(c.Version))));
                 
                 // Sync ops.
@@ -358,7 +358,7 @@ namespace Ardex.TestClient
                 var nextTimestamp = new Func<SyncProvider<DummyPermission, Timestamp>, Timestamp>(provider =>
                 {
                     var maxTimestamp = provider.Repository
-                        .Where(d => ownerIdMapping.Get(d) == provider.ReplicaID)
+                        .Where(d => ownerIdMapping.Get(d) == provider.ReplicaInfo.ReplicaID)
                         .Select(d => d.Timestamp)
                         .DefaultIfEmpty()
                         .Max();
@@ -370,7 +370,7 @@ namespace Ardex.TestClient
                 var permission1 = new DummyPermission {
                     DummyPermissionID = Guid.Parse("00000001-0000-0000-0000-000000000001"),
                     Timestamp = nextTimestamp(server),
-                    SourceReplicaID = server.ReplicaID };
+                    SourceReplicaID = server.ReplicaInfo.ReplicaID };
                 {
                     // Legal.
                     repo1.Insert(permission1);
@@ -381,7 +381,7 @@ namespace Ardex.TestClient
                 var permission2 = new DummyPermission {
                     DummyPermissionID = Guid.Parse("00000002-0000-0000-0000-000000000001"),
                     Timestamp = nextTimestamp(client1),
-                    SourceReplicaID = client1.ReplicaID };
+                    SourceReplicaID = client1.ReplicaInfo.ReplicaID };
                 {
                     // Legal.
                     repo2.Insert(permission2);
@@ -395,7 +395,7 @@ namespace Ardex.TestClient
                     // Illegal.
                     var repo2Permission1 = server.Repository.Single(p => p.DummyPermissionID == permission1.DummyPermissionID);
 
-                    repo2Permission1.SourceReplicaID = server.ReplicaID;
+                    repo2Permission1.SourceReplicaID = server.ReplicaInfo.ReplicaID;
                     repo2Permission1.Expired = true;
                     repo2Permission1.Timestamp = nextTimestamp(server);
 
