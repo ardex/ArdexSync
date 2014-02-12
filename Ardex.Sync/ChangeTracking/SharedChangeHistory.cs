@@ -59,11 +59,11 @@ namespace Ardex.Sync.ChangeTracking
             }
         }
 
-        ChangeHistoryAction IChangeHistory.Action
+        SyncEntityChangeAction IChangeHistory.Action
         {
             get
             {
-                return (ChangeHistoryAction)Enum.Parse(typeof(ChangeHistoryAction), this.Action, true);
+                return (SyncEntityChangeAction)Enum.Parse(typeof(SyncEntityChangeAction), this.Action, true);
             }
             set
             {

@@ -81,12 +81,12 @@ namespace Ardex.Sync
         /// <summary>
         /// Raised after a tracked insert, update or delete.
         /// </summary>
-        public event Action<TEntity, ChangeHistoryAction> TrackedChange;
+        public event Action<TEntity, SyncEntityChangeAction> TrackedChange;
 
         /// <summary>
         /// Raised after an untracked insert, update or delete.
         /// </summary>
-        public event Action<TEntity, ChangeHistoryAction> UntrackedChange;
+        public event Action<TEntity, SyncEntityChangeAction> UntrackedChange;
 
         /// <summary>
         /// Inserts the specified entity.
@@ -106,7 +106,7 @@ namespace Ardex.Sync
 
             if (this.TrackedChange != null)
             {
-                this.TrackedChange(entity, ChangeHistoryAction.Insert);
+                this.TrackedChange(entity, SyncEntityChangeAction.Insert);
             }
         }
 
@@ -128,7 +128,7 @@ namespace Ardex.Sync
 
             if (this.TrackedChange != null)
             {
-                this.TrackedChange(entity, ChangeHistoryAction.Update);
+                this.TrackedChange(entity, SyncEntityChangeAction.Update);
             }
         }
 
@@ -150,7 +150,7 @@ namespace Ardex.Sync
 
             if (this.TrackedChange != null)
             {
-                this.TrackedChange(entity, ChangeHistoryAction.Delete);
+                this.TrackedChange(entity, SyncEntityChangeAction.Delete);
             }
         }
 
@@ -198,7 +198,7 @@ namespace Ardex.Sync
 
             if (this.UntrackedChange != null)
             {
-                this.UntrackedChange(entity, ChangeHistoryAction.Insert);
+                this.UntrackedChange(entity, SyncEntityChangeAction.Insert);
             }
         }
 
@@ -220,7 +220,7 @@ namespace Ardex.Sync
 
             if (this.UntrackedChange != null)
             {
-                this.UntrackedChange(entity, ChangeHistoryAction.Update);
+                this.UntrackedChange(entity, SyncEntityChangeAction.Update);
             }
         }
 
@@ -242,7 +242,7 @@ namespace Ardex.Sync
 
             if (this.UntrackedChange != null)
             {
-                this.UntrackedChange(entity, ChangeHistoryAction.Delete);
+                this.UntrackedChange(entity, SyncEntityChangeAction.Delete);
             }
         }
 

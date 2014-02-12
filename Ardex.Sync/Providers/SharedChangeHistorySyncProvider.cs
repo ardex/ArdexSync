@@ -29,7 +29,7 @@ namespace Ardex.Sync.Providers
             this.ArticleID = articleID;
         }
 
-        protected override ISharedChangeHistory CreateChangeHistoryForLocalChange(TEntity entity, ChangeHistoryAction action)
+        protected override ISharedChangeHistory CreateChangeHistoryForLocalChange(TEntity entity, SyncEntityChangeAction action)
         {
             var ch = (ISharedChangeHistory)new SharedChangeHistory();
 

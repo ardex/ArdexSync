@@ -31,6 +31,6 @@ namespace Ardex.Sync.ChangeTracking
         /// <summary>
         /// Type of change.
         /// </summary>
-        ChangeHistoryAction Action { get; set; }
+        SyncEntityChangeAction Action { get; set; }
     }
 }

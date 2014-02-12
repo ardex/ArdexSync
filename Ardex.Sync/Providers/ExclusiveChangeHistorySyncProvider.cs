@@ -23,7 +23,7 @@ namespace Ardex.Sync.Providers
             
         }
 
-        protected override IChangeHistory CreateChangeHistoryForLocalChange(TEntity entity, ChangeHistoryAction action)
+        protected override IChangeHistory CreateChangeHistoryForLocalChange(TEntity entity, SyncEntityChangeAction action)
         {
             var ch = (IChangeHistory)new ChangeHistory();
 

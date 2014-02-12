@@ -60,11 +60,11 @@ namespace Ardex.Sync.ChangeTracking
             }
         }
 
-        ChangeHistoryAction IChangeHistory.Action
+        SyncEntityChangeAction IChangeHistory.Action
         {
             get
             {
-                return (ChangeHistoryAction)Enum.Parse(typeof(ChangeHistoryAction), this.Action, true);
+                return (SyncEntityChangeAction)Enum.Parse(typeof(SyncEntityChangeAction), this.Action, true);
             }
             set
             {
@@ -95,15 +95,5 @@ namespace Ardex.Sync.ChangeTracking
             proxy.EntityGuid = other.EntityGuid;
             proxy.Action = other.Action;
         }
-    }
-
-    /// <summary>
-    /// Defines supported change history action types.
-    /// </summary>
-    public enum ChangeHistoryAction
-    {
-        Insert,
-        Update,
-        Delete
     }
 }

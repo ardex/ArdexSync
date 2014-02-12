@@ -36,10 +36,10 @@ namespace Ardex.Sync.Providers
             this.Repository.TrackedChange += this.HandleTrackedChange;
         }
 
-        protected abstract TChangeHistory CreateChangeHistoryForLocalChange(TEntity entity, ChangeHistoryAction action);
+        protected abstract TChangeHistory CreateChangeHistoryForLocalChange(TEntity entity, SyncEntityChangeAction action);
         protected abstract TChangeHistory CreateChangeHistoryForRemoteChange(SyncEntityVersion<TEntity, TChangeHistory> remoteVersionInfo);
     
-        private void HandleTrackedChange(TEntity entity, ChangeHistoryAction action)
+        private void HandleTrackedChange(TEntity entity, SyncEntityChangeAction action)
         {
             this.ChangeHistory.Lock.EnterWriteLock();
 
