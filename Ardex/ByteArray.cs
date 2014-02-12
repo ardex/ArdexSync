@@ -36,7 +36,7 @@ namespace Ardex
         public ByteArray(string hex)
         {
             if (string.IsNullOrEmpty(hex)) throw new ArgumentException("hex");
-            if (hex.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase)) hex = hex.Substring(2);
+            if (hex.StartsWith("0x")) hex = hex.Substring(2);
 
             hex = hex.Replace("-", string.Empty);
 

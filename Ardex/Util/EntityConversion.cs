@@ -104,9 +104,9 @@ namespace Ardex.Util
                 {
                     if (prop.CanRead && prop.CanWrite)
                     {
-                        var value = prop.GetValue(__source);
+                        var value = prop.GetValue(__source, null);
 
-                        prop.SetValue(newEntity, value);
+                        prop.SetValue(newEntity, value, null);
                     }
                 }
 
@@ -149,9 +149,9 @@ namespace Ardex.Util
                     {
                         if (prop.CanRead && prop.CanWrite)
                         {
-                            var value = prop.GetValue(oldEntity);
+                            var value = prop.GetValue(oldEntity, null);
 
-                            prop.SetValue(newEntity, value);
+                            prop.SetValue(newEntity, value, null);
                         }
                     }
 

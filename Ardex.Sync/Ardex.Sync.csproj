@@ -70,10 +70,9 @@
     <Compile Include="Timestamp.cs" />
     <Compile Include="SyncEntityVersion.cs" />
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\Ardex\Ardex.csproj">
-      <Project>{b5d19187-5443-4f78-8a91-3543b0387018}</Project>
+      <Project>{b0d91539-6e7a-41c4-9247-b52e8db835ae}</Project>
       <Name>Ardex</Name>
     </ProjectReference>
   </ItemGroup>

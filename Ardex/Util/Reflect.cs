@@ -19,7 +19,7 @@ namespace Ardex
 
                 sb.Append(prop.Name);
                 sb.Append(" = ");
-                sb.Append(prop.GetValue(obj));
+                sb.Append(prop.GetValue(obj, null));
                 
                 if (i != properties.Length - 1)
                 {

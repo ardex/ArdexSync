@@ -51,20 +51,20 @@ namespace Ardex.Util
                     // Fix DateTime properties.
                     if (prop.CanWrite && prop.CanRead && (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?)))
                     {
-                        var value = prop.GetValue(obj);
+                        var value = prop.GetValue(obj, null);
 
                         if (value != null)
                         {
                             var date = (DateTime)value;
                             var dateFixed = DateTime.SpecifyKind(date, DateTimeKind.Utc);
 
-                            prop.SetValue(obj, dateFixed);
+                            prop.SetValue(obj, dateFixed, null);
                         }
                     }
                     else if (prop.PropertyType.IsClass)
                     {
                         // Recursively fix child objects in the graph.
-                        var value = prop.GetValue(obj);
+                        var value = prop.GetValue(obj, null);
 
                         Dates.MakeUtc(value);
                     }

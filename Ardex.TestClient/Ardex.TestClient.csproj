@@ -91,13 +91,13 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Ardex\Ardex.csproj">
+      <Project>{b0d91539-6e7a-41c4-9247-b52e8db835ae}</Project>
+      <Name>Ardex</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Ardex.Sync\Ardex.Sync.csproj">
       <Project>{63119e8b-cfe9-4b83-9bb2-3180063f7727}</Project>
       <Name>Ardex.Sync</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Ardex\Ardex.csproj">
-      <Project>{b5d19187-5443-4f78-8a91-3543b0387018}</Project>
-      <Name>Ardex</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
