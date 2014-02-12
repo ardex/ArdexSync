@@ -35,7 +35,7 @@ namespace Ardex.Sync.Providers
 
             ch.Action = action;
             ch.ReplicaID = this.ReplicaInfo.ReplicaID;
-            ch.EntityGuid = this.EntityGuidMapping.Get(entity);
+            ch.EntityGuid = this.EntityGuidMapping(entity);
 
             // Resolve version.
             var timestamp = this.ChangeHistory

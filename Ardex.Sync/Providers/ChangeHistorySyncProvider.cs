@@ -105,7 +105,7 @@ namespace Ardex.Sync.Providers
                         .Join(
                             this.Repository.AsEnumerable(),
                             ch => ch.EntityGuid,
-                            this.EntityGuidMapping.Get,
+                            ch => this.EntityGuidMapping(ch),
                             (ch, entity) => SyncEntityVersion.Create(entity, ch))
                         // Ensure that the oldest changes for each replica are sync first.
                         .OrderBy(c => c.Version, this.VersionComparer)

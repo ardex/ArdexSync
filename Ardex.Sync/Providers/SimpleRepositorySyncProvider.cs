@@ -41,7 +41,7 @@ namespace Ardex.Sync.Providers
             // Lock taken by SyncRepository.GetEnumerator().
             foreach (var entity in this.Repository)
             {
-                var entityOwnerReplicaID = this.OwnerReplicaIdMapping == null ? 0 : this.OwnerReplicaIdMapping.Get(entity);
+                var entityOwnerReplicaID = this.OwnerReplicaIdMapping == null ? 0 : this.OwnerReplicaIdMapping(entity);
                 var entityVersion = this.EntityVersionMapping(entity);
                 var maxVersion = default(TVersion);
 
@@ -93,7 +93,7 @@ namespace Ardex.Sync.Providers
                 return 0;
             }
 
-            return this.OwnerReplicaIdMapping.Get(entity);
+            return this.OwnerReplicaIdMapping(entity);
         }
     }
 }

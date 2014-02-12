@@ -48,6 +48,7 @@
     <Compile Include="EntityMapping\SyncReplicaIdMapping.cs" />
     <Compile Include="SyncEntityChangeAction.cs" />
     <Compile Include="SyncEntityChangeReconciler.cs" />
+    <Compile Include="SyncEntityLocalKeyGenerator.cs" />
     <Compile Include="SyncReplicaInfo.cs" />
     <Compile Include="SyncAnchor.cs" />
     <Compile Include="SyncConflictException.cs" />

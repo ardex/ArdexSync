@@ -34,6 +34,12 @@ namespace Ardex.Sync
         public SyncEntityChangeReconciler<TEntity> EntityChangeReconciler { get; set; }
 
         /// <summary>
+        /// Gets or sets the delegate applied to remote entities
+        /// before they are inserted into the local repository.
+        /// </summary>
+        public SyncEntityLocalKeyGenerator<TEntity> EntityLocalKeyGenerator { get; set; }
+
+        /// <summary>
         /// Conflict resolution strategy used by this provider.
         /// </summary>
         public virtual SyncConflictStrategy ConflictStrategy { get; set; }
@@ -126,12 +132,12 @@ namespace Ardex.Sync
                 // an order that if we fail, we'll be able to resume later.
                 foreach (var change in remoteDelta.Changes.OrderBy(c => c.Version, this.VersionComparer))
                 {
-                    var changeGuid = this.EntityGuidMapping.Get(change.Entity);
+                    var changeGuid = this.EntityGuidMapping(change.Entity);
                     var found = false;
 
                     foreach (var existingEntity in this.Repository)
                     {
-                        if (changeGuid == this.EntityGuidMapping.Get(existingEntity))
+                        if (changeGuid == this.EntityGuidMapping(existingEntity))
                         {
                             // Found.
                             var changeCount = this.EntityChangeReconciler.ApplyDataChange(existingEntity, change.Entity);
@@ -149,6 +155,11 @@ namespace Ardex.Sync
 
                     if (!found)
                     {
+                        if (this.EntityLocalKeyGenerator != null)
+                        {
+                            this.EntityLocalKeyGenerator(change.Entity);
+                        }
+
                         this.Repository.UntrackedInsert(change.Entity);
                         inserts.Add(change);
                     }
@@ -190,8 +201,8 @@ namespace Ardex.Sync
 
             var conflicts = myDelta.Changes.Join(
                 remoteDelta.Changes,
-                c => this.EntityGuidMapping.Get(c.Entity),
-                c => this.EntityGuidMapping.Get(c.Entity),
+                c => this.EntityGuidMapping(c.Entity),
+                c => this.EntityGuidMapping(c.Entity),
                 (local, remote) => new SyncConflict<TEntity, TVersion>(local, remote));
 
             // Default: fail if merge conflicts detected.
