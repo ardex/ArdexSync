@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
+using Ardex.Reflection;
 using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync
@@ -31,7 +32,7 @@ namespace Ardex.Sync
         /// Gets or sets the entity change reconciler used
         /// by this sync provider to apply changes.
         /// </summary>
-        public SyncEntityChangeReconciler<TEntity> EntityChangeReconciler { get; set; }
+        public TypeMapping<TEntity> EntityTypeMapping { get; set; }
 
         /// <summary>
         /// Gets or sets the delegate applied to remote entities
@@ -72,7 +73,7 @@ namespace Ardex.Sync
             this.EntityGuidMapping = entityGuidMapping;
 
             // Defaults.
-            this.EntityChangeReconciler = new SyncEntityChangeReconciler<TEntity>();
+            this.EntityTypeMapping = new TypeMapping<TEntity>();
         }
 
         #region Abstract methods
@@ -140,7 +141,7 @@ namespace Ardex.Sync
                         if (changeGuid == this.EntityGuidMapping(existingEntity))
                         {
                             // Found.
-                            var changeCount = this.EntityChangeReconciler.ApplyDataChange(existingEntity, change.Entity);
+                            var changeCount = this.EntityTypeMapping.CopyValues(existingEntity, change.Entity);
 
                             if (changeCount != 0)
                             {
@@ -168,9 +169,9 @@ namespace Ardex.Sync
                     this.WriteRemoteVersion(change);
                 }
 
-                Debug.Print("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaInfo, inserts.Count, type.Name, remoteDelta.ReplicaInfo);
-                Debug.Print("{0} applied {1} {2} updates originating at {3}.", this.ReplicaInfo, updates.Count, type.Name, remoteDelta.ReplicaInfo);
-                Debug.Print("{0} applied {1} {2} deletes originating at {3}.", this.ReplicaInfo, deletes.Count, type.Name, remoteDelta.ReplicaInfo);
+                Debug.WriteLine("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaInfo, inserts.Count, type.Name, remoteDelta.ReplicaInfo);
+                Debug.WriteLine("{0} applied {1} {2} updates originating at {3}.", this.ReplicaInfo, updates.Count, type.Name, remoteDelta.ReplicaInfo);
+                Debug.WriteLine("{0} applied {1} {2} deletes originating at {3}.", this.ReplicaInfo, deletes.Count, type.Name, remoteDelta.ReplicaInfo);
 
                 var result = new SyncResult(inserts, updates, deletes);
 

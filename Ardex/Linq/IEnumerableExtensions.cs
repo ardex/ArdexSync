@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Ardex.Collections
+namespace Ardex.Linq
 {
     /// <summary>
     /// Extensions for objects which implement generic

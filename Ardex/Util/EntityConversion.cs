@@ -98,7 +98,7 @@ namespace Ardex.Util
                 EntityConversion.ValidateTypes(typeof(TSource), typeof(TResult));
 
                 var newEntity = new TResult();
-                var properties = typeof(TSource).GetProperties();
+                var properties = typeof(TSource).GetRuntimeProperties();
 
                 foreach (var prop in properties)
                 {
@@ -139,7 +139,7 @@ namespace Ardex.Util
             {
                 EntityConversion.ValidateTypes(typeof(TSource), typeof(TResult));
 
-                var properties = typeof(TSource).GetProperties();
+                var properties = typeof(TSource).GetRuntimeProperties();
 
                 foreach (var oldEntity in __source)
                 {
@@ -169,13 +169,13 @@ namespace Ardex.Util
         /// </summary>
         private static void ValidateTypes(Type interfaceType, Type resultType)
         {
-            if (!interfaceType.IsInterface)
+            if (!interfaceType.GetTypeInfo().IsInterface)
                 throw new ArgumentException("Source must be an interface type.");
 
-            if (resultType.IsInterface)
+            if (resultType.GetTypeInfo().IsInterface)
                 throw new ArgumentException("Target type must be a concrete type, not an interface.");
 
-            if (!interfaceType.IsAssignableFrom(resultType))
+            if (!interfaceType.GetTypeInfo().IsAssignableFrom(resultType.GetTypeInfo()))
                 throw new ArgumentException("Target type is not compatible with base (interface) type.");
 
             if (interfaceType == resultType)

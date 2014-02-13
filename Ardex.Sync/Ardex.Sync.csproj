@@ -2,15 +2,18 @@
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
+    <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{63119E8B-CFE9-4B83-9BB2-3180063F7727}</ProjectGuid>
+    <ProjectGuid>{C04DF15D-FBDC-4861-98CB-CAC03F6D9384}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Ardex.Sync</RootNamespace>
     <AssemblyName>Ardex.Sync</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Profile49</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -30,56 +33,47 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Providers\ChangeHistorySyncProvider.cs" />
-    <Compile Include="Providers\ExclusiveChangeHistorySyncProvider.cs" />
-    <Compile Include="Providers\SimpleCustomSyncProvider.cs" />
-    <Compile Include="Providers\SimpleRepositorySyncProvider.cs" />
-    <Compile Include="Providers\SharedChangeHistorySyncProvider.cs" />
-    <Compile Include="Providers\SimpleSyncProvider.cs" />
-    <Compile Include="EntityMapping\SyncReplicaIdMapping.cs" />
-    <Compile Include="SyncEntityChangeAction.cs" />
-    <Compile Include="SyncEntityChangeReconciler.cs" />
-    <Compile Include="SyncEntityLocalKeyGenerator.cs" />
-    <Compile Include="SyncReplicaInfo.cs" />
-    <Compile Include="SyncAnchor.cs" />
-    <Compile Include="SyncConflictException.cs" />
-    <Compile Include="SyncGuid.cs" />
-    <Compile Include="SyncOperations\BasicSyncOperation.cs" />
-    <Compile Include="ChangeTracking\ChangeHistory.cs" />
-    <Compile Include="ChangeTracking\IChangeHistory.cs" />
-    <Compile Include="ChangeTracking\ISharedChangeHistory.cs" />
-    <Compile Include="ChangeTracking\SharedChangeHistory.cs" />
-    <Compile Include="SyncConflictStrategy.cs" />
-    <Compile Include="SyncDelta.cs" />
-    <Compile Include="SyncOperations\FilteredSyncOperation.cs" />
-    <Compile Include="ISyncProvider.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="EntityMapping\SyncGuidMapping.cs" />
-    <Compile Include="SyncProvider.cs" />
-    <Compile Include="SyncConflict.cs" />
-    <Compile Include="SyncFilter.cs" />
-    <Compile Include="SyncOperation.cs" />
-    <Compile Include="SyncRepository.cs" />
-    <Compile Include="SyncResult.cs" />
-    <Compile Include="Timestamp.cs" />
-    <Compile Include="SyncEntityVersion.cs" />
-  </ItemGroup>
-  <ItemGroup>
+    <!-- A reference to the entire .NET Framework is automatically included -->
     <ProjectReference Include="..\Ardex\Ardex.csproj">
       <Project>{b0d91539-6e7a-41c4-9247-b52e8db835ae}</Project>
       <Name>Ardex</Name>
     </ProjectReference>
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <Compile Include="ChangeTracking\ChangeHistory.cs" />
+    <Compile Include="ChangeTracking\IChangeHistory.cs" />
+    <Compile Include="ChangeTracking\ISharedChangeHistory.cs" />
+    <Compile Include="ChangeTracking\SharedChangeHistory.cs" />
+    <Compile Include="EntityMapping\SyncGuidMapping.cs" />
+    <Compile Include="EntityMapping\SyncReplicaIdMapping.cs" />
+    <Compile Include="ISyncProvider.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Providers\ChangeHistorySyncProvider.cs" />
+    <Compile Include="Providers\ExclusiveChangeHistorySyncProvider.cs" />
+    <Compile Include="Providers\SharedChangeHistorySyncProvider.cs" />
+    <Compile Include="Providers\SimpleCustomSyncProvider.cs" />
+    <Compile Include="Providers\SimpleRepositorySyncProvider.cs" />
+    <Compile Include="Providers\SimpleSyncProvider.cs" />
+    <Compile Include="SyncAnchor.cs" />
+    <Compile Include="SyncConflict.cs" />
+    <Compile Include="SyncConflictException.cs" />
+    <Compile Include="SyncConflictStrategy.cs" />
+    <Compile Include="SyncDelta.cs" />
+    <Compile Include="SyncEntityChangeAction.cs" />
+    <Compile Include="SyncEntityLocalKeyGenerator.cs" />
+    <Compile Include="SyncEntityVersion.cs" />
+    <Compile Include="SyncFilter.cs" />
+    <Compile Include="SyncGuid.cs" />
+    <Compile Include="SyncOperation.cs" />
+    <Compile Include="SyncOperations\BasicSyncOperation.cs" />
+    <Compile Include="SyncOperations\FilteredSyncOperation.cs" />
+    <Compile Include="SyncProvider.cs" />
+    <Compile Include="SyncReplicaInfo.cs" />
+    <Compile Include="SyncRepository.cs" />
+    <Compile Include="SyncResult.cs" />
+    <Compile Include="Timestamp.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

@@ -5,7 +5,7 @@ VisualStudioVersion = 12.0.30110.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ardex.TestClient", "Ardex.TestClient\Ardex.TestClient.csproj", "{D301FA70-6F3E-471F-8FEB-97AB0A5D94AA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ardex.Sync", "Ardex.Sync\Ardex.Sync.csproj", "{63119E8B-CFE9-4B83-9BB2-3180063F7727}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ardex.Sync", "Ardex.Sync\Ardex.Sync.csproj", "{C04DF15D-FBDC-4861-98CB-CAC03F6D9384}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ardex", "Ardex\Ardex.csproj", "{B0D91539-6E7A-41C4-9247-B52E8DB835AE}"
 EndProject
@@ -27,6 +27,10 @@ Global
 		{B0D91539-6E7A-41C4-9247-B52E8DB835AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0D91539-6E7A-41C4-9247-B52E8DB835AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0D91539-6E7A-41C4-9247-B52E8DB835AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C04DF15D-FBDC-4861-98CB-CAC03F6D9384}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C04DF15D-FBDC-4861-98CB-CAC03F6D9384}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C04DF15D-FBDC-4861-98CB-CAC03F6D9384}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C04DF15D-FBDC-4861-98CB-CAC03F6D9384}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

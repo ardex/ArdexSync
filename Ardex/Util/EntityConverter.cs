@@ -31,15 +31,15 @@ namespace Ardex.Util
 
             // Conversion.
             var type = typeof(TInterface);
-            var props = type.GetProperties();
+            var props = type.GetRuntimeProperties();
 
             foreach (var prop in props)
             {
                 if (prop.CanRead && prop.CanWrite)
                 {
-                    var value = prop.GetValue(oldEntity, null);
+                    var value = prop.GetValue(oldEntity);
 
-                    prop.SetValue(newEntity, value, null);
+                    prop.SetValue(newEntity, value);
                 }
             }
 
@@ -51,7 +51,7 @@ namespace Ardex.Util
         /// </summary>
         private static void ValidateTypes(Type interfaceType, Type entityType)
         {
-            if (!interfaceType.IsInterface)
+            if (!interfaceType.GetTypeInfo().IsInterface)
             {
                 throw new ArgumentException("oldEntity must be an interface type.");
             }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 
 namespace Ardex.Util
 {
@@ -44,7 +45,7 @@ namespace Ardex.Util
             {
                 // Fix single object.
                 var type = obj.GetType();
-                var properties = type.GetProperties();
+                var properties = type.GetRuntimeProperties();
 
                 foreach (var prop in properties)
                 {
@@ -61,7 +62,7 @@ namespace Ardex.Util
                             prop.SetValue(obj, dateFixed, null);
                         }
                     }
-                    else if (prop.PropertyType.IsClass)
+                    else if (prop.PropertyType.GetTypeInfo().IsClass)
                     {
                         // Recursively fix child objects in the graph.
                         var value = prop.GetValue(obj, null);

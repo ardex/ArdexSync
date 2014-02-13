@@ -4,13 +4,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity;
 using System.Data.SqlClient;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using Ardex.Collections;
+using Ardex.Reflection;
 using Ardex.Sync;
 using Ardex.Sync.ChangeTracking;
 using Ardex.Sync.EntityMapping;
@@ -100,17 +99,17 @@ namespace Ardex.TestClient
 
                     // Tell the sync to ignore the local PK
                     // and teach it how to generate them.
-                    server.EntityChangeReconciler.Exclude(d => d.DummyID);
+                    server.EntityTypeMapping.Exclude(d => d.DummyID);
                     server.EntityLocalKeyGenerator = dummy => dummy.DummyID = server.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
 
-                    client1.EntityChangeReconciler.Exclude(d => d.DummyID);
+                    client1.EntityTypeMapping.Exclude(d => d.DummyID);
                     client1.EntityLocalKeyGenerator = dummy => dummy.DummyID = client1.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
 
-                    client2.EntityChangeReconciler.Exclude(d => d.DummyID);
+                    client2.EntityTypeMapping.Exclude(d => d.DummyID);
                     client2.EntityLocalKeyGenerator = dummy => dummy.DummyID = client2.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
 
                     // Prepare comparer which knows to ignore the DummyID column.
-                    var comparer = new CustomEqualityComparer<Dummy>(new SyncEntityChangeReconciler<Dummy>().Exclude(d => d.DummyID).Equals);
+                    var comparer = new TypeMapping<Dummy>().Exclude(d => d.DummyID).EqualityComparer;
 
                     // Chain sync operations to produce an upload/download chain.
                     //var client1Upload = SyncOperation.Create(client1, server).Filtered(this.ExclusiveChangeHistoryFilter);

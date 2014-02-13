@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Linq;
+using System.Reflection;
+using System.Text;
 
 namespace Ardex
 {
@@ -7,7 +9,7 @@ namespace Ardex
         public static string ToString(object obj)
         {
             var type = obj.GetType();
-            var properties = type.GetProperties();
+            var properties = type.GetRuntimeProperties().ToArray();
             var sb = new StringBuilder();
 
             sb.Append(type.Name);
@@ -19,7 +21,7 @@ namespace Ardex
 
                 sb.Append(prop.Name);
                 sb.Append(" = ");
-                sb.Append(prop.GetValue(obj, null));
+                sb.Append(prop.GetValue(obj));
                 
                 if (i != properties.Length - 1)
                 {
@@ -37,7 +39,7 @@ namespace Ardex
             if (object.ReferenceEquals(x, null) && object.ReferenceEquals(y, null)) return true;
             if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
 
-            foreach (var prop in typeof(T).GetProperties())
+            foreach (var prop in typeof(T).GetRuntimeProperties())
             {
                 if (prop.CanRead)
                 {
