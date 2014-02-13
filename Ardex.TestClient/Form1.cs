@@ -83,10 +83,9 @@ namespace Ardex.TestClient
                     var repo3 = new SyncRepository<Dummy>();
 
                     // Sync providers.
-                    var changeHistory = new SyncRepository<ISharedChangeHistory>();
-                    var server =  new SharedChangeHistorySyncProvider<Dummy>(serverInfo,  1001, repo1, changeHistory, d => d.EntityGuid);
-                    var client1 = new SharedChangeHistorySyncProvider<Dummy>(client1Info, 2001, repo2, changeHistory, d => d.EntityGuid);
-                    var client2 = new SharedChangeHistorySyncProvider<Dummy>(client2Info, 3001, repo3, changeHistory, d => d.EntityGuid);
+                    var server =  new ExclusiveChangeHistorySyncProvider<Dummy>(serverInfo,  repo1, new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
+                    var client1 = new ExclusiveChangeHistorySyncProvider<Dummy>(client1Info, repo2, new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
+                    var client2 = new ExclusiveChangeHistorySyncProvider<Dummy>(client2Info, repo3, new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
                     
                     server.CleanUpMetadata = false;
                     server.ConflictStrategy = SyncConflictStrategy.Winner;
@@ -112,18 +111,18 @@ namespace Ardex.TestClient
                     var comparer = new TypeMapping<Dummy>().Exclude(d => d.DummyID).EqualityComparer;
 
                     // Chain sync operations to produce an upload/download chain.
-                    //var client1Upload = SyncOperation.Create(client1, server).Filtered(this.ExclusiveChangeHistoryFilter);
-                    //var client1Download = SyncOperation.Create(server, client1).Filtered(this.ExclusiveChangeHistoryFilter);
-                    //var client2Upload = SyncOperation.Create(client2, server).Filtered(this.ExclusiveChangeHistoryFilter);
-                    //var client2Download = SyncOperation.Create(server, client2).Filtered(this.ExclusiveChangeHistoryFilter);
-                    //var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(this.ExclusiveChangeHistoryFilter);
-                    //var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(this.ExclusiveChangeHistoryFilter);
-                    var client1Upload = SyncOperation.Create(client1, server).Filtered(this.SharedChangeHistoryFilter);
-                    var client1Download = SyncOperation.Create(server, client1).Filtered(this.SharedChangeHistoryFilter);
-                    var client2Upload = SyncOperation.Create(client2, server).Filtered(this.SharedChangeHistoryFilter);
-                    var client2Download = SyncOperation.Create(server, client2).Filtered(this.SharedChangeHistoryFilter);
-                    var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(this.SharedChangeHistoryFilter);
-                    var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(this.SharedChangeHistoryFilter);
+                    var client1Upload = SyncOperation.Create(client1, server).Filtered(this.ExclusiveChangeHistoryFilter);
+                    var client1Download = SyncOperation.Create(server, client1).Filtered(this.ExclusiveChangeHistoryFilter);
+                    var client2Upload = SyncOperation.Create(client2, server).Filtered(this.ExclusiveChangeHistoryFilter);
+                    var client2Download = SyncOperation.Create(server, client2).Filtered(this.ExclusiveChangeHistoryFilter);
+                    var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(this.ExclusiveChangeHistoryFilter);
+                    var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(this.ExclusiveChangeHistoryFilter);
+                    //var client1Upload = SyncOperation.Create(client1, server).Filtered(this.SharedChangeHistoryFilter);
+                    //var client1Download = SyncOperation.Create(server, client1).Filtered(this.SharedChangeHistoryFilter);
+                    //var client2Upload = SyncOperation.Create(client2, server).Filtered(this.SharedChangeHistoryFilter);
+                    //var client2Download = SyncOperation.Create(server, client2).Filtered(this.SharedChangeHistoryFilter);
+                    //var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(this.SharedChangeHistoryFilter);
+                    //var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(this.SharedChangeHistoryFilter);
 
                     // Chain uploads and downloads to produce complete sync sessions.
                     var client1Sync = SyncOperation.Chain(client1Upload, client1Download);

@@ -44,7 +44,8 @@
     <Compile Include="ChangeTracking\IChangeHistory.cs" />
     <Compile Include="ChangeTracking\ISharedChangeHistory.cs" />
     <Compile Include="ChangeTracking\SharedChangeHistory.cs" />
-    <Compile Include="EntityMapping\SyncGuidMapping.cs" />
+    <Compile Include="EntityMapping\SyncEntityKeyMapping.cs" />
+    <Compile Include="EntityMapping\SyncEntityVersionMapping.cs" />
     <Compile Include="EntityMapping\SyncReplicaIdMapping.cs" />
     <Compile Include="ISyncProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
