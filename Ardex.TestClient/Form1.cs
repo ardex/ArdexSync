@@ -617,6 +617,11 @@ namespace Ardex.TestClient
             //}
         }
 
+        private void button4_Click(object sender, EventArgs e)
+        {
+
+        }
+
         public void Dump<T>(IEnumerable<T> repository, string prefix = null)
         {
             if (!string.IsNullOrEmpty(prefix))
@@ -675,6 +680,9 @@ namespace Ardex.TestClient
         public int DummyID { get; set; }
         public string Text { get; set; }
         public Guid EntityGuid { get; set; }
+
+        private int HiddenProp { get; set; }
+        public static int SharedProp { get; set; }
 
         public override string ToString()
         {
