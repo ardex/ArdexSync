@@ -3,7 +3,7 @@
 namespace Ardex.Sync.EntityMapping
 {
     /// <summary>
-    /// Provides mapping for entity members essential to two-way synchronisation.
+    /// Provides mapping for the replica ID which owns this record.
     /// </summary>
-    public delegate int SyncReplicaIdMapping<TEntity>(TEntity entity);
+    public delegate int SyncEntityOwnerMapping<TEntity>(TEntity entity);
 }

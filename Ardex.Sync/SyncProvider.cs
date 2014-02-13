@@ -11,7 +11,7 @@ namespace Ardex.Sync
     /// <summary>
     /// Base class for merge synchronisation providers.
     /// </summary>
-    public abstract class SyncProvider<TEntity, TVersion> : ISyncProvider<TEntity, TVersion>
+    public abstract class SyncProvider<TEntity, TKey, TVersion> : ISyncProvider<TEntity, TVersion>
     {
         /// <summary>
         /// Unique ID of this replica.
@@ -26,7 +26,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Entity primary key / unique identifier mapping.
         /// </summary>
-        public SyncGuidMapping<TEntity> EntityGuidMapping { get; private set; }
+        public SyncEntityKeyMapping<TEntity, TKey> EntityKeyMapping { get; private set; }
 
         /// <summary>
         /// Gets or sets the entity change reconciler used
@@ -66,11 +66,11 @@ namespace Ardex.Sync
         protected SyncProvider(
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
-            SyncGuidMapping<TEntity> entityGuidMapping)
+            SyncEntityKeyMapping<TEntity, TKey> entityKeyMapping)
         {
             this.ReplicaInfo = replicaInfo;
             this.Repository = repository;
-            this.EntityGuidMapping = entityGuidMapping;
+            this.EntityKeyMapping = entityKeyMapping;
 
             // Defaults.
             this.EntityTypeMapping = new TypeMapping<TEntity>();
@@ -133,12 +133,12 @@ namespace Ardex.Sync
                 // an order that if we fail, we'll be able to resume later.
                 foreach (var change in remoteDelta.Changes.OrderBy(c => c.Version, this.VersionComparer))
                 {
-                    var changeGuid = this.EntityGuidMapping(change.Entity);
+                    var changeKey = this.EntityKeyMapping(change.Entity);
                     var found = false;
 
                     foreach (var existingEntity in this.Repository)
                     {
-                        if (changeGuid == this.EntityGuidMapping(existingEntity))
+                        if (object.Equals(changeKey, this.EntityKeyMapping(existingEntity)))
                         {
                             // Found.
                             var changeCount = this.EntityTypeMapping.CopyValues(existingEntity, change.Entity);
@@ -202,8 +202,8 @@ namespace Ardex.Sync
 
             var conflicts = myDelta.Changes.Join(
                 remoteDelta.Changes,
-                c => this.EntityGuidMapping(c.Entity),
-                c => this.EntityGuidMapping(c.Entity),
+                c => this.EntityKeyMapping(c.Entity),
+                c => this.EntityKeyMapping(c.Entity),
                 (local, remote) => new SyncConflict<TEntity, TVersion>(local, remote));
 
             // Default: fail if merge conflicts detected.
@@ -256,7 +256,7 @@ namespace Ardex.Sync
 
             if (disposing)
             {
-                this.EntityGuidMapping = null;
+                this.EntityKeyMapping = null;
                 this.Repository = null;
             }
 

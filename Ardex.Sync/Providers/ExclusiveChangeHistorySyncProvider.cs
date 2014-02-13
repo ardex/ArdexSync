@@ -18,7 +18,8 @@ namespace Ardex.Sync.Providers
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
             SyncRepository<IChangeHistory> changeHistory,
-            SyncGuidMapping<TEntity> entityGuidMapping) : base(replicaInfo, repository, changeHistory, entityGuidMapping)
+            SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping)
+            : base(replicaInfo, repository, changeHistory, entityKeyMapping)
         {
             
         }
@@ -35,7 +36,7 @@ namespace Ardex.Sync.Providers
 
             ch.Action = action;
             ch.ReplicaID = this.ReplicaInfo.ReplicaID;
-            ch.EntityGuid = this.EntityGuidMapping(entity);
+            ch.EntityGuid = this.EntityKeyMapping(entity);
 
             // Resolve version.
             var timestamp = this.ChangeHistory
