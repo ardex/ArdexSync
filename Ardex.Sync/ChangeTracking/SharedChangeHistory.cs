@@ -101,10 +101,5 @@ namespace Ardex.Sync.ChangeTracking
             proxy.Action = other.Action;
             proxy.ArticleID = other.ArticleID;
         }
-
-        public override string ToString()
-        {
-            return Reflect.ToString(this);
-        }
     }
 }

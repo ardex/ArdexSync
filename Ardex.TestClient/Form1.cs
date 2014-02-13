@@ -438,7 +438,7 @@ namespace Ardex.TestClient
 
         private string ToString<T>(IRepository<T> repo)
         {
-            return string.Join(Environment.NewLine, repo.Select(e => Reflect.ToString(e)));
+            return string.Join(Environment.NewLine, repo.Select(e => new TypeMapping<T>().ToString(e)));
         }
 
         public class FileAccessInfo
@@ -678,7 +678,7 @@ namespace Ardex.TestClient
 
         public override string ToString()
         {
-            return Reflect.ToString(this);
+            return new TypeMapping<Dummy>().ToString(this);
         }
 
         public Dummy Clone()
@@ -694,7 +694,7 @@ namespace Ardex.TestClient
         {
             if (other == null) return false;
 
-            return Reflect.Equals(this, other);
+            return new TypeMapping<Dummy>().Equals(this, other);
         }
 
         public override bool Equals(object obj)

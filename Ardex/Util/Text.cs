@@ -39,12 +39,14 @@ namespace Ardex.Util
             foreach (var c in name)
             {
                 if (c == '(')
+				{
                     openBracketCount++;
-                
+				}
                 else if (c == ')')
+				{
                     openBracketCount--;
-                
-                else if (openBracketCount == 0)
+				}
+                else if (openBracketCount == 0 && c != '\'')
                 {
                     if (c == ' ')
                     {

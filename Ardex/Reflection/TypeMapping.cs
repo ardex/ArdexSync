@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
 
 namespace Ardex.Reflection
 {
@@ -46,7 +47,7 @@ namespace Ardex.Reflection
             var props = type.GetRuntimeProperties();
 
             __mappedProperties = props
-                .Where(p => p.CanRead && p.CanWrite)
+                .Where(p => p.CanRead)
                 .ToArray();
         }
 
@@ -66,15 +67,18 @@ namespace Ardex.Reflection
         {
             var changeCount = 0;
 
-            foreach (var prop in this.MappedProperties)
+            foreach (var prop in __mappedProperties)
             {
-                var oldValue = prop.GetValue(source);
-                var newValue = prop.GetValue(target);
-
-                if (!object.Equals(oldValue, newValue))
+                if (prop.CanWrite)
                 {
-                    prop.SetValue(source, newValue);
-                    changeCount++;
+                    var oldValue = prop.GetValue(source);
+                    var newValue = prop.GetValue(target);
+
+                    if (!object.Equals(oldValue, newValue))
+                    {
+                        prop.SetValue(source, newValue);
+                        changeCount++;
+                    }
                 }
             }
 
@@ -141,6 +145,37 @@ namespace Ardex.Reflection
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Returns a string describing the object
+        /// which includes values of all mapped properties.
+        /// </summary>
+        public string ToString(T obj)
+        {
+            var type = obj.GetType();
+            var sb = new StringBuilder();
+
+            sb.Append(type.Name);
+            sb.Append(" { ");
+
+            for (var i = 0; i < __mappedProperties.Length; i++)
+            {
+                var prop = __mappedProperties[i];
+
+                sb.Append(prop.Name);
+                sb.Append(" = ");
+                sb.Append(prop.GetValue(obj));
+
+                if (i != __mappedProperties.Length - 1)
+                {
+                    sb.Append(", ");
+                }
+            }
+
+            sb.Append(" }");
+
+            return sb.ToString();
         }
     }
 }
