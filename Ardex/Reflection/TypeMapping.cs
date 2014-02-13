@@ -8,7 +8,7 @@ using System.Text;
 namespace Ardex.Reflection
 {
     /// <summary>
-    /// Reflection-based change reconciler.
+    /// Reflection-based property mapper.
     /// </summary>
     public class TypeMapping<T>
     {
@@ -99,7 +99,7 @@ namespace Ardex.Reflection
 
         /// <summary>
         /// Excludes the given property from
-        /// the list of reconciled properties.
+        /// the list of mapped properties.
         /// Returns a new instance of TypeMapping.
         /// </summary>
         public TypeMapping<T> Exclude<TProperty>(Expression<Func<T, TProperty>> propertyExpr)
@@ -117,15 +117,15 @@ namespace Ardex.Reflection
             if (!mappedProperties.Remove(prop))
             {
                 throw new InvalidOperationException(
-                    "Specified property was not found in the list of reconciled properties.");
+                    "Specified property was not found in the list of mapped properties.");
             }
 
             return new TypeMapping<T>(mappedProperties);
         }
 
         /// <summary>
-        /// Checks the given entities for equality based
-        /// on their reconciled property values.
+        /// Checks the given entities for equality
+        /// based on their mapped property values.
         /// </summary>
         public virtual bool Equals(T x, T y)
         {
@@ -133,7 +133,7 @@ namespace Ardex.Reflection
             if (object.ReferenceEquals(x, null) && object.ReferenceEquals(y, null)) return true;
             if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
 
-            foreach (var prop in this.MappedProperties)
+            foreach (var prop in __mappedProperties)
             {
                 var xValue = prop.GetValue(x);
                 var yValue = prop.GetValue(y);
