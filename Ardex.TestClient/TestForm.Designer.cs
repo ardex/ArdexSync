@@ -1,6 +1,6 @@
 ﻿namespace Ardex.TestClient
 {
-    partial class Form1
+    partial class TestForm
     {
         /// <summary>
         /// Required designer variable.
