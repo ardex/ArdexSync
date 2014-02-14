@@ -92,15 +92,100 @@ namespace Ardex.TestClient.Tests.Filtered
             this.Client1 = new Replica(client1Info, true, SyncConflictStrategy.Loser);
             this.Client2 = new Replica(client2Info, true, SyncConflictStrategy.Loser);
 
+            var client1InspectionCriteriaUpload = SyncOperation.Create(this.Client1.InspectionCriteria, this.Server.InspectionCriteria);
+            var client2InspectionCriteriaDownload = SyncOperation.Create(this.Server.InspectionCriteria, this.Client1.InspectionCriteria);
+
             //// Chain sync operations to produce an upload/download chain.
             //var client1Upload   = SyncOperation.Create(this.Client1, this.Server).Filtered(ChangeHistoryFilters.Exclusive);
             //var client1Download = SyncOperation.Create(this.Server, this.Client1).Filtered(ChangeHistoryFilters.Exclusive);
             //var client2Upload   = SyncOperation.Create(this.Client2, this.Server).Filtered(ChangeHistoryFilters.Exclusive);
             //var client2Download = SyncOperation.Create(this.Server, this.Client2).Filtered(ChangeHistoryFilters.Exclusive);
 
-            //// Chain uploads and downloads to produce complete sync sessions.
-            //this.Client1Sync = SyncOperation.Chain(client1Upload, client1Download);
-            //this.Client2Sync = SyncOperation.Chain(client2Upload, client2Download);
+            this.Client1Sync = this.CreateSyncSession(this.Server, this.Client1);
+            this.Client2Sync = this.CreateSyncSession(this.Server, this.Client2);
+        }
+
+        private SyncOperation CreateSyncSession(Replica server, Replica client)
+        {
+            // 1.
+            var inspectionCriteriaUpload = SyncOperation
+                .Create(client.InspectionCriteria, server.InspectionCriteria)
+                .Filtered(this.Filter<InspectionCriteria>());
+
+            var inspectionCriteriaDownload = SyncOperation
+                .Create(server.InspectionCriteria, client.InspectionCriteria)
+                .Filtered(this.Filter<InspectionCriteria>());
+
+            // 2.
+            var inspectionObservationUpload = SyncOperation
+                .Create(client.InspectionObservations, server.InspectionObservations)
+                .Filtered(this.Filter<InspectionObservation>());
+
+            var inspectionObservationDownload = SyncOperation
+                .Create(server.InspectionObservations, client.InspectionObservations)
+                .Filtered(this.Filter<InspectionObservation>());
+
+            // 3.
+            var inspectionValueUpload = SyncOperation
+                .Create(client.InspectionValues, server.InspectionValues)
+                .Filtered(this.Filter<InspectionValue>());
+
+            var inspectionValueDownload = SyncOperation
+                .Create(server.InspectionValues, client.InspectionValues)
+                .Filtered(this.Filter<InspectionValue>());
+
+            // 4.
+            var shortListUpload = SyncOperation
+                .Create(client.ShortLists, server.ShortLists)
+                .Filtered(this.Filter<ShortList>());
+
+            var shortListDownload = SyncOperation
+                .Create(server.ShortLists, client.ShortLists)
+                .Filtered(this.Filter<ShortList>());
+
+            // 5.
+            var shortListItemUpload = SyncOperation
+                .Create(client.ShortListItems, server.ShortListItems)
+                .Filtered(this.Filter<ShortListItem>());
+
+            var shortListItemDownload = SyncOperation
+                .Create(server.ShortListItems, client.ShortListItems)
+                .Filtered(this.Filter<ShortListItem>());
+
+            var inspectionCriteriaSync = SyncOperation.Chain(inspectionCriteriaUpload, inspectionCriteriaDownload);
+            var inspectionObservationSync = SyncOperation.Chain(inspectionObservationUpload, inspectionObservationDownload);
+            var inspectionValueSync = SyncOperation.Chain(inspectionValueUpload, inspectionValueDownload);
+            var shortListSync = SyncOperation.Chain(shortListUpload, shortListDownload);
+            var shortListItemSync = SyncOperation.Chain(shortListItemUpload, shortListItemDownload);
+
+            return SyncOperation.Chain(
+                inspectionCriteriaSync,
+                inspectionObservationSync,
+                inspectionValueSync,
+                shortListSync,
+                shortListItemSync
+            );
+        }
+
+        public SyncFilter<TEntity, IChangeHistory> Filter<TEntity>() where TEntity : new()
+        {
+            var changeHistoryMapping = new TypeMapping<IChangeHistory>();
+            var entityMapping = new TypeMapping<TEntity>();
+
+            return new SyncFilter<TEntity, IChangeHistory>(
+                changes => changes.Select(
+                    version =>
+                    {
+                        var newEntity = new TEntity();
+                        var newChangeHistory = (IChangeHistory)new ChangeHistory();
+
+                        entityMapping.CopyValues(version.Entity, newEntity);
+                        changeHistoryMapping.CopyValues(version.Version, newChangeHistory);
+
+                        return SyncEntityVersion.Create(newEntity, newChangeHistory);
+                    }
+                )
+            );
         }
 
         public void Dispose()
