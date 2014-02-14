@@ -52,12 +52,6 @@ namespace Ardex.TestClient.Tests.Filtered
                 CleanUpMetadata = cleanUpMetadata,
                 ConflictStrategy = conflictStrategy
             };
-
-            //this.InspectionCriteria.EntityTypeMapping = new TypeMapping<InspectionCriteria>().Exclude(c => c.CriteriaID);
-            //this.InspectionObservations.EntityTypeMapping = new TypeMapping<InspectionObservation>().Exclude(o => o.ObservationID);
-            //this.InspectionValues.EntityTypeMapping = new TypeMapping<InspectionValue>().Exclude(c => c.ValueID);
-            //this.ShortLists.EntityTypeMapping = new TypeMapping<ShortList>().Exclude(l => l.ShortListID);
-            //this.ShortListItems.EntityTypeMapping = new TypeMapping<ShortListItem>().Exclude(i => i.ShortListItemID);
         }
 
         public void Dispose()
@@ -88,26 +82,18 @@ namespace Ardex.TestClient.Tests.Filtered
             var client1Info = new SyncReplicaInfo(1, "Client 1");
             var client2Info = new SyncReplicaInfo(2, "Client 2");
 
-            this.Server = new Replica(serverInfo, false, SyncConflictStrategy.Winner);
+            this.Server  = new Replica(serverInfo, false, SyncConflictStrategy.Winner);
             this.Client1 = new Replica(client1Info, true, SyncConflictStrategy.Loser);
             this.Client2 = new Replica(client2Info, true, SyncConflictStrategy.Loser);
 
-            var client1InspectionCriteriaUpload = SyncOperation.Create(this.Client1.InspectionCriteria, this.Server.InspectionCriteria);
-            var client2InspectionCriteriaDownload = SyncOperation.Create(this.Server.InspectionCriteria, this.Client1.InspectionCriteria);
-
-            //// Chain sync operations to produce an upload/download chain.
-            //var client1Upload   = SyncOperation.Create(this.Client1, this.Server).Filtered(ChangeHistoryFilters.Exclusive);
-            //var client1Download = SyncOperation.Create(this.Server, this.Client1).Filtered(ChangeHistoryFilters.Exclusive);
-            //var client2Upload   = SyncOperation.Create(this.Client2, this.Server).Filtered(ChangeHistoryFilters.Exclusive);
-            //var client2Download = SyncOperation.Create(this.Server, this.Client2).Filtered(ChangeHistoryFilters.Exclusive);
-
+            // Set up sync operations.
             this.Client1Sync = this.CreateSyncSession(this.Server, this.Client1);
             this.Client2Sync = this.CreateSyncSession(this.Server, this.Client2);
         }
 
         private SyncOperation CreateSyncSession(Replica server, Replica client)
         {
-            // 1.
+            // 1. InspectionCriteria.
             var inspectionCriteriaUpload = SyncOperation
                 .Create(client.InspectionCriteria, server.InspectionCriteria)
                 .Filtered(this.Filter<InspectionCriteria>());
@@ -116,7 +102,7 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Create(server.InspectionCriteria, client.InspectionCriteria)
                 .Filtered(this.Filter<InspectionCriteria>());
 
-            // 2.
+            // 2. InspectionObservation.
             var inspectionObservationUpload = SyncOperation
                 .Create(client.InspectionObservations, server.InspectionObservations)
                 .Filtered(this.Filter<InspectionObservation>());
@@ -125,7 +111,7 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Create(server.InspectionObservations, client.InspectionObservations)
                 .Filtered(this.Filter<InspectionObservation>());
 
-            // 3.
+            // 3. InspectionValue.
             var inspectionValueUpload = SyncOperation
                 .Create(client.InspectionValues, server.InspectionValues)
                 .Filtered(this.Filter<InspectionValue>());
@@ -134,7 +120,7 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Create(server.InspectionValues, client.InspectionValues)
                 .Filtered(this.Filter<InspectionValue>());
 
-            // 4.
+            // 4. ShortList.
             var shortListUpload = SyncOperation
                 .Create(client.ShortLists, server.ShortLists)
                 .Filtered(this.Filter<ShortList>());
@@ -143,7 +129,7 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Create(server.ShortLists, client.ShortLists)
                 .Filtered(this.Filter<ShortList>());
 
-            // 5.
+            // 5. ShortListItem.
             var shortListItemUpload = SyncOperation
                 .Create(client.ShortListItems, server.ShortListItems)
                 .Filtered(this.Filter<ShortListItem>());
@@ -152,12 +138,14 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Create(server.ShortListItems, client.ShortListItems)
                 .Filtered(this.Filter<ShortListItem>());
 
+            // Chain operations to get two-way sync for each article.
             var inspectionCriteriaSync = SyncOperation.Chain(inspectionCriteriaUpload, inspectionCriteriaDownload);
             var inspectionObservationSync = SyncOperation.Chain(inspectionObservationUpload, inspectionObservationDownload);
             var inspectionValueSync = SyncOperation.Chain(inspectionValueUpload, inspectionValueDownload);
             var shortListSync = SyncOperation.Chain(shortListUpload, shortListDownload);
             var shortListItemSync = SyncOperation.Chain(shortListItemUpload, shortListItemDownload);
 
+            // Construct session.
             return SyncOperation.Chain(
                 inspectionCriteriaSync,
                 inspectionObservationSync,
