@@ -11,6 +11,8 @@ namespace Ardex.Sync.Providers
         SyncProvider<TEntity, Guid, TChangeHistory>
         where TChangeHistory : IChangeHistory
     {
+        private bool DisposeRepositories { get; set; }
+
         public SyncRepository<TChangeHistory> ChangeHistory { get; private set; }
 
         protected override IComparer<TChangeHistory> VersionComparer
@@ -28,9 +30,11 @@ namespace Ardex.Sync.Providers
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
             SyncRepository<TChangeHistory> changeHistory,
+            bool disposeRepositories,
             SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping) : base(replicaInfo, repository, entityKeyMapping)
         {
             this.ChangeHistory = changeHistory;
+            this.DisposeRepositories = disposeRepositories;
 
             // Set up change tracking.
             this.Repository.TrackedChange += this.HandleTrackedChange;
@@ -186,6 +190,12 @@ namespace Ardex.Sync.Providers
 
             // Unhook events to help the GC do its job.
             this.Repository.TrackedChange -= this.HandleTrackedChange;
+
+            if (this.DisposeRepositories)
+            {
+                this.Repository.Dispose();
+                this.ChangeHistory.Dispose();
+            }
 
             // Release refs.
             this.ChangeHistory = null;

@@ -68,6 +68,12 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tests\ChangeHistoryFilters.cs" />
     <Compile Include="Tests\ChangeHistoryBased\ChangeHistoryTest.cs" />
+    <Compile Include="Tests\Filtered\Entities\InspectionCriteria.cs" />
+    <Compile Include="Tests\Filtered\Entities\InspectionObservation.cs" />
+    <Compile Include="Tests\Filtered\Entities\InspectionValue.cs" />
+    <Compile Include="Tests\Filtered\Entities\ShortList.cs" />
+    <Compile Include="Tests\Filtered\Entities\ShortListItem.cs" />
+    <Compile Include="Tests\Filtered\FilteredTest.cs" />
     <Compile Include="Tests\TimestampBased\TimestampTest.cs" />
     <EmbeddedResource Include="TestForm.resx">
       <DependentUpon>TestForm.cs</DependentUpon>
@@ -105,9 +111,7 @@
       <Name>Ardex</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Tests\Filtered\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

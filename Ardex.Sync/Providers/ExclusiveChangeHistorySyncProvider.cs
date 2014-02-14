@@ -16,10 +16,18 @@ namespace Ardex.Sync.Providers
 
         public ExclusiveChangeHistorySyncProvider(
             SyncReplicaInfo replicaInfo,
+            SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping)
+            : base(replicaInfo, new SyncRepository<TEntity>(), new SyncRepository<IChangeHistory>(), true, entityKeyMapping)
+        {
+
+        }
+
+        public ExclusiveChangeHistorySyncProvider(
+            SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
             SyncRepository<IChangeHistory> changeHistory,
             SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping)
-            : base(replicaInfo, repository, changeHistory, entityKeyMapping)
+            : base(replicaInfo, repository, changeHistory, false, entityKeyMapping)
         {
             
         }

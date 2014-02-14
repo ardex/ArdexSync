@@ -25,7 +25,7 @@ namespace Ardex.Sync.Providers
             SyncRepository<TEntity> repository,
             SyncRepository<ISharedChangeHistory> changeHistory,
             SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping)
-            : base(replicaInfo, repository, changeHistory, entityKeyMapping)
+            : base(replicaInfo, repository, changeHistory, false, entityKeyMapping)
         {
             this.ArticleID = articleID;
         }
