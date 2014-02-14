@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq;
 
 using Ardex.Sync;
 using Ardex.Sync.ChangeTracking;
@@ -11,7 +7,7 @@ namespace Ardex.TestClient.Tests
 {
     public static class ChangeHistoryFilters
     {
-        public static SyncFilter<Dummy, IChangeHistory> ExclusiveChangeHistoryFilter
+        public static SyncFilter<Dummy, IChangeHistory> Exclusive
         {
             get
             {
@@ -28,7 +24,7 @@ namespace Ardex.TestClient.Tests
             }
         }
 
-        public static SyncFilter<Dummy, ISharedChangeHistory> SharedChangeHistoryFilter
+        public static SyncFilter<Dummy, ISharedChangeHistory> Shared
         {
             get
             {

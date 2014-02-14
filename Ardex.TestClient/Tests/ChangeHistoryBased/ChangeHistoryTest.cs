@@ -20,20 +20,21 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
             {
                 // --- BEGIN SYNC SETUP --- //
-                var serverInfo = new SyncReplicaInfo(-1, "Server");
+                var serverInfo  = new SyncReplicaInfo(255, "Server");
                 var client1Info = new SyncReplicaInfo(1, "Client 1");
                 var client2Info = new SyncReplicaInfo(2, "Client 2");
 
-                // In-memory storage.
-                var repo1 = new SyncRepository<Dummy>();
-                var repo2 = new SyncRepository<Dummy>();
-                var repo3 = new SyncRepository<Dummy>();
+                // Sync providers / in-memory storage.
+                var server  = new ExclusiveChangeHistorySyncProvider<Dummy>(
+                    serverInfo, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
 
-                // Sync providers.
-                var server = new ExclusiveChangeHistorySyncProvider<Dummy>(serverInfo, repo1, new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
-                var client1 = new ExclusiveChangeHistorySyncProvider<Dummy>(client1Info, repo2, new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
-                var client2 = new ExclusiveChangeHistorySyncProvider<Dummy>(client2Info, repo3, new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
+                var client1 = new ExclusiveChangeHistorySyncProvider<Dummy>(
+                    client1Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
 
+                var client2 = new ExclusiveChangeHistorySyncProvider<Dummy>(
+                    client2Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
+
+                // Change tracking and conflict config.
                 server.CleanUpMetadata = false;
                 server.ConflictStrategy = SyncConflictStrategy.Winner;
 
@@ -45,31 +46,24 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                 // Tell the sync to ignore the local PK
                 // and teach it how to generate them.
-                server.EntityTypeMapping.Exclude(d => d.DummyID);
-                server.EntityLocalKeyGenerator = dummy => dummy.DummyID = server.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
+                var entityMapping = new TypeMapping<Dummy>().Exclude(d => d.DummyID);
 
-                client1.EntityTypeMapping.Exclude(d => d.DummyID);
-                client1.EntityLocalKeyGenerator = dummy => dummy.DummyID = client1.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
+                server.EntityTypeMapping = entityMapping;
+                server.PreInsertProcessing = dummy => dummy.DummyID = server.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
 
-                client2.EntityTypeMapping.Exclude(d => d.DummyID);
-                client2.EntityLocalKeyGenerator = dummy => dummy.DummyID = client2.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
+                client1.EntityTypeMapping = entityMapping;
+                client1.PreInsertProcessing = dummy => dummy.DummyID = client1.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
 
-                // Prepare comparer which knows to ignore the DummyID column.
-                var comparer = new TypeMapping<Dummy>().Exclude(d => d.DummyID).EqualityComparer;
+                client2.EntityTypeMapping = entityMapping;
+                client2.PreInsertProcessing = dummy => dummy.DummyID = client2.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
 
                 // Chain sync operations to produce an upload/download chain.
-                var client1Upload = SyncOperation.Create(client1, server).Filtered(ChangeHistoryFilters.ExclusiveChangeHistoryFilter);
-                var client1Download = SyncOperation.Create(server, client1).Filtered(ChangeHistoryFilters.ExclusiveChangeHistoryFilter);
-                var client2Upload = SyncOperation.Create(client2, server).Filtered(ChangeHistoryFilters.ExclusiveChangeHistoryFilter);
-                var client2Download = SyncOperation.Create(server, client2).Filtered(ChangeHistoryFilters.ExclusiveChangeHistoryFilter);
-                var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(ChangeHistoryFilters.ExclusiveChangeHistoryFilter);
-                var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(ChangeHistoryFilters.ExclusiveChangeHistoryFilter);
-                //var client1Upload = SyncOperation.Create(client1, server).Filtered(this.SharedChangeHistoryFilter);
-                //var client1Download = SyncOperation.Create(server, client1).Filtered(this.SharedChangeHistoryFilter);
-                //var client2Upload = SyncOperation.Create(client2, server).Filtered(this.SharedChangeHistoryFilter);
-                //var client2Download = SyncOperation.Create(server, client2).Filtered(this.SharedChangeHistoryFilter);
-                //var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(this.SharedChangeHistoryFilter);
-                //var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(this.SharedChangeHistoryFilter);
+                var client1Upload = SyncOperation.Create(client1, server).Filtered(ChangeHistoryFilters.Exclusive);
+                var client1Download = SyncOperation.Create(server, client1).Filtered(ChangeHistoryFilters.Exclusive);
+                var client2Upload = SyncOperation.Create(client2, server).Filtered(ChangeHistoryFilters.Exclusive);
+                var client2Download = SyncOperation.Create(server, client2).Filtered(ChangeHistoryFilters.Exclusive);
+                var client1ToClient2 = SyncOperation.Create(client1, client2).Filtered(ChangeHistoryFilters.Exclusive);
+                var client2ToClient1 = SyncOperation.Create(client2, client1).Filtered(ChangeHistoryFilters.Exclusive);
 
                 // Chain uploads and downloads to produce complete sync sessions.
                 var client1Sync = SyncOperation.Chain(client1Upload, client1Download);
@@ -101,32 +95,32 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                     };
 
                     {
-                        repo1.Insert(dummy1);
-                        repo1.Insert(dummy2);
+                        server.Repository.Insert(dummy1);
+                        server.Repository.Insert(dummy2);
 
                         //await client1Sync.SynchroniseDiffAsync();
                         //await client2Sync.SynchroniseDiffAsync();
                         await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client1.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client2.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
                     }
 
                     // Let's create an update conflict.
                     {
-                        var d1 = repo1.Single(d => d.EntityGuid == dummy1.EntityGuid);
-                        var d2 = repo2.Single(d => d.EntityGuid == dummy1.EntityGuid);
+                        var d1 = server.Repository.Single(d => d.EntityGuid == dummy1.EntityGuid);
+                        var d2 = client1.Repository.Single(d => d.EntityGuid == dummy1.EntityGuid);
 
                         d1.Text = "Server conflict";
                         d2.Text = "Client conflict";
 
-                        repo1.Update(d1);
-                        repo2.Update(d2);
+                        server.Repository.Update(d1);
+                        client1.Repository.Update(d2);
 
                         await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client1.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client2.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
                     }
 
                     // Sync 2.
@@ -137,12 +131,12 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                     };
 
                     {
-                        repo2.Insert(dummy3);
+                        client1.Repository.Insert(dummy3);
 
                         await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client1.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client2.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
                     }
 
                     // Sync 3.
@@ -159,18 +153,18 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                         //repo1.Update(repo1Dummy1);
 
-                        var repo2Dummy2 = repo2.Single(d => d.EntityGuid == dummy2.EntityGuid);
+                        var repo2Dummy2 = client1.Repository.Single(d => d.EntityGuid == dummy2.EntityGuid);
 
                         repo2Dummy2.Text = "Second dummy upd repo 2";
 
-                        repo2.Update(repo2Dummy2);
-                        repo2.Insert(dummy4);
+                        client1.Repository.Update(repo2Dummy2);
+                        client1.Repository.Insert(dummy4);
 
                         // Let's spice things up a bit by pushing things out furhter to the thread pool.
                         var t1 = await Task.Run(async () => await client1Sync.SynchroniseDiffAsync());
                         var t2 = await Task.Run(async () => await client2Sync.SynchroniseDiffAsync());
 
-                        var t3 = Task.Run(() => repo1.Insert(new Dummy
+                        var t3 = Task.Run(() => server.Repository.Insert(new Dummy
                         {
                             EntityGuid = new SyncGuid(serverInfo.ReplicaID, serverDummyID++),
                             Text = "Dodgy concurrent insert"
@@ -178,26 +172,26 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                         var t4 = Task.Run(() =>
                         {
-                            repo3.Lock.EnterWriteLock();
+                            client2.Repository.Lock.EnterWriteLock();
 
                             try
                             {
-                                var repo3Dummy3 = repo3.Single(d => d.EntityGuid == dummy2.EntityGuid);
+                                var repo3Dummy3 = client2.Repository.Single(d => d.EntityGuid == dummy2.EntityGuid);
 
                                 repo3Dummy3.Text = "Dodgy concurrent update";
 
-                                repo3.Update(repo3Dummy3);
+                                client2.Repository.Update(repo3Dummy3);
                             }
                             finally
                             {
-                                repo3.Lock.ExitWriteLock();
+                                client2.Repository.Lock.ExitWriteLock();
                             }
                         });
 
                         //await Task.WhenAll(t1, t2, t3, t4);
 
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client1.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client2.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
                     }
 
                     // Sync 4, 5.
@@ -208,12 +202,12 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                     };
 
                     {
-                        repo3.Insert(dummy5);
+                        client2.Repository.Insert(dummy5);
 
                         await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client1.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client2.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
                     }
 
                     // Sync 6, 7.
@@ -224,32 +218,32 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                     };
 
                     {
-                        repo3.Insert(dummy6);
+                        client2.Repository.Insert(dummy6);
 
                         //await clientClientSync.SynchroniseDiffAsync();
                         await client1Sync.SynchroniseDiffAsync();
                         await client2Sync.SynchroniseDiffAsync();
 
-                        var serverDummy = repo1.Single(d => d.EntityGuid == dummy6.EntityGuid);
+                        var serverDummy = server.Repository.Single(d => d.EntityGuid == dummy6.EntityGuid);
 
                         serverDummy.Text = "Dummy 6, server modified";
 
-                        repo1.Update(serverDummy);
+                        server.Repository.Update(serverDummy);
 
                         await Task.WhenAll(client1Sync.SynchroniseDiffAsync(), client2Sync.SynchroniseDiffAsync());
 
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo2.OrderBy(d => d.EntityGuid), comparer);
-                        this.DumpEqual(repo1.OrderBy(d => d.EntityGuid), repo3.OrderBy(d => d.EntityGuid), comparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client1.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
+                        this.DumpEqual(server.Repository.OrderBy(d => d.EntityGuid), client2.Repository.OrderBy(d => d.EntityGuid), entityMapping.EqualityComparer);
                     }
                 }
 
                 // Done.
                 Debug.Print("SERVER");
-                Debug.Print(repo1.ContentsDescription());
+                Debug.Print(server.Repository.ContentsDescription());
                 Debug.Print("CLIENT 1");
-                Debug.Print(repo2.ContentsDescription());
+                Debug.Print(client1.Repository.ContentsDescription());
                 Debug.Print("CLIENT 2");
-                Debug.Print(repo3.ContentsDescription());
+                Debug.Print(client2.Repository.ContentsDescription());
 
                 sw.Stop();
 
@@ -257,8 +251,8 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                 MessageBox.Show(string.Format(
                     "Sync complete. Repo 1 and 2 equal = {0}, Repo 2 and 3 equal = {1}.",
-                    repo1.OrderBy(p => p.EntityGuid).SequenceEqual(repo2.OrderBy(p => p.EntityGuid), comparer),
-                    repo2.OrderBy(p => p.EntityGuid).SequenceEqual(repo3.OrderBy(p => p.EntityGuid), comparer)));
+                    server.Repository.OrderBy(p => p.EntityGuid).SequenceEqual(client1.Repository.OrderBy(p => p.EntityGuid), entityMapping.EqualityComparer),
+                    server.Repository.OrderBy(p => p.EntityGuid).SequenceEqual(client2.Repository.OrderBy(p => p.EntityGuid), entityMapping.EqualityComparer)));
             }
         }
 

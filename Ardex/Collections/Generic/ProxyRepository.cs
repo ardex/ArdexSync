@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Ardex.Collections
+namespace Ardex.Collections.Generic
 {
     /// <summary>
     /// Facilitates the creation of generic proxy repositories.

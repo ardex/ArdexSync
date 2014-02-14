@@ -38,17 +38,17 @@
   <ItemGroup>
     <Compile Include="ByteArray.cs" />
     <Compile Include="DisposableActor.cs" />
-    <Compile Include="EntityConversions\EntityConversion.cs" />
-    <Compile Include="EntityConversions\IEnumerableConversionSource.cs" />
-    <Compile Include="EntityConversions\Implementation\EnumerableConnectionSource.cs" />
-    <Compile Include="EntityConversions\Implementation\SingleConversionSource.cs" />
-    <Compile Include="EntityConversions\ISingleConversionSource.cs" />
+    <Compile Include="Reflection\EntityConversions\EntityConversion.cs" />
+    <Compile Include="Reflection\EntityConversions\IEnumerableConversionSource.cs" />
+    <Compile Include="Reflection\EntityConversions\Implementation\EnumerableConnectionSource.cs" />
+    <Compile Include="Reflection\EntityConversions\Implementation\SingleConversionSource.cs" />
+    <Compile Include="Reflection\EntityConversions\ISingleConversionSource.cs" />
     <Compile Include="Functional\FunctionalExtensions.cs" />
     <Compile Include="LazyCache.cs" />
     <Compile Include="Linq\IEnumerableExtensions.cs" />
-    <Compile Include="Collections\IRepository.cs" />
-    <Compile Include="Collections\ListRepository.cs" />
-    <Compile Include="Collections\ProxyRepository.cs" />
+    <Compile Include="Collections\Generic\IRepository.cs" />
+    <Compile Include="Collections\Generic\ListRepository.cs" />
+    <Compile Include="Collections\Generic\ProxyRepository.cs" />
     <Compile Include="CustomComparer.cs" />
     <Compile Include="CustomEqualityComparer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

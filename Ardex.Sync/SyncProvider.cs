@@ -38,7 +38,7 @@ namespace Ardex.Sync
         /// Gets or sets the delegate applied to remote entities
         /// before they are inserted into the local repository.
         /// </summary>
-        public SyncEntityLocalKeyGenerator<TEntity> EntityLocalKeyGenerator { get; set; }
+        public SyncEntityAction<TEntity> PreInsertProcessing { get; set; }
 
         /// <summary>
         /// Conflict resolution strategy used by this provider.
@@ -156,9 +156,9 @@ namespace Ardex.Sync
 
                     if (!found)
                     {
-                        if (this.EntityLocalKeyGenerator != null)
+                        if (this.PreInsertProcessing != null)
                         {
-                            this.EntityLocalKeyGenerator(change.Entity);
+                            this.PreInsertProcessing(change.Entity);
                         }
 
                         this.Repository.UntrackedInsert(change.Entity);

@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Reflection;
 
-using Ardex.EntityConversions.Implementation;
+using Ardex.Reflection.EntityConversions.Implementation;
 
-namespace Ardex.EntityConversions
+namespace Ardex.Reflection.EntityConversions
 {
     /// <summary>
     /// Provides fluent API for reflection-based conversion between data types.

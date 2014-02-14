@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Ardex.EntityConversions
+namespace Ardex.Reflection.EntityConversions
 {
     /// <summary>
     /// Wraps the source and exposes further conversion operations.

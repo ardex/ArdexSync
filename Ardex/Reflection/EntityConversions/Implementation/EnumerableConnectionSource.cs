@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Ardex.EntityConversions.Implementation
+namespace Ardex.Reflection.EntityConversions.Implementation
 {
     /// <summary>
     /// Provides means of converting sequences of objects.

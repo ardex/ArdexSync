@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Ardex.Collections
+namespace Ardex.Collections.Generic
 {
     /// <summary>
     /// Operation contract for a common
