@@ -3,10 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-#if MONOTOUCH
-using SQLite;
-#endif
-
 namespace Ardex.TestClient.Tests.Filtered.Entities
 {
     /// <summary>
@@ -18,9 +14,6 @@ namespace Ardex.TestClient.Tests.Filtered.Entities
         /// Gets or sets the unique ID of
         /// this inspection observation.
         /// </summary>
-        #if MONOTOUCH
-        [PrimaryKey]
-        #endif
         public int ObservationID { get; set; }
 
         /// <summary>
