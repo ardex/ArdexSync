@@ -25,9 +25,10 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
         // Custom type mapping (ignoring DummyID column).
         public TypeMapping<Dummy> EntityMapping { get; private set; }
 
+        // Set up.
         public ChangeHistoryTest()
         {
-            // Sync setup.
+            // Replica ID's.
             var serverInfo  = new SyncReplicaInfo(255, "Server");
             var client1Info = new SyncReplicaInfo(1, "Client 1");
             var client2Info = new SyncReplicaInfo(2, "Client 2");
