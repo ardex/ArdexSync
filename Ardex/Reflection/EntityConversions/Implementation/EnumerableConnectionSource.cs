@@ -10,6 +10,16 @@ namespace Ardex.Reflection.EntityConversions.Implementation
     /// </summary>
     internal sealed class EnumerableConversionSource<TSource> : IEnumerableConversionSource<TSource>
     {
+        private static readonly Lazy<TypeMapping<TSource>> __mapping = new Lazy<TypeMapping<TSource>>();
+
+        private static TypeMapping<TSource> Mapping
+        {
+            get
+            {
+                return __mapping.Value;
+            }
+        }
+
         private readonly IEnumerable<TSource> __source;
 
         public EnumerableConversionSource(IEnumerable<TSource> source)
@@ -35,21 +45,11 @@ namespace Ardex.Reflection.EntityConversions.Implementation
         {
             EntityConversion.ValidateTypes(typeof(TSource), typeof(TResult));
 
-            var properties = typeof(TSource).GetRuntimeProperties();
-
             foreach (var oldEntity in __source)
             {
                 var newEntity = new TResult();
 
-                foreach (var prop in properties)
-                {
-                    if (prop.CanRead && prop.CanWrite)
-                    {
-                        var value = prop.GetValue(oldEntity, null);
-
-                        prop.SetValue(newEntity, value, null);
-                    }
-                }
+                EnumerableConversionSource<TSource>.Mapping.CopyValues(oldEntity, newEntity);
 
                 yield return newEntity;
             }

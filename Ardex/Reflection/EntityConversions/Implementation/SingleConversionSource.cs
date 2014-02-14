@@ -8,6 +8,16 @@ namespace Ardex.Reflection.EntityConversions.Implementation
     /// </summary>
     internal sealed class SingleConversionSource<TSource> : ISingleConversionSource<TSource>
     {
+        private static readonly Lazy<TypeMapping<TSource>> __mapping = new Lazy<TypeMapping<TSource>>();
+
+        private static TypeMapping<TSource> Mapping
+        {
+            get
+            {
+                return __mapping.Value;
+            }
+        }
+
         private readonly TSource __source;
 
         public SingleConversionSource(TSource source)
@@ -41,18 +51,7 @@ namespace Ardex.Reflection.EntityConversions.Implementation
         public void Fill<TResult>(TResult newEntity) where TResult : TSource
         {
             EntityConversion.ValidateTypes(typeof(TSource), typeof(TResult));
-
-            var properties = typeof(TSource).GetRuntimeProperties();
-
-            foreach (var prop in properties)
-            {
-                if (prop.CanRead && prop.CanWrite)
-                {
-                    var value = prop.GetValue(__source, null);
-
-                    prop.SetValue(newEntity, value, null);
-                }
-            }
+            SingleConversionSource<TSource>.Mapping.CopyValues(__source, newEntity);
         }
     }
 }
