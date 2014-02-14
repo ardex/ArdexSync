@@ -59,6 +59,8 @@
     <Compile Include="SyncConflict.cs" />
     <Compile Include="SyncConflictException.cs" />
     <Compile Include="SyncConflictStrategy.cs" />
+    <Compile Include="SyncConstants.cs" />
+    <Compile Include="SyncDeadlockException.cs" />
     <Compile Include="SyncDelta.cs" />
     <Compile Include="SyncEntityChangeAction.cs" />
     <Compile Include="SyncEntityAction.cs" />

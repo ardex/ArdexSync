@@ -50,7 +50,10 @@ namespace Ardex.Sync
         {
             get
             {
-                this.Lock.EnterReadLock();
+                if (!this.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
+                {
+                    throw new SyncDeadlockException();
+                }
 
                 try
                 {
@@ -93,7 +96,10 @@ namespace Ardex.Sync
         /// </summary>
         public override void Insert(TEntity entity)
         {
-            this.Lock.EnterWriteLock();
+            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {
@@ -115,7 +121,10 @@ namespace Ardex.Sync
         /// </summary>
         public override void Update(TEntity entity)
         {
-            this.Lock.EnterWriteLock();
+            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {
@@ -137,7 +146,10 @@ namespace Ardex.Sync
         /// </summary>
         public override void Delete(TEntity entity)
         {
-            this.Lock.EnterWriteLock();
+            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {
@@ -165,7 +177,10 @@ namespace Ardex.Sync
         /// </summary>
         public override IEnumerator<TEntity> GetEnumerator()
         {
-            this.Lock.EnterReadLock();
+            if (!this.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {
@@ -185,7 +200,10 @@ namespace Ardex.Sync
         /// </summary>
         internal void UntrackedInsert(TEntity entity)
         {
-            this.Lock.EnterWriteLock();
+            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {
@@ -207,7 +225,10 @@ namespace Ardex.Sync
         /// </summary>
         internal void UntrackedUpdate(TEntity entity)
         {
-            this.Lock.EnterWriteLock();
+            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {
@@ -229,7 +250,10 @@ namespace Ardex.Sync
         /// </summary>
         internal void UntrackedDelete(TEntity entity)
         {
-            this.Lock.EnterWriteLock();
+            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {

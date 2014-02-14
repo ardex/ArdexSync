@@ -57,7 +57,10 @@ namespace Ardex.Sync.Providers
 
         public override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor)
         {
-            this.Repository.Lock.EnterReadLock();
+            if (!this.Repository.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {

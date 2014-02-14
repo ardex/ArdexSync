@@ -45,7 +45,10 @@ namespace Ardex.Sync.Providers
     
         private void HandleTrackedChange(TEntity entity, SyncEntityChangeAction action)
         {
-            this.ChangeHistory.Lock.EnterWriteLock();
+            if (!this.ChangeHistory.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {
@@ -65,7 +68,10 @@ namespace Ardex.Sync.Providers
         /// </summary>
         protected override void WriteRemoteVersion(SyncEntityVersion<TEntity, TChangeHistory> versionInfo)
         {
-            this.ChangeHistory.Lock.EnterWriteLock();
+            if (!this.ChangeHistory.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {
@@ -87,11 +93,17 @@ namespace Ardex.Sync.Providers
         public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor)
         {
             // We need locks on both repositories.
-            this.Repository.Lock.EnterReadLock();
+            if (!this.Repository.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {
-                this.ChangeHistory.Lock.EnterReadLock();
+                if (!this.ChangeHistory.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
+                {
+                    throw new SyncDeadlockException();
+                }
 
                 try
                 {
@@ -136,7 +148,10 @@ namespace Ardex.Sync.Providers
         {
             // We need exclusive access to change
             // history during the cleanup operation.
-            this.ChangeHistory.Lock.EnterWriteLock();
+            if (!this.ChangeHistory.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {

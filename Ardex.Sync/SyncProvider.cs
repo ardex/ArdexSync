@@ -118,7 +118,10 @@ namespace Ardex.Sync
             }
 
             // Critical region: protected with exclusive lock.
-            this.Repository.Lock.EnterWriteLock();
+            if (!this.Repository.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
             try
             {
