@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Windows.Forms;
-
 using Ardex.TestClient.Tests.ChangeHistoryBased;
+using Ardex.TestClient.Tests.Filtered;
 using Ardex.TestClient.Tests.TimestampBased;
 
 namespace Ardex.TestClient
@@ -71,9 +71,21 @@ namespace Ardex.TestClient
             
         }
 
-        private void button4_Click(object sender, EventArgs e)
+        private async void button4_Click(object sender, EventArgs e)
         {
+            this.button4.Enabled = false;
 
+            try
+            {
+                using (var test = new FilteredTest())
+                {
+                    await test.RunAsync();
+                }
+            }
+            finally
+            {
+                this.button4.Enabled = true;
+            }
         }
     }
 }
