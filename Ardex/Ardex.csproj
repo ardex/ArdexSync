@@ -38,6 +38,7 @@
   <ItemGroup>
     <Compile Include="ByteArray.cs" />
     <Compile Include="DisposableActor.cs" />
+    <Compile Include="Linq\Expressions\ExpressionUtil.cs" />
     <Compile Include="Reflection\EntityConversions\EntityConversion.cs" />
     <Compile Include="Reflection\EntityConversions\IEnumerableConversionSource.cs" />
     <Compile Include="Reflection\EntityConversions\Implementation\EnumerableConnectionSource.cs" />

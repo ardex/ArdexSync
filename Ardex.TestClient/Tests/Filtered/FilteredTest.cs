@@ -55,9 +55,9 @@ namespace Ardex.TestClient.Tests.Filtered
             await this.Client1Sync.SynchroniseDiffAsync();
             await this.Client2Sync.SynchroniseDiffAsync();
 
-            Debug.Print(this.ToString(this.Server.InspectionCriteria));
-            Debug.Print(this.ToString(this.Client1.InspectionCriteria));
-            Debug.Print(this.ToString(this.Client2.InspectionCriteria));
+            Debug.Print(this.Server.InspectionCriteria.ContentsDescription());
+            Debug.Print(this.Client1.InspectionCriteria.ContentsDescription());
+            Debug.Print(this.Client2.InspectionCriteria.ContentsDescription());
         }
 
         private SyncOperation CreateSyncSession(Replica server, Replica client)
@@ -122,13 +122,6 @@ namespace Ardex.TestClient.Tests.Filtered
                 shortListSync,
                 shortListItemSync
             );
-        }
-
-        private string ToString<T>(IRepository<T> repository)
-        {
-            var mapping = new TypeMapping<T>();
-
-            return string.Join(Environment.NewLine, repository.Select(e => mapping.ToString(e)));
         }
 
         public void Dispose()

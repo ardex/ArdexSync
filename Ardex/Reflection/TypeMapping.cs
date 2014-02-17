@@ -5,6 +5,8 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
+using Ardex.Linq.Expressions;
+
 namespace Ardex.Reflection
 {
     /// <summary>
@@ -12,7 +14,7 @@ namespace Ardex.Reflection
     /// </summary>
     public class TypeMapping<T>
     {
-        private readonly PropertyInfo[] __mappedProperties;
+        private readonly List<PropertyInfo> __mappedProperties;
 
         /// <summary>
         /// Returns a copy of the underlying list of
@@ -48,7 +50,7 @@ namespace Ardex.Reflection
 
             __mappedProperties = props
                 .Where(p => p.CanRead)
-                .ToArray();
+                .ToList();
         }
 
         /// <summary>
@@ -56,7 +58,7 @@ namespace Ardex.Reflection
         /// </summary>
         private TypeMapping(IEnumerable<PropertyInfo> mappedProperties)
         {
-            __mappedProperties = mappedProperties.ToArray();
+            __mappedProperties = mappedProperties.ToList();
         }
 
         /// <summary>
@@ -101,18 +103,26 @@ namespace Ardex.Reflection
         /// <summary>
         /// Excludes the given property from
         /// the list of mapped properties.
-        /// Returns this mutated instance of TypeMapping.
         /// </summary>
-        public TypeMapping<T> Exclude<TProperty>(Expression<Func<T, TProperty>> propertyExpr)
+        public void Exclude<TProperty>(Expression<Func<T, TProperty>> propertyExpr)
         {
-            var memberExpr = (MemberExpression)propertyExpr.Body;
-            var prop = memberExpr.Member as PropertyInfo;
+            var prop = ExpressionUtil.GetProperty(propertyExpr);
 
-            if (prop == null)
+            if (!__mappedProperties.Remove(prop))
             {
-                throw new InvalidOperationException("Specified member is not a property.");
+                throw new InvalidOperationException(
+                    "Specified property was not found in the list of mapped properties.");
             }
+        }
 
+        /// <summary>
+        /// Excludes the given property from
+        /// the list of mapped properties.
+        /// Returns a new instance of TypeMapping.
+        /// </summary>
+        public TypeMapping<T> Without<TProperty>(Expression<Func<T, TProperty>> propertyExpr)
+        {
+            var prop = ExpressionUtil.GetProperty(propertyExpr);
             var mappedProperties = __mappedProperties.ToList();
 
             if (!mappedProperties.Remove(prop))

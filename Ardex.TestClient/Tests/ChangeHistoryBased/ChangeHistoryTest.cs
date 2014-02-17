@@ -53,9 +53,9 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
             this.Client2.CleanUpMetadata = true;
             this.Client2.ConflictStrategy = SyncConflictStrategy.Loser;
 
-            // Tell the sync to ignore the local PK
+            // Tell the sync to ignore the local PK 
             // and teach it how to generate them.
-            this.EntityMapping = new TypeMapping<Dummy>().Exclude(d => d.DummyID);
+            this.EntityMapping = new TypeMapping<Dummy>().Without(d => d.DummyID);
 
             this.Server.EntityTypeMapping = this.EntityMapping;
             this.Server.PreInsertProcessing = dummy => dummy.DummyID = this.Server.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
@@ -98,12 +98,9 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                     this.Server.Repository.Insert(dummy1);
                     this.Server.Repository.Insert(dummy2);
 
-                    await Task.WhenAll(this.Client1Sync.SynchroniseDiffAsync(), this.Client2Sync.SynchroniseDiffAsync());
+                    await this.ParallelSyncAsync();
 
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client1.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client2.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
-
-                    this.DumpContents();
+                    this.DumpEqual();
                 }
 
                 // Let's create an update conflict.
@@ -117,10 +114,9 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                     this.Server.Repository.Update(d1);
                     this.Client1.Repository.Update(d2);
 
-                    await Task.WhenAll(this.Client1Sync.SynchroniseDiffAsync(), this.Client2Sync.SynchroniseDiffAsync());
+                    await this.ParallelSyncAsync();
 
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client1.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client2.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
+                    this.DumpEqual();
                 }
 
                 // Sync 2.
@@ -132,10 +128,9 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                 {
                     this.Client1.Repository.Insert(dummy3);
 
-                    await Task.WhenAll(this.Client1Sync.SynchroniseDiffAsync(), this.Client2Sync.SynchroniseDiffAsync());
+                    await this.ParallelSyncAsync();
 
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client1.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client2.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
+                    this.DumpEqual();
                 }
 
                 // Sync 3.
@@ -181,8 +176,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                     //await Task.WhenAll(t1, t2, t3, t4);
 
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client1.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client2.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
+                    this.DumpEqual();
                 }
 
                 // Sync 4, 5.
@@ -196,8 +190,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                     await Task.WhenAll(this.Client1Sync.SynchroniseDiffAsync(), this.Client2Sync.SynchroniseDiffAsync());
 
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client1.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client2.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
+                    this.DumpEqual();
                 }
 
                 // Sync 6, 7.
@@ -209,9 +202,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                 {
                     this.Client2.Repository.Insert(dummy6);
 
-                    //await clientClientSync.SynchroniseDiffAsync();
-                    await this.Client1Sync.SynchroniseDiffAsync();
-                    await this.Client2Sync.SynchroniseDiffAsync();
+                    await this.SequentialSyncAsync();
 
                     var serverDummy = this.Server.Repository.Single(d => d.EntityGuid == dummy6.EntityGuid);
 
@@ -219,15 +210,25 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                     this.Server.Repository.Update(serverDummy);
 
-                    await Task.WhenAll(this.Client1Sync.SynchroniseDiffAsync(), this.Client2Sync.SynchroniseDiffAsync());
+                    await this.ParallelSyncAsync();
 
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client1.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
-                    this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client2.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
+                    this.DumpEqual();
                 }
             }
 
             // Done.
             this.DumpContents();
+        }
+
+        private async Task ParallelSyncAsync()
+        {
+            await Task.WhenAll(this.Client1Sync.SynchroniseDiffAsync(), this.Client2Sync.SynchroniseDiffAsync());
+        }
+
+        private async Task SequentialSyncAsync()
+        {
+            await this.Client1Sync.SynchroniseDiffAsync();
+            await this.Client2Sync.SynchroniseDiffAsync();
         }
 
         private void DumpContents()
@@ -238,6 +239,12 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
             Debug.Print(this.Client1.Repository.ContentsDescription());
             Debug.Print("CLIENT 2");
             Debug.Print(this.Client2.Repository.ContentsDescription());
+        }
+
+        private void DumpEqual()
+        {
+            this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client1.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
+            this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client2.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
         }
 
         private void DumpEqual<T>(IEnumerable<T> repo1, IEnumerable<T> repo2, IEqualityComparer<T> comparer)
