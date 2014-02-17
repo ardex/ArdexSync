@@ -79,24 +79,18 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
         public async Task RunAsync()
         {
-            // Rolling primary key
-            // (6-byte long entity ids).
-            var serverDummyID  = 1L;
-            var client1DummyID = 1L;
-            var client2DummyID = 1L;
-
             const int NUM_ITERATIONS = 1;
 
             for (var iterations = 0; iterations < NUM_ITERATIONS; iterations++)
             {
                 // Sync 1.
                 var dummy1 = new Dummy {
-                    EntityGuid = this.Server.GenerateEntityGuid(serverDummyID++),
+                    EntityGuid = this.Server.NewSequentialID(),
                     Text = "First dummy"
                 };
 
                 var dummy2 = new Dummy {
-                    EntityGuid = this.Server.GenerateEntityGuid(serverDummyID++),
+                    EntityGuid = this.Server.NewSequentialID(),
                     Text = "Second dummy"
                 };
 
@@ -104,8 +98,6 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                     this.Server.Repository.Insert(dummy1);
                     this.Server.Repository.Insert(dummy2);
 
-                    //await client1Sync.SynchroniseDiffAsync();
-                    //await client2Sync.SynchroniseDiffAsync();
                     await Task.WhenAll(this.Client1Sync.SynchroniseDiffAsync(), this.Client2Sync.SynchroniseDiffAsync());
 
                     this.DumpEqual(this.Server.Repository.OrderBy(d => d.EntityGuid), this.Client1.Repository.OrderBy(d => d.EntityGuid), this.EntityMapping.EqualityComparer);
@@ -133,7 +125,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                 // Sync 2.
                 var dummy3 = new Dummy {
-                    EntityGuid = this.Server.GenerateEntityGuid(client1DummyID++),
+                    EntityGuid = this.Client1.NewSequentialID(),
                     Text = "Third dummy"
                 };
 
@@ -148,7 +140,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                 // Sync 3.
                 var dummy4 = new Dummy {
-                    EntityGuid = this.Server.GenerateEntityGuid(client1DummyID++),
+                    EntityGuid = this.Client1.NewSequentialID(),
                     Text = "Dummy 4"
                 };
 
@@ -165,7 +157,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                     var t2 = await Task.Run(async () => await this.Client2Sync.SynchroniseDiffAsync());
 
                     var t3 = Task.Run(() => this.Server.Repository.Insert(new Dummy {
-                        EntityGuid = this.Server.GenerateEntityGuid(serverDummyID++),
+                        EntityGuid = this.Server.NewSequentialID(),
                         Text = "Dodgy concurrent insert"
                     }));
 
@@ -195,7 +187,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                 // Sync 4, 5.
                 var dummy5 = new Dummy {
-                    EntityGuid = this.Server.GenerateEntityGuid(client2DummyID++),
+                    EntityGuid = this.Client2.NewSequentialID(),
                     Text = "Client 2 dummy"
                 };
 
@@ -210,7 +202,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                 // Sync 6, 7.
                 var dummy6 = new Dummy {
-                    EntityGuid = this.Server.GenerateEntityGuid(client2DummyID++),
+                    EntityGuid = this.Client2.NewSequentialID(),
                     Text = "Dummy 6"
                 };
 

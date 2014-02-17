@@ -51,6 +51,9 @@ namespace Ardex.Reflection
                 .ToArray();
         }
 
+        /// <summary>
+        /// Copy constructor.
+        /// </summary>
         private TypeMapping(IEnumerable<PropertyInfo> mappedProperties)
         {
             __mappedProperties = mappedProperties.ToArray();
@@ -74,6 +77,7 @@ namespace Ardex.Reflection
                     if (!object.Equals(newValue, oldValue))
                     {
                         prop.SetValue(target, newValue);
+
                         changeCount++;
                     }
                 }
@@ -150,29 +154,14 @@ namespace Ardex.Reflection
         /// </summary>
         public string ToString(T obj)
         {
-            var sb = new StringBuilder();
             var actualType = obj.GetType();
 
-            sb.Append(actualType.Name);
-            sb.Append(" { ");
+            // Comma-separated list of
+            // property names and their values.
+            var propertyValues = string.Join(
+                ", ", __mappedProperties.Select(p => p.Name + " = " + p.GetValue(obj)));
 
-            for (var i = 0; i < __mappedProperties.Length; i++)
-            {
-                var prop = __mappedProperties[i];
-
-                sb.Append(prop.Name);
-                sb.Append(" = ");
-                sb.Append(prop.GetValue(obj));
-
-                if (i != __mappedProperties.Length - 1)
-                {
-                    sb.Append(", ");
-                }
-            }
-
-            sb.Append(" }");
-
-            return sb.ToString();
+            return actualType.Name + " { " + propertyValues + " }";
         }
     }
 }

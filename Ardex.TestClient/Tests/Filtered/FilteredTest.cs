@@ -45,7 +45,7 @@ namespace Ardex.TestClient.Tests.Filtered
             this.Client1.InspectionCriteria.Insert(
                 new InspectionCriteria {
                     CriteriaID = 1,
-                    EntityGuid = this.Client1.SyncProviders.InspectionCriteria.GenerateEntityGuid(1),
+                    EntityGuid = this.Client1.SyncProviders.InspectionCriteria.NewSequentialID(),
                     Name = "Test",
                     OwnerReplicaID = this.Client1.ReplicaInfo.ReplicaID,
                     Sequence = 1

@@ -144,7 +144,7 @@ namespace Ardex.Sync
                         if (object.Equals(changeKey, this.EntityKeyMapping(existingEntity)))
                         {
                             // Found.
-                            var changeCount = this.EntityTypeMapping.CopyValues(existingEntity, change.Entity);
+                            var changeCount = this.EntityTypeMapping.CopyValues(change.Entity, existingEntity);
 
                             if (changeCount != 0)
                             {

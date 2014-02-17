@@ -9,9 +9,16 @@ namespace Ardex.Sync.Providers
 {
     public class ChangeHistorySyncProvider<TEntity> : SyncProvider<TEntity, Guid, IChangeHistory>
     {
-        private bool DisposeRepositories { get; set; }
-
+        /// <summary>
+        /// Gets the change history repository associated with this provider.
+        /// </summary>
         public SyncRepository<IChangeHistory> ChangeHistory { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the unique article ID which is used to
+        /// generate unique entity IDs and filter change history.
+        /// </summary>
+        public short ArticleID { get; set; }
 
         protected override IComparer<IChangeHistory> VersionComparer
         {
@@ -36,8 +43,6 @@ namespace Ardex.Sync.Providers
             }
         }
 
-        public short ArticleID { get; set; }
-
         public ChangeHistorySyncProvider(
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
@@ -45,60 +50,9 @@ namespace Ardex.Sync.Providers
             SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping) : base(replicaInfo, repository, entityKeyMapping)
         {
             this.ChangeHistory = changeHistory;
-            this.DisposeRepositories = false;
 
             // Set up change tracking.
             this.Repository.TrackedChange += this.HandleTrackedChange;
-        }
-
-        protected virtual IChangeHistory CreateChangeHistoryForLocalChange(TEntity entity, SyncEntityChangeAction action)
-        {
-            var ch = (IChangeHistory)new ChangeHistory();
-
-            // Resolve pk.
-            ch.ChangeHistoryID = this.ChangeHistory
-                .Select(c => c.ChangeHistoryID)
-                .DefaultIfEmpty()
-                .Max() + 1;
-
-            ch.Action = action;
-            ch.ArticleID = this.ArticleID;
-            ch.ReplicaID = this.ReplicaInfo.ReplicaID;
-            ch.EntityGuid = this.EntityKeyMapping(entity);
-
-            // Resolve version.
-            var timestamp = this.ChangeHistory
-                .Where(c => c.ReplicaID == this.ReplicaInfo.ReplicaID)
-                .Select(c => c.Timestamp)
-                .DefaultIfEmpty()
-                .Max();
-
-            ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
-
-            return ch;
-        }
-
-        /// <summary>
-        /// When overridden in a derived class, applies the
-        /// given remote change entry locally if necessary.
-        /// </summary>
-        protected virtual IChangeHistory CreateChangeHistoryForRemoteChange(SyncEntityVersion<TEntity, IChangeHistory> versionInfo)
-        {
-            var ch = (IChangeHistory)new ChangeHistory();
-
-            // Resolve pk.
-            ch.ChangeHistoryID = this.ChangeHistory
-                .Select(c => c.ChangeHistoryID)
-                .DefaultIfEmpty()
-                .Max() + 1;
-
-            ch.Action = versionInfo.Version.Action;
-            ch.ArticleID = this.ArticleID;
-            ch.ReplicaID = versionInfo.Version.ReplicaID;
-            ch.EntityGuid = versionInfo.Version.EntityGuid;
-            ch.Timestamp = versionInfo.Version.Timestamp;
-
-            return ch;
         }
     
         private void HandleTrackedChange(TEntity entity, SyncEntityChangeAction action)
@@ -110,7 +64,27 @@ namespace Ardex.Sync.Providers
 
             try
             {
-                var ch = this.CreateChangeHistoryForLocalChange(entity, action);
+                var ch = (IChangeHistory)new ChangeHistory();
+
+                // Resolve pk.
+                ch.ChangeHistoryID = this.ChangeHistory
+                    .Select(c => c.ChangeHistoryID)
+                    .DefaultIfEmpty()
+                    .Max() + 1;
+
+                ch.Action = action;
+                ch.ArticleID = this.ArticleID;
+                ch.ReplicaID = this.ReplicaInfo.ReplicaID;
+                ch.EntityGuid = this.EntityKeyMapping(entity);
+
+                // Resolve version.
+                var timestamp = this.ChangeHistory
+                    .Where(c => c.ReplicaID == this.ReplicaInfo.ReplicaID)
+                    .Select(c => c.Timestamp)
+                    .DefaultIfEmpty()
+                    .Max();
+
+                ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
 
                 this.ChangeHistory.Insert(ch);
             }
@@ -133,7 +107,19 @@ namespace Ardex.Sync.Providers
 
             try
             {
-                var ch = this.CreateChangeHistoryForRemoteChange(versionInfo);
+                var ch = (IChangeHistory)new ChangeHistory();
+
+                // Resolve pk.
+                ch.ChangeHistoryID = this.ChangeHistory
+                    .Select(c => c.ChangeHistoryID)
+                    .DefaultIfEmpty()
+                    .Max() + 1;
+
+                ch.Action = versionInfo.Version.Action;
+                ch.ArticleID = this.ArticleID;
+                ch.ReplicaID = versionInfo.Version.ReplicaID;
+                ch.EntityGuid = versionInfo.Version.EntityGuid;
+                ch.Timestamp = versionInfo.Version.Timestamp;
 
                 this.ChangeHistory.Insert(ch);
             }
@@ -254,10 +240,25 @@ namespace Ardex.Sync.Providers
             return dict;
         }
 
-        public Guid GenerateEntityGuid(long entityID)
+        #region ID generation
+
+        private SyncGuid LastGeneratedGuid = null;
+
+        public Guid NewSequentialID()
         {
-            return new SyncGuid(this.ReplicaInfo.ReplicaID, this.ArticleID, entityID);
+            var guid = new SyncGuid(
+                this.ReplicaInfo.ReplicaID,
+                this.ArticleID,
+                this.LastGeneratedGuid == null ? 1 : this.LastGeneratedGuid.EntityID + 1);
+
+            this.LastGeneratedGuid = guid;
+
+            return guid;
         }
+
+        #endregion
+
+        #region Cleanup
 
         private bool _disposed;
 
@@ -269,12 +270,6 @@ namespace Ardex.Sync.Providers
             // Unhook events to help the GC do its job.
             this.Repository.TrackedChange -= this.HandleTrackedChange;
 
-            if (this.DisposeRepositories)
-            {
-                this.Repository.Dispose();
-                this.ChangeHistory.Dispose();
-            }
-
             // Release refs.
             this.ChangeHistory = null;
 
@@ -282,5 +277,7 @@ namespace Ardex.Sync.Providers
 
             _disposed = true;
         }
+
+        #endregion
     }
 }
