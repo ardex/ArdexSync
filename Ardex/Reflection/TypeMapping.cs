@@ -12,7 +12,7 @@ namespace Ardex.Reflection
     /// </summary>
     public class TypeMapping<T>
     {
-        private readonly PropertyInfo[] __mappedProperties;
+        private readonly List<PropertyInfo> __mappedProperties;
 
         /// <summary>
         /// Returns a copy of the underlying list of
@@ -48,15 +48,7 @@ namespace Ardex.Reflection
 
             __mappedProperties = props
                 .Where(p => p.CanRead)
-                .ToArray();
-        }
-
-        /// <summary>
-        /// Copy constructor.
-        /// </summary>
-        private TypeMapping(IEnumerable<PropertyInfo> mappedProperties)
-        {
-            __mappedProperties = mappedProperties.ToArray();
+                .ToList();
         }
 
         /// <summary>
@@ -71,12 +63,12 @@ namespace Ardex.Reflection
             {
                 if (prop.CanWrite)
                 {
-                    var oldValue = prop.GetValue(source);
-                    var newValue = prop.GetValue(target);
+                    var newValue = prop.GetValue(source);
+                    var oldValue = prop.GetValue(target);
 
-                    if (!object.Equals(oldValue, newValue))
+                    if (!object.Equals(newValue, oldValue))
                     {
-                        prop.SetValue(source, newValue);
+                        prop.SetValue(target, newValue);
                         changeCount++;
                     }
                 }
@@ -100,7 +92,7 @@ namespace Ardex.Reflection
         /// <summary>
         /// Excludes the given property from
         /// the list of mapped properties.
-        /// Returns a new instance of TypeMapping.
+        /// Returns this mutated instance of TypeMapping.
         /// </summary>
         public TypeMapping<T> Exclude<TProperty>(Expression<Func<T, TProperty>> propertyExpr)
         {
@@ -112,15 +104,13 @@ namespace Ardex.Reflection
                 throw new InvalidOperationException("Specified member is not a property.");
             }
 
-            var mappedProperties = __mappedProperties.ToList();
-
-            if (!mappedProperties.Remove(prop))
+            if (!__mappedProperties.Remove(prop))
             {
                 throw new InvalidOperationException(
                     "Specified property was not found in the list of mapped properties.");
             }
 
-            return new TypeMapping<T>(mappedProperties);
+            return this;
         }
 
         /// <summary>
@@ -159,7 +149,7 @@ namespace Ardex.Reflection
             sb.Append(type.Name);
             sb.Append(" { ");
 
-            for (var i = 0; i < __mappedProperties.Length; i++)
+            for (var i = 0; i < __mappedProperties.Count; i++)
             {
                 var prop = __mappedProperties[i];
 
@@ -167,7 +157,7 @@ namespace Ardex.Reflection
                 sb.Append(" = ");
                 sb.Append(prop.GetValue(obj));
 
-                if (i != __mappedProperties.Length - 1)
+                if (i != __mappedProperties.Count - 1)
                 {
                     sb.Append(", ");
                 }
