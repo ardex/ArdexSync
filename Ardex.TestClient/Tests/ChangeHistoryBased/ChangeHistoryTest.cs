@@ -14,9 +14,9 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
     public class ChangeHistoryTest : IDisposable
     {
         // Sync providers.
-        public ExclusiveChangeHistorySyncProvider<Dummy> Server { get; private set; }
-        public ExclusiveChangeHistorySyncProvider<Dummy> Client1 { get; private set; }
-        public ExclusiveChangeHistorySyncProvider<Dummy> Client2 { get; private set; }
+        public ChangeHistorySyncProvider<Dummy> Server { get; private set; }
+        public ChangeHistorySyncProvider<Dummy> Client1 { get; private set; }
+        public ChangeHistorySyncProvider<Dummy> Client2 { get; private set; }
 
         // Sync operations.
         public SyncOperation Client1Sync { get; private set; }
@@ -34,13 +34,13 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
             var client2Info = new SyncReplicaInfo(2, "Client 2");
 
             // Sync providers / in-memory storage.
-            this.Server = new ExclusiveChangeHistorySyncProvider<Dummy>(
+            this.Server = new ChangeHistorySyncProvider<Dummy>(
                 serverInfo, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
 
-            this.Client1 = new ExclusiveChangeHistorySyncProvider<Dummy>(
+            this.Client1 = new ChangeHistorySyncProvider<Dummy>(
                 client1Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
 
-            this.Client2 = new ExclusiveChangeHistorySyncProvider<Dummy>(
+            this.Client2 = new ChangeHistorySyncProvider<Dummy>(
                 client2Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
 
             // Change tracking and conflict config.
@@ -67,10 +67,10 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
             this.Client2.PreInsertProcessing = dummy => dummy.DummyID = this.Client2.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
 
             // Chain sync operations to produce an upload/download chain.
-            var client1Upload   = SyncOperation.Create(this.Client1, this.Server).Filtered(ChangeHistoryFilters.Exclusive);
-            var client1Download = SyncOperation.Create(this.Server, this.Client1).Filtered(ChangeHistoryFilters.Exclusive);
-            var client2Upload   = SyncOperation.Create(this.Client2, this.Server).Filtered(ChangeHistoryFilters.Exclusive);
-            var client2Download = SyncOperation.Create(this.Server, this.Client2).Filtered(ChangeHistoryFilters.Exclusive);
+            var client1Upload   = SyncOperation.Create(this.Client1, this.Server).Filtered(ChangeHistoryFilters.Serialization);
+            var client1Download = SyncOperation.Create(this.Server, this.Client1).Filtered(ChangeHistoryFilters.Serialization);
+            var client2Upload   = SyncOperation.Create(this.Client2, this.Server).Filtered(ChangeHistoryFilters.Serialization);
+            var client2Download = SyncOperation.Create(this.Server, this.Client2).Filtered(ChangeHistoryFilters.Serialization);
 
             // Chain uploads and downloads to produce complete sync sessions.
             this.Client1Sync = SyncOperation.Chain(client1Upload, client1Download);

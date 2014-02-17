@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+
+using Ardex.Collections.Generic;
 using Ardex.Reflection;
 using Ardex.Sync;
 using Ardex.Sync.ChangeTracking;
@@ -39,7 +42,22 @@ namespace Ardex.TestClient.Tests.Filtered
         // Test.
         public async Task RunAsync()
         {
-            // This is our actual test.
+            this.Client1.InspectionCriteria.Insert(
+                new InspectionCriteria {
+                    CriteriaID = 1,
+                    EntityGuid = this.Client1.SyncProviders.InspectionCriteria.GenerateEntityGuid(1),
+                    Name = "Test",
+                    OwnerReplicaID = this.Client1.ReplicaInfo.ReplicaID,
+                    Sequence = 1
+                }
+            );
+
+            await this.Client1Sync.SynchroniseDiffAsync();
+            await this.Client2Sync.SynchroniseDiffAsync();
+
+            Debug.Print(this.ToString(this.Server.InspectionCriteria));
+            Debug.Print(this.ToString(this.Client1.InspectionCriteria));
+            Debug.Print(this.ToString(this.Client2.InspectionCriteria));
         }
 
         private SyncOperation CreateSyncSession(Replica server, Replica client)
@@ -63,8 +81,8 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Filtered(Filters.Serialization<InspectionObservation>());
 
             // 3. InspectionValue.
-            var up3 = SyncOperation.Create(
-                client.SyncProviders.InspectionValue, server.SyncProviders.InspectionValue)
+            var up3 = SyncOperation
+                .Create(client.SyncProviders.InspectionValue, server.SyncProviders.InspectionValue)
                 .Filtered(Filters.Serialization<InspectionValue>());
 
             var dn3 = SyncOperation
@@ -106,6 +124,13 @@ namespace Ardex.TestClient.Tests.Filtered
             );
         }
 
+        private string ToString<T>(IRepository<T> repository)
+        {
+            var mapping = new TypeMapping<T>();
+
+            return string.Join(Environment.NewLine, repository.Select(e => mapping.ToString(e)));
+        }
+
         public void Dispose()
         {
             this.Server.Dispose();
@@ -121,8 +146,8 @@ namespace Ardex.TestClient.Tests.Filtered
             /// </summary>
             public static SyncFilter<TEntity, IChangeHistory> Serialization<TEntity>() where TEntity : new()
             {
-                var changeHistoryMapping = new TypeMapping<IChangeHistory>();
                 var entityMapping = new TypeMapping<TEntity>();
+                var changeHistoryMapping = new TypeMapping<IChangeHistory>();
 
                 return new SyncFilter<TEntity, IChangeHistory>(
                     changes => changes.Select(
