@@ -10,21 +10,9 @@ namespace Ardex.TestClient
         public string Text { get; set; }
         public Guid EntityGuid { get; set; }
 
-        private int HiddenProp { get; set; }
-        public static int SharedProp { get; set; }
-
         public override string ToString()
         {
             return new TypeMapping<Dummy>().ToString(this);
-        }
-
-        public Dummy Clone()
-        {
-            return new Dummy
-            {
-                EntityGuid = this.EntityGuid,
-                Text = this.Text
-            };
         }
 
         public bool Equals(Dummy other)

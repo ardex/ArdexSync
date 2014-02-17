@@ -12,7 +12,7 @@ namespace Ardex.Reflection
     /// </summary>
     public class TypeMapping<T>
     {
-        private readonly List<PropertyInfo> __mappedProperties;
+        private readonly PropertyInfo[] __mappedProperties;
 
         /// <summary>
         /// Returns a copy of the underlying list of
@@ -48,7 +48,12 @@ namespace Ardex.Reflection
 
             __mappedProperties = props
                 .Where(p => p.CanRead)
-                .ToList();
+                .ToArray();
+        }
+
+        private TypeMapping(IEnumerable<PropertyInfo> mappedProperties)
+        {
+            __mappedProperties = mappedProperties.ToArray();
         }
 
         /// <summary>
@@ -104,13 +109,15 @@ namespace Ardex.Reflection
                 throw new InvalidOperationException("Specified member is not a property.");
             }
 
-            if (!__mappedProperties.Remove(prop))
+            var mappedProperties = __mappedProperties.ToList();
+
+            if (!mappedProperties.Remove(prop))
             {
                 throw new InvalidOperationException(
                     "Specified property was not found in the list of mapped properties.");
             }
 
-            return this;
+            return new TypeMapping<T>(mappedProperties);
         }
 
         /// <summary>
@@ -143,13 +150,13 @@ namespace Ardex.Reflection
         /// </summary>
         public string ToString(T obj)
         {
-            var type = obj.GetType();
             var sb = new StringBuilder();
+            var actualType = obj.GetType();
 
-            sb.Append(type.Name);
+            sb.Append(actualType.Name);
             sb.Append(" { ");
 
-            for (var i = 0; i < __mappedProperties.Count; i++)
+            for (var i = 0; i < __mappedProperties.Length; i++)
             {
                 var prop = __mappedProperties[i];
 
@@ -157,7 +164,7 @@ namespace Ardex.Reflection
                 sb.Append(" = ");
                 sb.Append(prop.GetValue(obj));
 
-                if (i != __mappedProperties.Count - 1)
+                if (i != __mappedProperties.Length - 1)
                 {
                     sb.Append(", ");
                 }
