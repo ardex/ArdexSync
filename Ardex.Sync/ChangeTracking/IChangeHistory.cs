@@ -14,6 +14,12 @@ namespace Ardex.Sync.ChangeTracking
         int ChangeHistoryID { get; set; }
 
         /// <summary>
+        /// Unique ID of the sync article that
+        /// this change history entry relates to.
+        /// </summary>
+        short ArticleID { get; set; }
+
+        /// <summary>
         /// Unique identifier of the entity that was affected by the change.
         /// </summary>
         Guid EntityGuid { get; set; }

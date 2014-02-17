@@ -15,6 +15,12 @@ namespace Ardex.Sync.ChangeTracking
         public int ChangeHistoryID { get; set; }
 
         /// <summary>
+        /// Unique ID of the sync article that
+        /// this change history entry relates to.
+        /// </summary>
+        public short ArticleID { get; set; }
+
+        /// <summary>
         /// Unique identifier of the entity that was affected by the change.
         /// </summary>
         public string EntityGuid { get; set; }
@@ -40,11 +46,16 @@ namespace Ardex.Sync.ChangeTracking
         {
             get
             {
+                if (string.IsNullOrEmpty(this.EntityGuid))
+                {
+                    return Guid.Empty;
+                }
+
                 return Guid.Parse(this.EntityGuid);
             }
             set
             {
-                this.EntityGuid = value.ToString();
+                this.EntityGuid = (value == Guid.Empty ? null : value.ToString());
             }
         }
 
@@ -52,11 +63,16 @@ namespace Ardex.Sync.ChangeTracking
         {
             get
             {
+                if (string.IsNullOrEmpty(this.Timestamp))
+                {
+                    return null;
+                }
+
                 return new Timestamp(this.Timestamp);
             }
             set
             {
-                this.Timestamp = value.ToString();
+                this.Timestamp = (value == null ? null : value.ToString());
             }
         }
 
@@ -64,11 +80,16 @@ namespace Ardex.Sync.ChangeTracking
         {
             get
             {
+                if (string.IsNullOrEmpty(this.Action))
+                {
+                    return SyncEntityChangeAction.None;
+                }
+
                 return (SyncEntityChangeAction)Enum.Parse(typeof(SyncEntityChangeAction), this.Action, true);
             }
             set
             {
-                this.Action = value.ToString();
+                this.Action = (value == SyncEntityChangeAction.None ? null : value.ToString());
             }
         }
 
@@ -90,6 +111,7 @@ namespace Ardex.Sync.ChangeTracking
             var proxy = (IChangeHistory)this;
 
             proxy.ChangeHistoryID = other.ChangeHistoryID;
+            proxy.ArticleID = other.ArticleID;
             proxy.ReplicaID = other.ReplicaID;
             proxy.Timestamp = other.Timestamp;
             proxy.EntityGuid = other.EntityGuid;

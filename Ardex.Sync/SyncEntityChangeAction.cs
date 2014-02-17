@@ -5,6 +5,7 @@
     /// </summary>
     public enum SyncEntityChangeAction
     {
+        None,
         Insert,
         Update,
         Delete
