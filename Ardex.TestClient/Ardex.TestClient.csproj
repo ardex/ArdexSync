@@ -73,8 +73,10 @@
     <Compile Include="Tests\Filtered\Entities\InspectionValue.cs" />
     <Compile Include="Tests\Filtered\Entities\ShortList.cs" />
     <Compile Include="Tests\Filtered\Entities\ShortListItem.cs" />
+    <Compile Include="Tests\Filtered\Entities\ShortListPermission.cs" />
     <Compile Include="Tests\Filtered\FilteredTest.cs" />
     <Compile Include="Tests\Filtered\Replica.cs" />
+    <Compile Include="Tests\Filtered\ReplicaSyncProviders.cs" />
     <Compile Include="Tests\TimestampBased\TimestampTest.cs" />
     <EmbeddedResource Include="TestForm.resx">
       <DependentUpon>TestForm.cs</DependentUpon>

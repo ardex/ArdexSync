@@ -2,7 +2,6 @@
 
 using Ardex.Sync;
 using Ardex.Sync.ChangeTracking;
-using Ardex.Sync.Providers;
 
 using Ardex.TestClient.Tests.Filtered.Entities;
 
@@ -19,6 +18,7 @@ namespace Ardex.TestClient.Tests.Filtered
         public SyncRepository<InspectionValue> InspectionValues { get; private set; }
         public SyncRepository<ShortList> ShortLists { get; private set; }
         public SyncRepository<ShortListItem> ShortListItems { get; private set; }
+        public SyncRepository<ShortListPermission> ShortListPermissions { get; private set; }
 
         // Change tracking.
         public SyncRepository<IChangeHistory> ChangeHistory { get; private set; }
@@ -37,6 +37,7 @@ namespace Ardex.TestClient.Tests.Filtered
             this.InspectionValues = new SyncRepository<InspectionValue>();
             this.ShortLists = new SyncRepository<ShortList>();
             this.ShortListItems = new SyncRepository<ShortListItem>();
+            this.ShortListPermissions = new SyncRepository<ShortListPermission>();
 
             // Change tracking.
             this.ChangeHistory = new SyncRepository<IChangeHistory>();
@@ -47,72 +48,14 @@ namespace Ardex.TestClient.Tests.Filtered
 
         public void Dispose()
         {
+            this.InspectionCriteria.Dispose();
+            this.InspectionObservations.Dispose();
+            this.InspectionValues.Dispose();
+            this.ShortLists.Dispose();
+            this.ShortListItems.Dispose();
+            this.ShortListPermissions.Dispose();
+
             this.SyncProviders.Dispose();
-        }
-
-        public class ReplicaSyncProviders : IDisposable
-        {
-            // Params.
-            public Replica Replica { get; private set; }
-
-            // Sync providers.
-            public ChangeHistorySyncProvider<InspectionCriteria> InspectionCriteria { get; private set; }
-            public ChangeHistorySyncProvider<InspectionObservation> InspectionObservation { get; private set; }
-            public ChangeHistorySyncProvider<InspectionValue> InspectionValue { get; private set; }
-            public ChangeHistorySyncProvider<ShortList> ShortList { get; private set; }
-            public ChangeHistorySyncProvider<ShortListItem> ShortListItem { get; private set; }
-
-            public ReplicaSyncProviders(Replica replica, bool cleanUpMetadata, SyncConflictStrategy conflictStrategy)
-            {
-                this.Replica = replica;
-
-                // Set up providers.
-                this.InspectionCriteria = new ChangeHistorySyncProvider<InspectionCriteria>(
-                    this.Replica.ReplicaInfo, this.Replica.InspectionCriteria, this.Replica.ChangeHistory, c => c.EntityGuid) {
-                    CleanUpMetadata = cleanUpMetadata,
-                    ConflictStrategy = conflictStrategy
-                };
-
-                this.InspectionObservation = new ChangeHistorySyncProvider<InspectionObservation>(
-                    this.Replica.ReplicaInfo, this.Replica.InspectionObservations, this.Replica.ChangeHistory, c => c.EntityGuid) {
-                    CleanUpMetadata = cleanUpMetadata,
-                    ConflictStrategy = conflictStrategy
-                };
-
-                this.InspectionValue = new ChangeHistorySyncProvider<InspectionValue>(
-                    this.Replica.ReplicaInfo, this.Replica.InspectionValues, this.Replica.ChangeHistory, c => c.EntityGuid) {
-                    CleanUpMetadata = cleanUpMetadata,
-                    ConflictStrategy = conflictStrategy
-                };
-
-                this.ShortList = new ChangeHistorySyncProvider<ShortList>(
-                    this.Replica.ReplicaInfo, this.Replica.ShortLists, this.Replica.ChangeHistory, c => c.EntityGuid) {
-                    CleanUpMetadata = cleanUpMetadata,
-                    ConflictStrategy = conflictStrategy
-                };
-
-                this.ShortListItem = new ChangeHistorySyncProvider<ShortListItem>(
-                    this.Replica.ReplicaInfo, this.Replica.ShortListItems, this.Replica.ChangeHistory, c => c.EntityGuid) {
-                    CleanUpMetadata = cleanUpMetadata,
-                    ConflictStrategy = conflictStrategy
-                };
-
-                // Unique article IDs.
-                this.InspectionCriteria.ArticleID = 1;
-                this.InspectionObservation.ArticleID = 2;
-                this.InspectionValue.ArticleID = 3;
-                this.ShortList.ArticleID = 4;
-                this.ShortListItem.ArticleID = 5;
-            }
-
-            public void Dispose()
-            {
-                this.InspectionCriteria.Dispose();
-                this.InspectionObservation.Dispose();
-                this.InspectionValue.Dispose();
-                this.ShortListItem.Dispose();
-                this.ShortList.Dispose();
-            }
         }
     }
 }
