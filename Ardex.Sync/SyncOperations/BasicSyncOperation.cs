@@ -11,7 +11,7 @@ namespace Ardex.Sync.SyncOperations
     {
         #region Transformation methods
 
-        public FilteredSyncOperation<TEntity, TVersion> Filtered(SyncFilter<TEntity, TVersion> filter)
+        public virtual FilteredSyncOperation<TEntity, TVersion> Filtered(SyncFilter<TEntity, TVersion> filter)
         {
             return new FilteredSyncOperation<TEntity, TVersion>(this.Source, this.Target, filter);
         }

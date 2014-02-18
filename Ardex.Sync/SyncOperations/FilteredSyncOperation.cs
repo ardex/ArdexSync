@@ -4,6 +4,16 @@ namespace Ardex.Sync.SyncOperations
 {
     public class FilteredSyncOperation<TEntity, TVersion> : BasicSyncOperation<TEntity, TVersion>
     {
+        // Transormation.
+        public override FilteredSyncOperation<TEntity, TVersion> Filtered(SyncFilter<TEntity, TVersion> filter)
+        {
+            return new FilteredSyncOperation<TEntity, TVersion>(
+                this.Source,
+                this.Target,
+                changes => filter(this.Filter(changes)) // Filter chaining.
+            );
+        }
+
         /// <summary>
         /// Optional filter applied to the change
         /// delta returned by the source. Filters
