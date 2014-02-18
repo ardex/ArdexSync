@@ -106,7 +106,7 @@ namespace Ardex.Reflection
         /// </summary>
         public void Exclude<TProperty>(Expression<Func<T, TProperty>> propertyExpr)
         {
-            var prop = ExpressionUtil.GetProperty(propertyExpr);
+            var prop = ExpressionUtil.Property(propertyExpr);
 
             if (!__mappedProperties.Remove(prop))
             {
@@ -122,7 +122,7 @@ namespace Ardex.Reflection
         /// </summary>
         public TypeMapping<T> Without<TProperty>(Expression<Func<T, TProperty>> propertyExpr)
         {
-            var prop = ExpressionUtil.GetProperty(propertyExpr);
+            var prop = ExpressionUtil.Property(propertyExpr);
             var mappedProperties = __mappedProperties.ToList();
 
             if (!mappedProperties.Remove(prop))
