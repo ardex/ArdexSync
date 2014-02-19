@@ -41,14 +41,19 @@ namespace Ardex.TestClient.Tests.Filtered
         public async Task RunAsync()
         {
             await this.Test1Async();
-
             Debug.Print("After test 1:");
             this.Dump();
 
             await this.Test2Async();
-
             Debug.Print("After test 2:");
             this.Dump();
+
+            await this.Test3Async();
+            Debug.Print("After test 3:");
+            this.Dump();
+
+            Debug.Print("Client 2 change history:");
+            Debug.Print(this.Client2.ChangeHistory.ContentsDescription());
         }
 
         private async Task Test1Async()
@@ -88,6 +93,14 @@ namespace Ardex.TestClient.Tests.Filtered
                 EntityGuid = this.Client1.SyncProviders.ShortList.NewSequentialID()
             });
 
+            this.Client1.ShortListItems.Insert(new ShortListItem {
+                ShortListItemID = 1,
+                ShortListID = 1,
+                EntityGuid = this.Client1.SyncProviders.ShortList.NewSequentialID(),
+                HorseID = 1,
+                OwnerReplicaID = this.Client1.ReplicaInfo.ReplicaID
+            });
+
             await this.ParallelSyncAsync();
             await this.ParallelSyncAsync();
         }
@@ -103,6 +116,23 @@ namespace Ardex.TestClient.Tests.Filtered
                     EntityGuid = this.Client1.SyncProviders.ShortListPermission.NewSequentialID()
                 }
             );
+
+            await this.ParallelSyncAsync();
+            await this.ParallelSyncAsync();
+        }
+
+        private async Task Test3Async()
+        {
+            this.Client1.InspectionObservations.Insert(new InspectionObservation {
+                Created = DateTime.Now,
+                EntityGuid = this.Client1.SyncProviders.InspectionObservation.NewSequentialID(),
+                HorseID = 1,
+                Flag = true,
+                ObservationID = 1,
+                OwnerReplicaID = this.Client1.ReplicaInfo.ReplicaID,
+                SubcategoryID = 1,
+                Text = "Zzz"
+            });
 
             await this.ParallelSyncAsync();
             await this.ParallelSyncAsync();
@@ -124,22 +154,11 @@ namespace Ardex.TestClient.Tests.Filtered
 
                 var print = new Action<string>(s => { if (!string.IsNullOrEmpty(s)) Debug.Print(s); });
 
-                //Debug.Print(ExpressionUtil.Member(() => replica.InspectionCriteria).Name);
                 print(replica.InspectionCriteria.ContentsDescription());
-
-                //Debug.Print(ExpressionUtil.Member(() => replica.InspectionValues).Name);
                 print(replica.InspectionValues.ContentsDescription());
-
-                //Debug.Print(ExpressionUtil.Member(() => replica.InspectionObservations).Name);
                 print(replica.InspectionObservations.ContentsDescription());
-
-                //Debug.Print(ExpressionUtil.Member(() => replica.ShortLists).Name);
                 print(replica.ShortLists.ContentsDescription());
-
-                //Debug.Print(ExpressionUtil.Member(() => replica.ShortListItems).Name);
                 print(replica.ShortListItems.ContentsDescription());
-
-                //Debug.Print(ExpressionUtil.Member(() => replica.ShortListPermissions).Name);
                 print(replica.ShortListPermissions.ContentsDescription());
             }
         }
@@ -147,25 +166,25 @@ namespace Ardex.TestClient.Tests.Filtered
         private SyncOperation CreateSyncSession(Replica server, Replica client)
         {
             // 0. ShortListPermission.
-            var up0 = SyncOperation
+            var shortListPermissionUpload = SyncOperation
                 .Create(client.SyncProviders.ShortListPermission, server.SyncProviders.ShortListPermission)
                 .Filtered(ChangeHistoryFilters.Serialization<ShortListPermission>());
 
-            var dn0 = SyncOperation
-                .Create(client.SyncProviders.ShortListPermission, server.SyncProviders.ShortListPermission)
+            var shortListPermissionDownload = SyncOperation
+                .Create(server.SyncProviders.ShortListPermission, client.SyncProviders.ShortListPermission)
                 .Filtered(changes => changes.Where(p => p.Entity.GranteeReplicaID == client.ReplicaInfo.ReplicaID)) // Only download own permissions.
                 .Filtered(ChangeHistoryFilters.Serialization<ShortListPermission>());
 
             // 1. InspectionCriteria.
-            var up1 = SyncOperation
+            var inspectionCriteriaUpload = SyncOperation
                 .Create(client.SyncProviders.InspectionCriteria, server.SyncProviders.InspectionCriteria)
                 .Filtered(ChangeHistoryFilters.Serialization<InspectionCriteria>());
 
-            var dn1 = SyncOperation
+            var inspectionCriteriaDownload = SyncOperation
                 .Create(server.SyncProviders.InspectionCriteria, client.SyncProviders.InspectionCriteria)
                 .Filtered(changes =>
                     (from p in server.ShortListPermissions where p.GranteeReplicaID == client.ReplicaInfo.ReplicaID
-                     from sl in server.ShortLists where sl.ShortListID == p.ShortListID && sl.OwnerReplicaID == p.GrantorReplicaID
+                     from sl in server.ShortLists where sl.OwnerReplicaID == p.GrantorReplicaID
                      from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == sl.OwnerReplicaID
                      from io in server.InspectionObservations where io.HorseID == sli.HorseID && io.OwnerReplicaID == sli.OwnerReplicaID
                      from iv in server.InspectionValues where iv.ValueID == io.SubcategoryID && iv.OwnerReplicaID == sli.OwnerReplicaID
@@ -175,15 +194,15 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Filtered(ChangeHistoryFilters.Serialization<InspectionCriteria>());
 
             // 2. InspectionObservation.
-            var up2 = SyncOperation
+            var inspectionObservationUpload = SyncOperation
                 .Create(client.SyncProviders.InspectionObservation, server.SyncProviders.InspectionObservation)
                 .Filtered(ChangeHistoryFilters.Serialization<InspectionObservation>());
 
-            var dn2 = SyncOperation
+            var inspectionObservationDownload = SyncOperation
                 .Create(server.SyncProviders.InspectionObservation, client.SyncProviders.InspectionObservation)
                 .Filtered(changes =>
                     (from p in server.ShortListPermissions where p.GranteeReplicaID == client.ReplicaInfo.ReplicaID
-                     from sl in server.ShortLists where sl.ShortListID == p.ShortListID && sl.OwnerReplicaID == p.GrantorReplicaID
+                     from sl in server.ShortLists where sl.OwnerReplicaID == p.GrantorReplicaID
                      from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == sl.OwnerReplicaID
                      from io in server.InspectionObservations where io.HorseID == sli.HorseID && io.OwnerReplicaID == sli.OwnerReplicaID
                      from iv in server.InspectionValues where iv.ValueID == io.SubcategoryID && iv.OwnerReplicaID == sli.OwnerReplicaID
@@ -193,15 +212,15 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Filtered(ChangeHistoryFilters.Serialization<InspectionObservation>());
 
             // 3. InspectionValue.
-            var up3 = SyncOperation
+            var inspectionValueUpload = SyncOperation
                 .Create(client.SyncProviders.InspectionValue, server.SyncProviders.InspectionValue)
                 .Filtered(ChangeHistoryFilters.Serialization<InspectionValue>());
 
-            var dn3 = SyncOperation
+            var inspectionValueDownload = SyncOperation
                 .Create(server.SyncProviders.InspectionValue, client.SyncProviders.InspectionValue)
                 .Filtered(changes =>
                     (from p in server.ShortListPermissions where p.GranteeReplicaID == client.ReplicaInfo.ReplicaID
-                     from sl in server.ShortLists where sl.ShortListID == p.ShortListID && sl.OwnerReplicaID == p.GrantorReplicaID
+                     from sl in server.ShortLists where sl.OwnerReplicaID == p.GrantorReplicaID
                      from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == sl.OwnerReplicaID
                      from io in server.InspectionObservations where io.HorseID == sli.HorseID && io.OwnerReplicaID == sli.OwnerReplicaID
                      from iv in server.InspectionValues where iv.ValueID == io.SubcategoryID && iv.OwnerReplicaID == sli.OwnerReplicaID
@@ -211,50 +230,50 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Filtered(ChangeHistoryFilters.Serialization<InspectionValue>());
 
             // 5. ShortList.
-            var up5 = SyncOperation
+            var shortListUpload = SyncOperation
                 .Create(client.SyncProviders.ShortList, server.SyncProviders.ShortList)
                 .Filtered(ChangeHistoryFilters.Serialization<ShortList>());
 
-            var dn5 = SyncOperation
+            var shortListDownload = SyncOperation
                 .Create(server.SyncProviders.ShortList, client.SyncProviders.ShortList)
                 .Filtered(changes =>
                     (from p in server.ShortListPermissions where p.GranteeReplicaID == client.ReplicaInfo.ReplicaID
-                     from sl in server.ShortLists where sl.ShortListID == p.ShortListID && sl.OwnerReplicaID == p.GrantorReplicaID
+                     from sl in server.ShortLists where sl.OwnerReplicaID == p.GrantorReplicaID
                      from change in changes where change.Entity.ShortListID == sl.ShortListID && change.Entity.OwnerReplicaID == p.GrantorReplicaID
                      select change).Distinct())
                 .Filtered(ChangeHistoryFilters.Serialization<ShortList>());
 
             // 6. ShortListItem.
-            var up6 = SyncOperation
+            var shortListItemUpload = SyncOperation
                 .Create(client.SyncProviders.ShortListItem, server.SyncProviders.ShortListItem)
                 .Filtered(ChangeHistoryFilters.Serialization<ShortListItem>());
 
-            var dn6 = SyncOperation
+            var shortListItemDownload = SyncOperation
                 .Create(server.SyncProviders.ShortListItem, client.SyncProviders.ShortListItem)
                 .Filtered(changes =>
                     (from p in server.ShortListPermissions where p.GranteeReplicaID == client.ReplicaInfo.ReplicaID
-                     from sl in server.ShortLists where sl.ShortListID == p.ShortListID && sl.OwnerReplicaID == p.GrantorReplicaID
+                     from sl in server.ShortLists where sl.OwnerReplicaID == p.GrantorReplicaID
                      from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == sl.OwnerReplicaID
                      from change in changes where change.Entity.ShortListItemID == sli.ShortListItemID && change.Entity.OwnerReplicaID == p.GrantorReplicaID
                      select change).Distinct())
                 .Filtered(ChangeHistoryFilters.Serialization<ShortListItem>());
 
             // Chain operations to get two-way sync for each article.
-            var shortListPermissionSync = SyncOperation.Chain(up0, dn0);
-            var inspectionCriteriaSync = SyncOperation.Chain(up1, dn1);
-            var inspectionObservationSync = SyncOperation.Chain(up2, dn2);
-            var inspectionValueSync = SyncOperation.Chain(up3, dn3);
-            var shortListSync = SyncOperation.Chain(up5, dn5);
-            var shortListItemSync = SyncOperation.Chain(up6, dn6);
+            var shortListPermissionSync = SyncOperation.Chain(shortListPermissionUpload, shortListPermissionDownload);
+            var inspectionCriteriaSync = SyncOperation.Chain(inspectionCriteriaUpload, inspectionCriteriaDownload);
+            var inspectionObservationSync = SyncOperation.Chain(inspectionObservationUpload, inspectionObservationDownload);
+            var inspectionValueSync = SyncOperation.Chain(inspectionValueUpload, inspectionValueDownload);
+            var shortListSync = SyncOperation.Chain(shortListUpload, shortListDownload);
+            var shortListItemSync = SyncOperation.Chain(shortListItemUpload, shortListItemDownload);
 
             // Construct session.
             return SyncOperation.Chain(
-                shortListPermissionSync,
                 inspectionCriteriaSync,
                 inspectionObservationSync,
                 inspectionValueSync,
                 shortListSync,
-                shortListItemSync
+                shortListItemSync,
+                shortListPermissionSync
             );
         }
 
