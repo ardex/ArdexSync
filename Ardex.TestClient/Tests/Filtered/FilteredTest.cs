@@ -185,10 +185,10 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Filtered(changes =>
                     (from p in server.ShortListPermissions where p.GranteeReplicaID == client.ReplicaInfo.ReplicaID
                      from sl in server.ShortLists where sl.OwnerReplicaID == p.GrantorReplicaID
-                     from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == sl.OwnerReplicaID
-                     from io in server.InspectionObservations where io.HorseID == sli.HorseID && io.OwnerReplicaID == sli.OwnerReplicaID
-                     from iv in server.InspectionValues where iv.ValueID == io.SubcategoryID && iv.OwnerReplicaID == sli.OwnerReplicaID
-                     from ic in server.InspectionCriteria where ic.CriteriaID == iv.CriteriaID && ic.OwnerReplicaID == iv.OwnerReplicaID
+                     from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == p.GrantorReplicaID
+                     from io in server.InspectionObservations where io.HorseID == sli.HorseID && io.OwnerReplicaID == p.GrantorReplicaID
+                     from iv in server.InspectionValues where iv.ValueID == io.SubcategoryID && iv.OwnerReplicaID == p.GrantorReplicaID
+                     from ic in server.InspectionCriteria where ic.CriteriaID == iv.CriteriaID && ic.OwnerReplicaID == p.GrantorReplicaID
                      from change in changes where change.Entity.CriteriaID == ic.CriteriaID && change.Entity.OwnerReplicaID == p.GrantorReplicaID
                      select change).Distinct())
                 .Filtered(ChangeHistoryFilters.Serialization<InspectionCriteria>());
@@ -203,10 +203,10 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Filtered(changes =>
                     (from p in server.ShortListPermissions where p.GranteeReplicaID == client.ReplicaInfo.ReplicaID
                      from sl in server.ShortLists where sl.OwnerReplicaID == p.GrantorReplicaID
-                     from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == sl.OwnerReplicaID
-                     from io in server.InspectionObservations where io.HorseID == sli.HorseID && io.OwnerReplicaID == sli.OwnerReplicaID
-                     from iv in server.InspectionValues where iv.ValueID == io.SubcategoryID && iv.OwnerReplicaID == sli.OwnerReplicaID
-                     from ic in server.InspectionCriteria where ic.CriteriaID == iv.CriteriaID && ic.OwnerReplicaID == iv.OwnerReplicaID
+                     from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == p.GrantorReplicaID
+                     from io in server.InspectionObservations where io.HorseID == sli.HorseID && io.OwnerReplicaID == p.GrantorReplicaID
+                     from iv in server.InspectionValues where iv.ValueID == io.SubcategoryID && iv.OwnerReplicaID == p.GrantorReplicaID
+                     from ic in server.InspectionCriteria where ic.CriteriaID == iv.CriteriaID && ic.OwnerReplicaID == p.GrantorReplicaID
                      from change in changes where change.Entity.ObservationID == io.ObservationID && change.Entity.OwnerReplicaID == p.GrantorReplicaID
                      select change).Distinct())
                 .Filtered(ChangeHistoryFilters.Serialization<InspectionObservation>());
@@ -221,10 +221,10 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Filtered(changes =>
                     (from p in server.ShortListPermissions where p.GranteeReplicaID == client.ReplicaInfo.ReplicaID
                      from sl in server.ShortLists where sl.OwnerReplicaID == p.GrantorReplicaID
-                     from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == sl.OwnerReplicaID
-                     from io in server.InspectionObservations where io.HorseID == sli.HorseID && io.OwnerReplicaID == sli.OwnerReplicaID
-                     from iv in server.InspectionValues where iv.ValueID == io.SubcategoryID && iv.OwnerReplicaID == sli.OwnerReplicaID
-                     from ic in server.InspectionCriteria where ic.CriteriaID == iv.CriteriaID && ic.OwnerReplicaID == iv.OwnerReplicaID
+                     from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == p.GrantorReplicaID
+                     from io in server.InspectionObservations where io.HorseID == sli.HorseID && io.OwnerReplicaID == p.GrantorReplicaID
+                     from iv in server.InspectionValues where iv.ValueID == io.SubcategoryID && iv.OwnerReplicaID == p.GrantorReplicaID
+                     from ic in server.InspectionCriteria where ic.CriteriaID == iv.CriteriaID && ic.OwnerReplicaID == p.GrantorReplicaID
                      from change in changes where change.Entity.ValueID == iv.ValueID && change.Entity.OwnerReplicaID == p.GrantorReplicaID
                      select change).Distinct())
                 .Filtered(ChangeHistoryFilters.Serialization<InspectionValue>());
@@ -253,7 +253,7 @@ namespace Ardex.TestClient.Tests.Filtered
                 .Filtered(changes =>
                     (from p in server.ShortListPermissions where p.GranteeReplicaID == client.ReplicaInfo.ReplicaID
                      from sl in server.ShortLists where sl.OwnerReplicaID == p.GrantorReplicaID
-                     from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == sl.OwnerReplicaID
+                     from sli in server.ShortListItems where sli.ShortListID == sl.ShortListID && sli.OwnerReplicaID == p.GrantorReplicaID
                      from change in changes where change.Entity.ShortListItemID == sli.ShortListItemID && change.Entity.OwnerReplicaID == p.GrantorReplicaID
                      select change).Distinct())
                 .Filtered(ChangeHistoryFilters.Serialization<ShortListItem>());
