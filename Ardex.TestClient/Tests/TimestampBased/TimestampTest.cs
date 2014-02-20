@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,7 +24,7 @@ namespace Ardex.TestClient.Tests.TimestampBased
             var repo3 = new SyncRepository<DummyPermission>();
 
             var timestampMapping = new Func<DummyPermission, Timestamp>(d => d.Timestamp);
-            var comparer = new CustomComparer<Timestamp>((x, y) => x.CompareTo(y));
+            var comparer = Comparer<Timestamp>.Default;
 
             //// Simulate network service.
             //var server = new SimpleCustomSyncProvider<DummyPermission, Timestamp>(

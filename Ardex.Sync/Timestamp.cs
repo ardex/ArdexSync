@@ -20,7 +20,10 @@ namespace Ardex.Sync
             }
         }
 
-        public Timestamp(string value) : base(value)
+        public Timestamp(string value) : base(value
+            .Replace("0x", string.Empty)
+            .Replace("-", string.Empty)
+            .PadLeft(16, '0'))
         {
             if (this.Length != 8)
             {
@@ -33,6 +36,13 @@ namespace Ardex.Sync
 
         }
 
+        public override string ToString()
+        {
+            return base.ToString()
+                       .Replace("-", string.Empty)
+                       .TrimStart('0');
+        }
+
         public static Timestamp operator ++(Timestamp value)
         {
             return new Timestamp(value.ToInt64() + 1);
@@ -41,6 +51,16 @@ namespace Ardex.Sync
         public static Timestamp operator --(Timestamp value)
         {
             return new Timestamp(value.ToInt64() - 1);
+        }
+
+        public static Timestamp Create(string timestampString)
+        {
+            if (string.IsNullOrEmpty(timestampString))
+            {
+                return null;
+            }
+
+            return new Timestamp(timestampString);
         }
     }
 }

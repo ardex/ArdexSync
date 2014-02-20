@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync.Providers
@@ -41,7 +42,7 @@ namespace Ardex.Sync.Providers
             // Lock taken by SyncRepository.GetEnumerator().
             foreach (var entity in this.Repository)
             {
-                var entityOwnerReplicaID = this.OwnerReplicaIdMapping == null ? 0 : this.OwnerReplicaIdMapping(entity);
+                var entityOwnerReplicaID = this.GetOwnerReplicaID(entity);
                 var entityVersion = this.EntityVersionMapping(entity);
                 var maxVersion = default(TVersion);
 

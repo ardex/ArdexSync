@@ -24,7 +24,7 @@ namespace Ardex.Sync.Providers
         {
             get
             {
-                return new CustomComparer<IChangeHistory>(
+                return Comparer<IChangeHistory>.Create(
                     (x, y) => x.Timestamp.CompareTo(y.Timestamp)
                 );
             }
