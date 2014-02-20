@@ -64,7 +64,16 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
             this.Client1.PreInsertProcessing = dummy => dummy.DummyID = this.Client1.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
 
             this.Client2.EntityTypeMapping = this.EntityMapping;
-            this.Client2.PreInsertProcessing = dummy => dummy.DummyID = this.Client2.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
+
+            this.Client2.PreInsertProcessing = dummy =>
+            {
+                if (new Random().Next(1, 10) == 5)
+                {
+                    throw new Exception("Test");
+                }
+
+                dummy.DummyID = this.Client2.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
+            };
 
             // Chain sync operations to produce an upload/download chain.
             var client1Upload   = SyncOperation.Create(this.Client1, this.Server).Filtered(ChangeHistoryFilters.Serialization<Dummy>());
@@ -79,7 +88,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
         public async Task RunAsync()
         {
-            const int NUM_ITERATIONS = 1;
+            const int NUM_ITERATIONS = 100;
 
             for (var iterations = 0; iterations < NUM_ITERATIONS; iterations++)
             {
@@ -148,15 +157,14 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                     this.Client1.Repository.Insert(dummy4);
 
                     // Let's spice things up a bit by pushing things out furhter to the thread pool.
-                    var t1 = await Task.Run(async () => await this.Client1Sync.SynchroniseDiffAsync());
-                    var t2 = await Task.Run(async () => await this.Client2Sync.SynchroniseDiffAsync());
+                    var t1 = Task.Run(() => this.ParallelSyncAsync());
 
-                    var t3 = Task.Run(() => this.Server.Repository.Insert(new Dummy {
+                    var t2 = Task.Run(() => this.Server.Repository.Insert(new Dummy {
                         EntityGuid = this.Server.NewSequentialID(),
                         Text = "Dodgy concurrent insert"
                     }));
 
-                    var t4 = Task.Run(() =>
+                    var t3 = Task.Run(() =>
                     {
                         this.Client2.Repository.Lock.EnterWriteLock();
 
@@ -174,7 +182,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                         }
                     });
 
-                    //await Task.WhenAll(t1, t2, t3, t4);
+                    await Task.WhenAll(t1, t2, t3);
 
                     this.DumpEqual();
                 }
@@ -188,7 +196,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
                 {
                     this.Client2.Repository.Insert(dummy5);
 
-                    await Task.WhenAll(this.Client1Sync.SynchroniseDiffAsync(), this.Client2Sync.SynchroniseDiffAsync());
+                    await this.ParallelSyncAsync();
 
                     this.DumpEqual();
                 }
@@ -222,7 +230,21 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
         private async Task ParallelSyncAsync()
         {
-            await Task.WhenAll(this.Client1Sync.SynchroniseDiffAsync(), this.Client2Sync.SynchroniseDiffAsync());
+            try
+            {
+                await Task.WhenAll(this.Client1Sync.SynchroniseDiffAsync(), this.Client2Sync.SynchroniseDiffAsync());
+            }
+            catch (Exception ex)
+            {
+                if (string.Equals(ex.Message, "Test"))
+                {
+                    Debug.Print("Test exception caught.");
+                }
+                else
+                {
+                    throw;
+                }
+            }
         }
 
         private async Task SequentialSyncAsync()
