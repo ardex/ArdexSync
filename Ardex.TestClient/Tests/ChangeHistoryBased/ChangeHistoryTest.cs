@@ -14,9 +14,9 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
     public class ChangeHistoryTest : IDisposable
     {
         // Sync providers.
-        public ChangeHistorySyncProvider<Dummy> Server { get; private set; }
-        public ChangeHistorySyncProvider<Dummy> Client1 { get; private set; }
-        public ChangeHistorySyncProvider<Dummy> Client2 { get; private set; }
+        public ChangeHistorySyncProvider<Dummy, IChangeHistory> Server { get; private set; }
+        public ChangeHistorySyncProvider<Dummy, IChangeHistory> Client1 { get; private set; }
+        public ChangeHistorySyncProvider<Dummy, IChangeHistory> Client2 { get; private set; }
 
         // Sync operations.
         public SyncOperation Client1Sync { get; private set; }
@@ -34,13 +34,13 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
             var client2Info = new SyncReplicaInfo(2, "Client 2");
 
             // Sync providers / in-memory storage.
-            this.Server = new ChangeHistorySyncProvider<Dummy>(
+            this.Server = new ChangeHistorySyncProvider<Dummy, IChangeHistory>(
                 serverInfo, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
 
-            this.Client1 = new ChangeHistorySyncProvider<Dummy>(
+            this.Client1 = new ChangeHistorySyncProvider<Dummy, IChangeHistory>(
                 client1Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
 
-            this.Client2 = new ChangeHistorySyncProvider<Dummy>(
+            this.Client2 = new ChangeHistorySyncProvider<Dummy, IChangeHistory>(
                 client2Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
 
             // Change tracking and conflict config.

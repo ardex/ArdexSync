@@ -7,12 +7,12 @@ using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync.Providers
 {
-    public class ChangeHistorySyncProvider<TEntity> : SyncProvider<TEntity, Guid, IChangeHistory>
+    public class ChangeHistorySyncProvider<TEntity, TChangeHistory> : SyncProvider<TEntity, Guid, TChangeHistory> where TChangeHistory : IChangeHistory
     {
         /// <summary>
         /// Gets the change history repository associated with this provider.
         /// </summary>
-        public SyncRepository<IChangeHistory> ChangeHistory { get; private set; }
+        public SyncRepository<TChangeHistory> ChangeHistory { get; private set; }
 
         /// <summary>
         /// Gets or sets the unique article ID which is used to
@@ -20,17 +20,17 @@ namespace Ardex.Sync.Providers
         /// </summary>
         public short ArticleID { get; set; }
 
-        protected override IComparer<IChangeHistory> VersionComparer
+        protected override IComparer<TChangeHistory> VersionComparer
         {
             get
             {
-                return Comparer<IChangeHistory>.Create(
+                return Comparer<TChangeHistory>.Create(
                     (x, y) => x.Timestamp.CompareTo(y.Timestamp)
                 );
             }
         }
 
-        protected virtual IEnumerable<IChangeHistory> FilteredChangeHistory
+        protected virtual IEnumerable<TChangeHistory> FilteredChangeHistory
         {
             get
             {
@@ -46,7 +46,7 @@ namespace Ardex.Sync.Providers
         public ChangeHistorySyncProvider(
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
-            SyncRepository<IChangeHistory> changeHistory,
+            SyncRepository<TChangeHistory> changeHistory,
             SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping) : base(replicaInfo, repository, entityKeyMapping)
         {
             this.ChangeHistory = changeHistory;
@@ -64,7 +64,7 @@ namespace Ardex.Sync.Providers
 
             try
             {
-                var ch = (IChangeHistory)new ChangeHistory();
+                var ch = (TChangeHistory)(IChangeHistory)new ChangeHistory();
 
                 // Resolve pk.
                 ch.ChangeHistoryID = this.ChangeHistory
@@ -98,7 +98,7 @@ namespace Ardex.Sync.Providers
         /// When overridden in a derived class, applies the
         /// given remote change entry locally if necessary.
         /// </summary>
-        protected override void WriteRemoteVersion(SyncEntityVersion<TEntity, IChangeHistory> versionInfo)
+        protected override void WriteRemoteVersion(SyncEntityVersion<TEntity, TChangeHistory> versionInfo)
         {
             if (!this.ChangeHistory.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
             {
@@ -107,7 +107,7 @@ namespace Ardex.Sync.Providers
 
             try
             {
-                var ch = (IChangeHistory)new ChangeHistory();
+                var ch = (TChangeHistory)(IChangeHistory)new ChangeHistory();
 
                 // Resolve pk.
                 ch.ChangeHistoryID = this.ChangeHistory
@@ -129,12 +129,12 @@ namespace Ardex.Sync.Providers
             }
         }
 
-        public override SyncAnchor<IChangeHistory> LastAnchor()
+        public override SyncAnchor<TChangeHistory> LastAnchor()
         {
             return this.LastKnownVersionByReplica(this.FilteredChangeHistory);
         }
 
-        public override SyncDelta<TEntity, IChangeHistory> ResolveDelta(SyncAnchor<IChangeHistory> remoteAnchor)
+        public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor)
         {
             // We need locks on both repositories.
             if (!this.Repository.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
@@ -156,7 +156,7 @@ namespace Ardex.Sync.Providers
                     var myChanges = this.FilteredChangeHistory
                         .Where(ch =>
                         {
-                            var version = default(IChangeHistory);
+                            var version = default(TChangeHistory);
 
                             return
                                 !remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
@@ -188,7 +188,7 @@ namespace Ardex.Sync.Providers
         /// Performs change history cleanup if necessary.
         /// Ensures that only the latest value for each node is kept.
         /// </summary>
-        protected override void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, IChangeHistory>> appliedDelta)
+        protected override void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, TChangeHistory>> appliedDelta)
         {
             // We need exclusive access to change
             // history during the cleanup operation.
@@ -204,7 +204,7 @@ namespace Ardex.Sync.Providers
                 foreach (var ch in this.FilteredChangeHistory)
                 {
                     // Ensure that this change is not the last for node.
-                    var lastKnownVersion = default(IChangeHistory);
+                    var lastKnownVersion = default(TChangeHistory);
 
                     if (lastKnownVersionByReplica.TryGetValue(ch.ReplicaID, out lastKnownVersion) &&
                         this.VersionComparer.Compare(ch, lastKnownVersion) < 0)
@@ -222,13 +222,13 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Returns last seen version value for each known node.
         /// </summary>
-        protected SyncAnchor<IChangeHistory> LastKnownVersionByReplica(IEnumerable<IChangeHistory> changeHistory)
+        protected SyncAnchor<TChangeHistory> LastKnownVersionByReplica(IEnumerable<TChangeHistory> changeHistory)
         {
-            var dict = new SyncAnchor<IChangeHistory>();
+            var dict = new SyncAnchor<TChangeHistory>();
 
             foreach (var ch in changeHistory)
             {
-                var lastKnownVersion = default(IChangeHistory);
+                var lastKnownVersion = default(TChangeHistory);
 
                 if (!dict.TryGetValue(ch.ReplicaID, out lastKnownVersion) ||
                     this.VersionComparer.Compare(ch, lastKnownVersion) > 0)

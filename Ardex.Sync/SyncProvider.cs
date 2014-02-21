@@ -109,7 +109,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public virtual SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta)
+        public SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta)
         {
             if (this.Repository == null)
             {
