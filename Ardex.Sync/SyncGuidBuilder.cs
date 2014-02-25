@@ -6,9 +6,9 @@ namespace Ardex.Sync
     /// <summary>
     /// Non-random Guid version specifically tailored to sync scenarios.
     /// </summary>
-    public class SyncGuid
+    public class SyncGuidBuilder
     {
-        private readonly Guid __guid;
+        private Guid Guid { get; set; }
 
         /// <summary>
         /// ID of the replica which created a particular record.
@@ -17,7 +17,7 @@ namespace Ardex.Sync
         {
             get
             {
-                var guidBytes = __guid.ToByteArray();
+                var guidBytes = this.Guid.ToByteArray();
                 var replicaIdBytes = new byte[4];
 
                 // Least significant byte first: don't need to reverse.
@@ -28,6 +28,10 @@ namespace Ardex.Sync
 
                 return BitConverter.ToInt32(replicaIdBytes, 0);
             }
+            set
+            {
+                this.Mutate(value, this.ArticleID, this.EntityID);
+            }
         }
 
         /// <summary>
@@ -37,7 +41,7 @@ namespace Ardex.Sync
         {
             get
             {
-                var guidBytes = __guid.ToByteArray();
+                var guidBytes = this.Guid.ToByteArray();
                 var articleIdBytes = new byte[2];
 
                 // Least significant byte first: don't need to reverse.
@@ -48,6 +52,10 @@ namespace Ardex.Sync
 
                 return BitConverter.ToInt16(articleIdBytes, 0);
             }
+            set
+            {
+                this.Mutate(this.ReplicaID, value, this.EntityID);
+            }
         }
 
         /// <summary>
@@ -57,7 +65,7 @@ namespace Ardex.Sync
         {
             get
             {
-                var guidBytes = __guid.ToByteArray();
+                var guidBytes = this.Guid.ToByteArray();
                 var entityIdBytes = new byte[8];
 
                 // Most significant byte first: reversed.
@@ -70,48 +78,54 @@ namespace Ardex.Sync
 
                 return BitConverter.ToInt64(entityIdBytes, 0);
             }
+            set
+            {
+                this.Mutate(this.ReplicaID, this.ArticleID, value);
+            }
         }
 
         /// <summary>
-        /// Creates a new instance of SyncGuid based on the given Guid value.
+        /// Default constructor.
         /// </summary>
-        public SyncGuid(Guid guid)
+        public SyncGuidBuilder()
         {
-            __guid = guid;
+            this.Guid = Guid.Empty;
         }
 
         /// <summary>
-        /// Creates a new instance of SyncGuid based on the given replica and entity IDs.
+        /// Creates a new instance of SyncGuidBuilder based on the given Guid value.
         /// </summary>
-        public SyncGuid(int replicaID, long entityID) : this(replicaID, 0, entityID) { }
+        public SyncGuidBuilder(Guid guid)
+        {
+            this.Guid = guid;
+        }
 
         /// <summary>
-        /// Creates a new instance of SyncGuid based on the given
+        /// Creates a new instance of SyncGuidBuilder based on the given replica and entity IDs.
+        /// </summary>
+        public SyncGuidBuilder(int replicaID, long entityID) : this(replicaID, 0, entityID) { }
+
+        /// <summary>
+        /// Creates a new instance of SyncGuidBuilder based on the given
         /// replica and entity IDs (useful for very long IDs).
         /// </summary>
-        public SyncGuid(uint replicaID, ulong entityID) : this(replicaID, 0, entityID) { }
+        public SyncGuidBuilder(uint replicaID, ulong entityID) : this(replicaID, 0, entityID) { }
 
         /// <summary>
-        /// Creates a new instance of SyncGuid based on
+        /// Creates a new instance of SyncGuidBuilder based on
         /// the given replica, article and entity IDs.
         /// </summary>
-        public SyncGuid(int replicaID, short articleID, long entityID)
+        public SyncGuidBuilder(int replicaID, short articleID, long entityID)
         {
-            // Most significant byte first.
-            var entityIdBytes = BitConverter
-                .GetBytes(entityID)
-                .Reverse()
-                .ToArray();
-
-            __guid = new Guid(replicaID, 0, articleID, entityIdBytes);
+            this.Mutate(replicaID, articleID, entityID);
         }
 
         /// <summary>
-        /// Creates a new instance of SyncGuid based on
+        /// Creates a new instance of SyncGuidBuilder based on
         /// the given replica, article and entity IDs.
         /// (useful for very long IDs).
         /// </summary>
-        public SyncGuid(uint replicaID, ushort articleID, ulong entityID)
+        public SyncGuidBuilder(uint replicaID, ushort articleID, ulong entityID)
         {
             var replicaIdBytes = BitConverter.GetBytes(replicaID);
             var articleIdBytes = BitConverter.GetBytes(articleID);
@@ -128,7 +142,22 @@ namespace Ardex.Sync
                 .Concat(entityIdBytes)
                 .ToArray();
 
-            __guid = new Guid(bytes);
+            this.Guid = new Guid(bytes);
+        }
+
+        /// <summary>
+        /// Mutates this instance by changing
+        /// the underlying Guid value.
+        /// </summary>
+        private void Mutate(int replicaID, short articleID, long entityID)
+        {
+            // Most significant byte first.
+            var entityIdBytes = BitConverter
+                .GetBytes(entityID)
+                .Reverse()
+                .ToArray();
+
+            this.Guid = new Guid(replicaID, 0, articleID, entityIdBytes);
         }
 
         /// <summary>
@@ -136,17 +165,15 @@ namespace Ardex.Sync
         /// </summary>
         public Guid ToGuid()
         {
-            return __guid;
+            return this.Guid;
         }
 
-        public static implicit operator SyncGuid(Guid guid)
+        /// <summary>
+        /// Returns the string representation of the underlying Guid.
+        /// </summary>
+        public override string ToString()
         {
-            return new SyncGuid(guid);
-        }
-
-        public static implicit operator Guid(SyncGuid syncGuid)
-        {
-            return syncGuid.ToGuid();
+            return this.Guid.ToString();
         }
     }
 }

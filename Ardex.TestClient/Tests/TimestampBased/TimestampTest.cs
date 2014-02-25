@@ -47,7 +47,7 @@ namespace Ardex.TestClient.Tests.TimestampBased
             //            .Select(p => SyncEntityVersion.Create(p, p.Timestamp));
             //    });
 
-            var ownerIdMapping = new SyncEntityOwnerMapping<DummyPermission>(d => new SyncGuid(d.DummyPermissionID).ReplicaID);
+            var ownerIdMapping = new SyncEntityOwnerMapping<DummyPermission>(d => new SyncGuidBuilder(d.DummyPermissionID).ReplicaID);
             var server = new SimpleRepositorySyncProvider<DummyPermission, Guid, Timestamp>(serverInfo, repo1, d => d.DummyPermissionID, d => d.Timestamp, comparer, ownerIdMapping);
             var client1 = new SimpleRepositorySyncProvider<DummyPermission, Guid, Timestamp>(client1Info, repo2, d => d.DummyPermissionID, d => d.Timestamp, comparer, ownerIdMapping);
             var client2 = new SimpleRepositorySyncProvider<DummyPermission, Guid, Timestamp>(client2Info, repo3, d => d.DummyPermissionID, d => d.Timestamp, comparer, ownerIdMapping);

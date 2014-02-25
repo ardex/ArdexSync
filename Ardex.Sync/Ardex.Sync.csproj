@@ -63,7 +63,7 @@
     <Compile Include="SyncEntityAction.cs" />
     <Compile Include="SyncEntityVersion.cs" />
     <Compile Include="SyncFilter.cs" />
-    <Compile Include="SyncGuid.cs" />
+    <Compile Include="SyncGuidBuilder.cs" />
     <Compile Include="SyncOperation.cs" />
     <Compile Include="SyncOperations\BasicSyncOperation.cs" />
     <Compile Include="SyncOperations\FilteredSyncOperation.cs" />

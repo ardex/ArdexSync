@@ -250,14 +250,17 @@ namespace Ardex.Sync.Providers
 
         #region ID generation
 
-        private SyncGuid LastGeneratedGuid = null;
+        private Guid LastGeneratedGuid;
 
         public Guid NewSequentialID()
         {
-            var guid = new SyncGuid(
-                this.ReplicaInfo.ReplicaID,
-                this.ArticleID,
-                this.LastGeneratedGuid == null ? 1 : this.LastGeneratedGuid.EntityID + 1);
+            var gb = new SyncGuidBuilder(this.LastGeneratedGuid);
+
+            gb.ReplicaID = this.ReplicaInfo.ReplicaID;
+            gb.ArticleID = this.ArticleID;
+            gb.EntityID++;
+
+            var guid = gb.ToGuid();
 
             this.LastGeneratedGuid = guid;
 
