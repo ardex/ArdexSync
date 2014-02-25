@@ -20,6 +20,12 @@ namespace Ardex.Sync.Providers
         /// </summary>
         public short ArticleID { get; set; }
 
+        /// <summary>
+        /// Gets the factory function used to create new instances
+        /// of the concrete IChangeHistory implementations.
+        /// </summary>
+        public Func<TChangeHistory> ChangeHistoryFactory { get; private set; }
+
         protected override IComparer<TChangeHistory> VersionComparer
         {
             get
@@ -47,9 +53,11 @@ namespace Ardex.Sync.Providers
             SyncReplicaInfo replicaInfo,
             SyncRepository<TEntity> repository,
             SyncRepository<TChangeHistory> changeHistory,
-            SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping) : base(replicaInfo, repository, entityKeyMapping)
+            SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping,
+            Func<TChangeHistory> changeHistoryFactory) : base(replicaInfo, repository, entityKeyMapping)
         {
             this.ChangeHistory = changeHistory;
+            this.ChangeHistoryFactory = changeHistoryFactory;
 
             // Set up change tracking.
             this.Repository.TrackedChange += this.HandleTrackedChange;
@@ -64,7 +72,7 @@ namespace Ardex.Sync.Providers
 
             try
             {
-                var ch = (TChangeHistory)(IChangeHistory)new ChangeHistory();
+                var ch = this.ChangeHistoryFactory();
 
                 // Resolve pk.
                 ch.ChangeHistoryID = this.ChangeHistory
@@ -107,7 +115,7 @@ namespace Ardex.Sync.Providers
 
             try
             {
-                var ch = (TChangeHistory)(IChangeHistory)new ChangeHistory();
+                var ch = this.ChangeHistoryFactory();
 
                 // Resolve pk.
                 ch.ChangeHistoryID = this.ChangeHistory

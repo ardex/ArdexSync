@@ -26,37 +26,37 @@ namespace Ardex.TestClient.Tests.Filtered
 
             // Set up providers.
             this.InspectionCriteria = new ChangeHistorySyncProvider<InspectionCriteria, IChangeHistory>(
-                this.Replica.ReplicaInfo, this.Replica.InspectionCriteria, this.Replica.ChangeHistory, c => c.EntityGuid) {
+                this.Replica.ReplicaInfo, this.Replica.InspectionCriteria, this.Replica.ChangeHistory, c => c.EntityGuid, () => new ChangeHistory()) {
                     CleanUpMetadata = cleanUpMetadata,
                     ConflictStrategy = conflictStrategy
                 };
 
             this.InspectionObservation = new ChangeHistorySyncProvider<InspectionObservation, IChangeHistory>(
-                this.Replica.ReplicaInfo, this.Replica.InspectionObservations, this.Replica.ChangeHistory, c => c.EntityGuid) {
+                this.Replica.ReplicaInfo, this.Replica.InspectionObservations, this.Replica.ChangeHistory, c => c.EntityGuid, () => new ChangeHistory()) {
                     CleanUpMetadata = cleanUpMetadata,
                     ConflictStrategy = conflictStrategy
                 };
 
             this.InspectionValue = new ChangeHistorySyncProvider<InspectionValue, IChangeHistory>(
-                this.Replica.ReplicaInfo, this.Replica.InspectionValues, this.Replica.ChangeHistory, c => c.EntityGuid) {
+                this.Replica.ReplicaInfo, this.Replica.InspectionValues, this.Replica.ChangeHistory, c => c.EntityGuid, () => new ChangeHistory()) {
                     CleanUpMetadata = cleanUpMetadata,
                     ConflictStrategy = conflictStrategy
                 };
 
             this.ShortList = new ChangeHistorySyncProvider<ShortList, IChangeHistory>(
-                this.Replica.ReplicaInfo, this.Replica.ShortLists, this.Replica.ChangeHistory, c => c.EntityGuid) {
+                this.Replica.ReplicaInfo, this.Replica.ShortLists, this.Replica.ChangeHistory, c => c.EntityGuid, () => new ChangeHistory()) {
                     CleanUpMetadata = cleanUpMetadata,
                     ConflictStrategy = conflictStrategy
                 };
 
             this.ShortListItem = new ChangeHistorySyncProvider<ShortListItem, IChangeHistory>(
-                this.Replica.ReplicaInfo, this.Replica.ShortListItems, this.Replica.ChangeHistory, c => c.EntityGuid) {
+                this.Replica.ReplicaInfo, this.Replica.ShortListItems, this.Replica.ChangeHistory, c => c.EntityGuid, () => new ChangeHistory()) {
                     CleanUpMetadata = cleanUpMetadata,
                     ConflictStrategy = conflictStrategy
                 };
 
             this.ShortListPermission = new ChangeHistorySyncProvider<ShortListPermission, IChangeHistory>(
-                this.Replica.ReplicaInfo, this.Replica.ShortListPermissions, this.Replica.ChangeHistory, c => c.EntityGuid) {
+                this.Replica.ReplicaInfo, this.Replica.ShortListPermissions, this.Replica.ChangeHistory, c => c.EntityGuid, () => new ChangeHistory()) {
                     CleanUpMetadata = cleanUpMetadata,
                     ConflictStrategy = conflictStrategy
                 };

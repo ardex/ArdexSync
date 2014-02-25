@@ -279,6 +279,9 @@ namespace Ardex.TestClient.Tests.Filtered
 
         public void Dispose()
         {
+            this.Client1Sync.Dispose();
+            this.Client2Sync.Dispose();
+
             this.Server.Dispose();
             this.Client1.Dispose();
             this.Client2.Dispose();

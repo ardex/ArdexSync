@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,7 +10,7 @@ namespace Ardex.Sync
     /// <summary>
     /// Base class for differential sync operations.
     /// </summary>
-    public abstract class SyncOperation
+    public abstract class SyncOperation : IDisposable
     {
         #region Static factory methods
 
@@ -52,6 +53,8 @@ namespace Ardex.Sync
         {
             get
             {
+                this.ThrowIfDisposed();
+
                 lock (__syncTasksInProgress)
                 {
                     return __syncTasksInProgress.ToArray();
@@ -76,6 +79,8 @@ namespace Ardex.Sync
         /// </summary>
         public async Task<SyncResult> SynchroniseDiffAsync(CancellationToken ct)
         {
+            this.ThrowIfDisposed();
+
             // Wire up the task.
             var syncTask = Task.Run(async () =>
             {
@@ -120,6 +125,41 @@ namespace Ardex.Sync
         /// performs differential synchronisation.
         /// </summary>
         protected abstract SyncResult SynchroniseDiff(CancellationToken ct);
+
+        #endregion
+
+        #region IDisposable implementation
+
+        private bool _disposed;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                this.SyncLock.Dispose();
+            }
+
+            _disposed = true;
+        }
+
+        /// <summary>
+        /// Releases all resource used by the <see cref="Ardex.Sync.SyncOperation"/> object.
+        /// </summary>
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
+
+        protected void ThrowIfDisposed()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+        }
 
         #endregion
 

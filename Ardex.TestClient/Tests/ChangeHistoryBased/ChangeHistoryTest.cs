@@ -35,13 +35,13 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
             // Sync providers / in-memory storage.
             this.Server = new ChangeHistorySyncProvider<Dummy, IChangeHistory>(
-                serverInfo, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
+                serverInfo, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid, () => new ChangeHistory());
 
             this.Client1 = new ChangeHistorySyncProvider<Dummy, IChangeHistory>(
-                client1Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
+                client1Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid, () => new ChangeHistory());
 
             this.Client2 = new ChangeHistorySyncProvider<Dummy, IChangeHistory>(
-                client2Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid);
+                client2Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid, () => new ChangeHistory());
 
             // Change tracking and conflict config.
             this.Server.CleanUpMetadata = false;
@@ -277,6 +277,9 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
         public void Dispose()
         {
+            this.Client1Sync.Dispose();
+            this.Client2Sync.Dispose();
+
             this.Server.Dispose();
             this.Client1.Dispose();
             this.Client2.Dispose();
