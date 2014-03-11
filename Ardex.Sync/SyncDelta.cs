@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 
 namespace Ardex.Sync
 {
@@ -15,21 +16,25 @@ namespace Ardex.Sync
     /// <summary>
     /// Encapsulates sync anchor and change information.
     /// </summary>
+    [DataContract]
     public class SyncDelta<TEntity, TVersion>
     {
         /// <summary>
         /// ID of the replica which created this delta.
         /// </summary>
+        [DataMember(EmitDefaultValue = false)]
         public SyncReplicaInfo ReplicaInfo { get; private set; }
 
         /// <summary>
         /// Contains most up-to date change knowledge of a particular party.
         /// </summary>
+        [DataMember(EmitDefaultValue = false)]
         public SyncAnchor<TVersion> Anchor { get; private set; }
 
         /// <summary>
         /// Contains changes resolved for the other party after receiving anchor.
         /// </summary>
+        [DataMember(EmitDefaultValue = false)]
         public SyncEntityVersion<TEntity, TVersion>[] Changes { get; private set; }
 
         /// <summary>

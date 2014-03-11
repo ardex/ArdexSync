@@ -9,10 +9,22 @@ namespace Ardex.Sync
     /// </summary>
     public sealed class Timestamp : ByteArray
     {
+        private static byte[] Normalise(byte[] bytes)
+        {
+            if (bytes.Length == 8)
+                return bytes;
+
+            var newBytes = new byte[8];
+
+            Array.Copy(bytes, 0, newBytes, newBytes.Length - bytes.Length, bytes.Length);
+
+            return newBytes;
+        }
+
         /// <summary>
         /// Copy constructor.
         /// </summary>
-        public Timestamp(byte[] value) : base(value)
+        public Timestamp(byte[] value) : base(Timestamp.Normalise(value))
         {
             if (this.Length != 8)
             {

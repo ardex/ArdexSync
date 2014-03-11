@@ -11,7 +11,7 @@ namespace Ardex.Sync
     /// <summary>
     /// Base class for merge synchronisation providers.
     /// </summary>
-    public abstract class SyncProvider<TEntity, TKey, TVersion> : ISyncProvider<TEntity, TVersion>
+    public abstract class SyncProvider<TEntity, TKey, TVersion> : ISyncProvider<TEntity, TVersion>, IDisposable
     {
         /// <summary>
         /// Unique ID of this replica.

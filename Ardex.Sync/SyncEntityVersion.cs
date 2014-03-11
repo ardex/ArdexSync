@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Runtime.Serialization;
 
 namespace Ardex.Sync
 {
@@ -11,9 +10,13 @@ namespace Ardex.Sync
         }
     }
 
+    [DataContract]
     public class SyncEntityVersion<TEntity, TVersion>
     {
+        [DataMember(EmitDefaultValue = false)]
         public TEntity Entity { get; private set; }
+
+        [DataMember(EmitDefaultValue = false)]
         public TVersion Version { get; private set; }
 
         public SyncEntityVersion(TEntity entity, TVersion version)

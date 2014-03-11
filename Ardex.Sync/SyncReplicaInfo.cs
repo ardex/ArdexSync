@@ -1,20 +1,24 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace Ardex.Sync
 {
     /// <summary>
     /// Describes a data replica.
     /// </summary>
+    [DataContract]
     public class SyncReplicaInfo
     {
         /// <summary>
         /// Unique replica ID.
         /// </summary>
+        [DataMember(EmitDefaultValue = false)]
         public int ReplicaID { get; private set; }
 
         /// <summary>
         /// Friendly replica name.
         /// </summary>
+        [DataMember(EmitDefaultValue = false)]
         public string Name { get; private set; }
 
         /// <summary>

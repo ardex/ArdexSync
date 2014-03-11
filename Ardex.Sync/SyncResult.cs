@@ -1,30 +1,35 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 
 namespace Ardex.Sync
 {
     /// <summary>
     /// Contains information about a completed synchronisation.
     /// </summary>             
+    [DataContract]
     public class SyncResult
     {
         /// <summary>
         /// Gets the objects inserted as part
         /// of this synchronisation operation.
         /// </summary>
+        [DataMember(EmitDefaultValue = false)]
         public object[] Inserts { get; private set; }
 
         /// <summary>
         /// Gets the objects updated as part
         /// of this synchronisation operation.
         /// </summary>
+        [DataMember(EmitDefaultValue = false)]
         public object[] Updates { get; private set; }
 
         /// <summary>
         /// Gets the objects deleted as part
         /// of this synchornisation operation.
         /// </summary>
+        [DataMember(EmitDefaultValue = false)]
         public object[] Deletes { get; private set; }
 
         /// <summary>
@@ -55,11 +60,13 @@ namespace Ardex.Sync
     /// <summary>
     /// Wraps results from multiple sync operations.
     /// </summary>
+    [DataContract]
     public class MultiSyncResult : SyncResult
     {
         /// <summary>
         /// Results of each individual sync opreation.
         /// </summary>
+        [DataMember(EmitDefaultValue = false)]
         public SyncResult[] SyncResults { get; private set; }
 
         /// <summary>
