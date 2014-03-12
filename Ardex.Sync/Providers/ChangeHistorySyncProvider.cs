@@ -12,7 +12,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Gets the change history repository associated with this provider.
         /// </summary>
-        public SyncRepository<TChangeHistory> ChangeHistory { get; private set; }
+        public ISyncRepository<TChangeHistory> ChangeHistory { get; private set; }
 
         /// <summary>
         /// Gets or sets the unique article ID which is used to
@@ -51,8 +51,8 @@ namespace Ardex.Sync.Providers
 
         public ChangeHistorySyncProvider(
             SyncReplicaInfo replicaInfo,
-            SyncRepository<TEntity> repository,
-            SyncRepository<TChangeHistory> changeHistory,
+            ISyncRepository<TEntity> repository,
+            ISyncRepository<TChangeHistory> changeHistory,
             SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping,
             Func<TChangeHistory> changeHistoryFactory) : base(replicaInfo, repository, entityKeyMapping)
         {
@@ -65,12 +65,7 @@ namespace Ardex.Sync.Providers
     
         private void HandleTrackedChange(TEntity entity, SyncEntityChangeAction action)
         {
-            if (!this.ChangeHistory.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.ChangeHistory.WriteLock())
             {
                 var ch = this.ChangeHistoryFactory();
 
@@ -96,10 +91,6 @@ namespace Ardex.Sync.Providers
 
                 this.ChangeHistory.Insert(ch);
             }
-            finally
-            {
-                this.ChangeHistory.Lock.ExitWriteLock();
-            }
         }
 
         /// <summary>
@@ -108,12 +99,7 @@ namespace Ardex.Sync.Providers
         /// </summary>
         protected override void WriteRemoteVersion(SyncEntityVersion<TEntity, TChangeHistory> versionInfo)
         {
-            if (!this.ChangeHistory.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.ChangeHistory.WriteLock())
             {
                 var ch = this.ChangeHistoryFactory();
 
@@ -131,10 +117,6 @@ namespace Ardex.Sync.Providers
 
                 this.ChangeHistory.Insert(ch);
             }
-            finally
-            {
-                this.ChangeHistory.Lock.ExitWriteLock();
-            }
         }
 
         public override SyncAnchor<TChangeHistory> LastAnchor()
@@ -145,19 +127,8 @@ namespace Ardex.Sync.Providers
         public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor)
         {
             // We need locks on both repositories.
-            if (!this.Repository.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
-            {
-                if (!this.ChangeHistory.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
-                {
-                    throw new SyncDeadlockException();
-                }
-
-                try
+            using (this.Repository.ReadLock())
+            using (this.ChangeHistory.ReadLock())
                 {
                     var myAnchor = this.LastAnchor();
 
@@ -181,15 +152,6 @@ namespace Ardex.Sync.Providers
 
                     return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
                 }
-                finally
-                {
-                    this.ChangeHistory.Lock.ExitReadLock();
-                }
-            }
-            finally
-            {
-                this.Repository.Lock.ExitReadLock();
-            }
         }
 
         /// <summary>
@@ -200,12 +162,7 @@ namespace Ardex.Sync.Providers
         {
             // We need exclusive access to change
             // history during the cleanup operation.
-            if (!this.ChangeHistory.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.ChangeHistory.WriteLock())
             {
                 var lastKnownVersionByReplica = this.LastKnownVersionByReplica(appliedDelta.Select(v => v.Version));
 
@@ -220,10 +177,6 @@ namespace Ardex.Sync.Providers
                         this.ChangeHistory.Delete(ch);
                     }
                 }
-            }
-            finally
-            {
-                this.ChangeHistory.Lock.ExitWriteLock();
             }
         }
 

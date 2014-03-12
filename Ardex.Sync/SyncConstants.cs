@@ -8,8 +8,8 @@ namespace Ardex.Sync
     public static class SyncConstants
     {
         /// <summary>
-        /// Timeout for lock acquisition after which
-        /// a SyncDeadlockException is thrown.
+        /// Timeout for lock acquisition after which a
+        /// SyncDeadlockException is thrown (15 seconds).
         /// </summary>
         public static TimeSpan DeadlockTimeout { get; private set; }
 

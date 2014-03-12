@@ -4,14 +4,13 @@ using System.Linq;
 using System.Threading;
 
 using Ardex.Collections.Generic;
-using Ardex.Sync.ChangeTracking;
 
 namespace Ardex.Sync
 {
     /// <summary>
     /// ProxyRepository implementation which supports locking (used in sync operations).
     /// </summary>
-    public class SyncRepository<TEntity> : ProxyRepository<TEntity>
+    public class SyncRepository<TEntity> : ProxyRepository<TEntity>, ISyncRepository<TEntity>
     {
         /// <summary>
         /// Backing field for Lock.
@@ -22,7 +21,7 @@ namespace Ardex.Sync
         /// Lock used to protect read and write
         /// operations in this repository.
         /// </summary>
-        public ReaderWriterLockSlim Lock
+        ReaderWriterLockSlim ISyncRepository<TEntity>.Lock
         {
             get { return __lock; }
         }
@@ -50,18 +49,9 @@ namespace Ardex.Sync
         {
             get
             {
-                if (!this.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
-                {
-                    throw new SyncDeadlockException();
-                }
-
-                try
+                using (this.ReadLock())
                 {
                     return base.Count;
-                }
-                finally
-                {
-                    this.Lock.ExitReadLock();
                 }
             }
         }
@@ -96,18 +86,9 @@ namespace Ardex.Sync
         /// </summary>
         public override void Insert(TEntity entity)
         {
-            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.WriteLock())
             {
                 base.Insert(entity);
-            }
-            finally
-            {
-                this.Lock.ExitWriteLock();
             }
 
             if (this.TrackedChange != null)
@@ -121,18 +102,9 @@ namespace Ardex.Sync
         /// </summary>
         public override void Update(TEntity entity)
         {
-            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.WriteLock())
             {
                 base.Update(entity);
-            }
-            finally
-            {
-                this.Lock.ExitWriteLock();
             }
 
             if (this.TrackedChange != null)
@@ -146,18 +118,9 @@ namespace Ardex.Sync
         /// </summary>
         public override void Delete(TEntity entity)
         {
-            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.WriteLock())
             {
                 base.Delete(entity);
-            }
-            finally
-            {
-                this.Lock.ExitWriteLock();
             }
 
             if (this.TrackedChange != null)
@@ -177,41 +140,23 @@ namespace Ardex.Sync
         /// </summary>
         public override IEnumerator<TEntity> GetEnumerator()
         {
-            if (!this.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.ReadLock())
             {
                 // We'll create a clone.
                 var snapshot = this.InnerRepository.ToList();
 
                 return snapshot.GetEnumerator();
             }
-            finally
-            {
-                this.Lock.ExitReadLock();
-            }
         }
 
         /// <summary>
         /// Inserts the specified entity.
         /// </summary>
-        internal void UntrackedInsert(TEntity entity)
+        public void UntrackedInsert(TEntity entity)
         {
-            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.WriteLock())
             {
                 base.Insert(entity);
-            }
-            finally
-            {
-                this.Lock.ExitWriteLock();
             }
 
             if (this.UntrackedChange != null)
@@ -223,20 +168,11 @@ namespace Ardex.Sync
         /// <summary>
         /// Updates the specified entity.
         /// </summary>
-        internal void UntrackedUpdate(TEntity entity)
+        public void UntrackedUpdate(TEntity entity)
         {
-            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.WriteLock())
             {
                 base.Update(entity);
-            }
-            finally
-            {
-                this.Lock.ExitWriteLock();
             }
 
             if (this.UntrackedChange != null)
@@ -248,20 +184,11 @@ namespace Ardex.Sync
         /// <summary>
         /// Deletes the specified entity.
         /// </summary>
-        internal void UntrackedDelete(TEntity entity)
+        public void UntrackedDelete(TEntity entity)
         {
-            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.WriteLock())
             {
                 base.Delete(entity);
-            }
-            finally
-            {
-                this.Lock.ExitWriteLock();
             }
 
             if (this.UntrackedChange != null)

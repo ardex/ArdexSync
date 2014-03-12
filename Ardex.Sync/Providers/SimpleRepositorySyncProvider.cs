@@ -22,7 +22,7 @@ namespace Ardex.Sync.Providers
 
         public SimpleRepositorySyncProvider(
             SyncReplicaInfo replicaInfo,
-            SyncRepository<TEntity> repository,
+            ISyncRepository<TEntity> repository,
             SyncEntityKeyMapping<TEntity, TKey> entityKeyMapping,
             SyncEntityVersionMapping<TEntity, TVersion> entityVersionMapping,
             IComparer<TVersion> versionComparer,
@@ -58,12 +58,7 @@ namespace Ardex.Sync.Providers
 
         public override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor)
         {
-            if (!this.Repository.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.Repository.ReadLock())
             {
                 var myAnchor = this.LastAnchor();
                 var myChanges = new List<SyncEntityVersion<TEntity, TVersion>>();
@@ -82,10 +77,6 @@ namespace Ardex.Sync.Providers
                 }
 
                 return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
-            }
-            finally
-            {
-                this.Repository.Lock.ExitReadLock();
             }
         }
 

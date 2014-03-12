@@ -21,7 +21,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Repository which is being synchronised.
         /// </summary>
-        public SyncRepository<TEntity> Repository { get; private set; }
+        public ISyncRepository<TEntity> Repository { get; private set; }
 
         /// <summary>
         /// Entity primary key / unique identifier mapping.
@@ -65,7 +65,7 @@ namespace Ardex.Sync
         /// </summary>
         protected SyncProvider(
             SyncReplicaInfo replicaInfo,
-            SyncRepository<TEntity> repository,
+            ISyncRepository<TEntity> repository,
             SyncEntityKeyMapping<TEntity, TKey> entityKeyMapping)
         {
             this.ReplicaInfo = replicaInfo;
@@ -118,12 +118,7 @@ namespace Ardex.Sync
             }
 
             // Critical region: protected with exclusive lock.
-            if (!this.Repository.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
-            {
-                throw new SyncDeadlockException();
-            }
-
-            try
+            using (this.Repository.WriteLock())
             {
                 remoteDelta = this.ResolveConflicts(remoteDelta);
 
@@ -132,40 +127,45 @@ namespace Ardex.Sync
                 var updates = new List<object>();
                 var deletes = new List<object>();
 
+                // Materialise repository entities, but only if necessary.
+                var existingEntities = new Lazy<List<TEntity>>(this.Repository.ToList);
+
                 // We need to ensure that all changes are processed in such
                 // an order that if we fail, we'll be able to resume later.
                 foreach (var change in remoteDelta.Changes.OrderBy(c => c.Version, this.VersionComparer))
                 {
                     var changeKey = this.EntityKeyMapping(change.Entity);
-                    var found = false;
 
-                    foreach (var existingEntity in this.Repository)
+                    if (object.Equals(changeKey, default(TKey)))
                     {
-                        if (object.Equals(changeKey, this.EntityKeyMapping(existingEntity)))
-                        {
-                            // Found.
-                            var changeCount = this.EntityTypeMapping.CopyValues(change.Entity, existingEntity);
-
-                            if (changeCount != 0)
-                            {
-                                this.Repository.UntrackedUpdate(existingEntity);
-                                updates.Add(existingEntity);
+                        throw new InvalidOperationException(
+                            "ChangeKey cannot be equal to the default value of TKey.");
                             }
 
-                            found = true;
-                            break;
-                        }
-                    }
+                    var existingEntity = existingEntities.Value.FirstOrDefault(e => object.Equals(changeKey, this.EntityKeyMapping(e)));
 
-                    if (!found)
+                    if (existingEntity == null)
                     {
+                        // Not found.
                         if (this.PreInsertProcessing != null)
                         {
                             this.PreInsertProcessing(change.Entity);
                         }
 
                         this.Repository.UntrackedInsert(change.Entity);
-                        inserts.Add(change);
+                        existingEntities.Value.Add(change.Entity);
+                        inserts.Add(change.Entity);
+                    }
+                    else
+                    {
+                        // Found.
+                        var changeCount = this.EntityTypeMapping.CopyValues(change.Entity, existingEntity);
+
+                        if (changeCount != 0)
+                        {
+                            this.Repository.UntrackedUpdate(existingEntity);
+                            updates.Add(existingEntity);
+                        }
                     }
 
                     // Write remote change history entry to local change history.
@@ -185,10 +185,6 @@ namespace Ardex.Sync
                 }
 
                 return result;
-            }
-            finally
-            {
-                this.Repository.Lock.ExitWriteLock();
             }
         }
 

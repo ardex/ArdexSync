@@ -20,7 +20,7 @@ namespace Ardex.Sync.Providers
 
         public SimpleSyncProvider(
             SyncReplicaInfo replicaInfo,
-            SyncRepository<TEntity> repository,
+            ISyncRepository<TEntity> repository,
             SyncEntityKeyMapping<TEntity, TKey> entityKeyMapping)
             : base(replicaInfo, repository, entityKeyMapping)
         {
