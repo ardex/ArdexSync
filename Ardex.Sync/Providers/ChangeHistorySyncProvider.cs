@@ -7,7 +7,9 @@ using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync.Providers
 {
-    public class ChangeHistorySyncProvider<TEntity, TChangeHistory> : SyncProvider<TEntity, Guid, TChangeHistory> where TChangeHistory : IChangeHistory
+    public class ChangeHistorySyncProvider<TEntity, TChangeHistory> : SyncProvider<TEntity, Guid, TChangeHistory>
+        where TEntity : class
+        where TChangeHistory : IChangeHistory, new()
     {
         /// <summary>
         /// Gets the change history repository associated with this provider.
@@ -53,8 +55,19 @@ namespace Ardex.Sync.Providers
             SyncReplicaInfo replicaInfo,
             ISyncRepository<TEntity> repository,
             ISyncRepository<TChangeHistory> changeHistory,
+            SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping
+        ) : this(replicaInfo, repository, changeHistory, entityKeyMapping, () => new TChangeHistory())
+        {
+
+        }
+
+        public ChangeHistorySyncProvider(
+            SyncReplicaInfo replicaInfo,
+            ISyncRepository<TEntity> repository,
+            ISyncRepository<TChangeHistory> changeHistory,
             SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping,
-            Func<TChangeHistory> changeHistoryFactory) : base(replicaInfo, repository, entityKeyMapping)
+            Func<TChangeHistory> changeHistoryFactory)
+            : base(replicaInfo, repository, entityKeyMapping)
         {
             this.ChangeHistory = changeHistory;
             this.ChangeHistoryFactory = changeHistoryFactory;
@@ -158,11 +171,20 @@ namespace Ardex.Sync.Providers
         /// Performs change history cleanup if necessary.
         /// Ensures that only the latest value for each node is kept.
         /// </summary>
-        protected override void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, TChangeHistory>> appliedDelta)
+        protected override void CleanUpSyncMetadata(IEnumerable<SyncEntityVersion<TEntity, TChangeHistory>> appliedChanges)
         {
+            // Materialise changes.
+            var appliedDelta = appliedChanges.ToList();
+
+            if (appliedDelta.Count == 0)
+        {
+                // Common case optimisation: avoid taking lock.
+                return;
+            }
+
             // We need exclusive access to change
             // history during the cleanup operation.
-            using (this.ChangeHistory.WriteLock())
+            using (this.ChangeHistory.WriteLock(3))
             {
                 var lastKnownVersionByReplica = this.LastKnownVersionByReplica(appliedDelta.Select(v => v.Version));
 
@@ -200,27 +222,6 @@ namespace Ardex.Sync.Providers
 
             return dict;
         }
-
-        #region ID generation
-
-        private Guid LastGeneratedGuid;
-
-        public Guid NewSequentialID()
-        {
-            var gb = new SyncGuidBuilder(this.LastGeneratedGuid);
-
-            gb.ReplicaID = this.ReplicaInfo.ReplicaID;
-            gb.ArticleID = this.ArticleID;
-            gb.EntityID++;
-
-            var guid = gb.ToGuid();
-
-            this.LastGeneratedGuid = guid;
-
-            return guid;
-        }
-
-        #endregion
 
         #region Cleanup
 

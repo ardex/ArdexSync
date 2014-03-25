@@ -12,17 +12,17 @@ namespace Ardex.TestClient.Tests
         /// Simulates serialization (creates shallow clones of all
         /// reference types) without actually filtering anything.
         /// </summary>
-        public static SyncFilter<TEntity, IChangeHistory> Serialization<TEntity>() where TEntity : new()
+        public static SyncFilter<TEntity, ChangeHistory> Serialization<TEntity>() where TEntity : new()
         {
             var entityMapping = new TypeMapping<TEntity>();
-            var changeHistoryMapping = new TypeMapping<IChangeHistory>();
+            var changeHistoryMapping = new TypeMapping<ChangeHistory>();
 
-            return new SyncFilter<TEntity, IChangeHistory>(
+            return new SyncFilter<TEntity, ChangeHistory>(
                 changes => changes.Select(
                     version =>
                     {
                         var newEntity = new TEntity();
-                        var newChangeHistory = (IChangeHistory)new ChangeHistory();
+                        var newChangeHistory = new ChangeHistory();
 
                         entityMapping.CopyValues(version.Entity, newEntity);
                         changeHistoryMapping.CopyValues(version.Version, newChangeHistory);

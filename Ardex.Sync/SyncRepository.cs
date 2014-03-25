@@ -154,10 +154,7 @@ namespace Ardex.Sync
         /// </summary>
         public void UntrackedInsert(TEntity entity)
         {
-            using (this.WriteLock())
-            {
-                base.Insert(entity);
-            }
+            base.Insert(entity);
 
             if (this.UntrackedChange != null)
             {
@@ -170,10 +167,7 @@ namespace Ardex.Sync
         /// </summary>
         public void UntrackedUpdate(TEntity entity)
         {
-            using (this.WriteLock())
-            {
-                base.Update(entity);
-            }
+            base.Update(entity);
 
             if (this.UntrackedChange != null)
             {
@@ -186,10 +180,7 @@ namespace Ardex.Sync
         /// </summary>
         public void UntrackedDelete(TEntity entity)
         {
-            using (this.WriteLock())
-            {
-                base.Delete(entity);
-            }
+            base.Delete(entity);
 
             if (this.UntrackedChange != null)
             {
@@ -218,4 +209,3 @@ namespace Ardex.Sync
         #endregion
     }
 }
-

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Threading;
 
 namespace Ardex.Sync.SyncOperations
@@ -47,14 +46,30 @@ namespace Ardex.Sync.SyncOperations
         /// </summary>
         protected override SyncResult SynchroniseDiff(CancellationToken ct)
         {
-            // Determine 
-            var anchor = this.LastAnchor();
+            var remoteAnchor = this.LastAnchor();
             ct.ThrowIfCancellationRequested();
 
-            var delta = this.ResolveDelta(anchor);
+            var delta = this.ResolveDelta(remoteAnchor);
             ct.ThrowIfCancellationRequested();
 
-            return this.AcceptChanges(delta);
+            if (delta.Changes.Length == 0)
+            {
+                #if PERF_DIAGNOSTICS
+                    Debug.WriteLine("SyncOperation<{0}>.SynchroniseDiff: no changes needed to be synchronised.", typeof(TEntity).Name);
+                #endif
+
+                // No need to call AcceptChanges:
+                // there are no changes to apply.
+                return new SyncResult();
+            }
+
+            var result = this.AcceptChanges(delta);
+
+            #if PERF_DIAGNOSTICS
+                Debug.WriteLine("SyncOperation<{0}>.SynchroniseDiff: {1} changes applied by AcceptChanges.", typeof(TEntity).Name, result.ChangeCount);
+            #endif
+
+            return result;
         }
 
         protected virtual SyncAnchor<TVersion> LastAnchor()

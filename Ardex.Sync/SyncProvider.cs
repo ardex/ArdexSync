@@ -11,7 +11,7 @@ namespace Ardex.Sync
     /// <summary>
     /// Base class for merge synchronisation providers.
     /// </summary>
-    public abstract class SyncProvider<TEntity, TKey, TVersion> : ISyncProvider<TEntity, TVersion>, IDisposable
+    public abstract class SyncProvider<TEntity, TKey, TVersion> : ISyncProvider<TEntity, TVersion>, IDisposable where TEntity : class
     {
         /// <summary>
         /// Unique ID of this replica.
@@ -117,6 +117,16 @@ namespace Ardex.Sync
                     "AcceptChanges cannot be called on a SyncProvider which is not backed by a repository.");
             }
 
+            if (remoteDelta.Changes.Length == 0)
+            {
+                // No changes needed to be synchronised.
+                #if PERF_DIAGNOSTICS
+                    Debug.WriteLine("SyncProvider<{0}>.AcceptChanges: no changes needed to accept.", typeof(TEntity).Name);
+                #endif
+
+                return new SyncResult();
+            }
+
             // Critical region: protected with exclusive lock.
             using (this.Repository.WriteLock())
             {
@@ -139,8 +149,9 @@ namespace Ardex.Sync
                     if (object.Equals(changeKey, default(TKey)))
                     {
                         throw new InvalidOperationException(
-                            "ChangeKey cannot be equal to the default value of TKey.");
-                            }
+                            "ChangeKey cannot be equal to the default value of TKey."
+                        );
+                    }
 
                     var existingEntity = existingEntities.Value.FirstOrDefault(e => object.Equals(changeKey, this.EntityKeyMapping(e)));
 
@@ -203,7 +214,8 @@ namespace Ardex.Sync
                 remoteDelta.Changes,
                 c => this.EntityKeyMapping(c.Entity),
                 c => this.EntityKeyMapping(c.Entity),
-                (local, remote) => new SyncConflict<TEntity, TVersion>(local, remote));
+                (local, remote) => new SyncConflict<TEntity, TVersion>(local, remote)
+            );
 
             // Default: fail if merge conflicts detected.
             if (this.ConflictStrategy == SyncConflictStrategy.Fail)

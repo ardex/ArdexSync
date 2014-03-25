@@ -9,6 +9,7 @@ namespace Ardex.Sync.Providers
     /// Sync provider for entities with integrated versioning support.
     /// </summary>
     public class SimpleRepositorySyncProvider<TEntity, TKey, TVersion> : SimpleSyncProvider<TEntity, TKey, TVersion>
+        where TEntity : class
     {
         public SyncEntityVersionMapping<TEntity, TVersion> EntityVersionMapping { get; private set; }
         public SyncEntityOwnerMapping<TEntity> OwnerReplicaIdMapping { get; private set; }

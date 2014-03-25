@@ -21,7 +21,7 @@ namespace Ardex.TestClient.Tests.Filtered
         public SyncRepository<ShortListPermission> ShortListPermissions { get; private set; }
 
         // Change tracking.
-        public SyncRepository<IChangeHistory> ChangeHistory { get; private set; }
+        public SyncRepository<ChangeHistory> ChangeHistory { get; private set; }
 
         // Providers.
         public ReplicaSyncProviders SyncProviders { get; private set; }
@@ -40,7 +40,7 @@ namespace Ardex.TestClient.Tests.Filtered
             this.ShortListPermissions = new SyncRepository<ShortListPermission>();
 
             // Change tracking.
-            this.ChangeHistory = new SyncRepository<IChangeHistory>();
+            this.ChangeHistory = new SyncRepository<ChangeHistory>();
 
             // Providers.
             this.SyncProviders = new ReplicaSyncProviders(this, cleanUpMetadata, conflictStrategy);

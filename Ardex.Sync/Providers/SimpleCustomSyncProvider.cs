@@ -4,6 +4,7 @@ using System.Collections.Generic;
 namespace Ardex.Sync.Providers
 {
     public class SimpleCustomSyncProvider<TEntity, TKey, TVersion> : SimpleSyncProvider<TEntity, TKey, TVersion>
+        where TEntity : class
     {
         private readonly Func<SyncAnchor<TVersion>> __lastAnchorFunc;
         private readonly Func<SyncAnchor<TVersion>, SyncDelta<TEntity, TVersion>> __resolveDeltaFunc;

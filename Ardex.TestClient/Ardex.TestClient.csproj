@@ -58,6 +58,7 @@
     <Compile Include="DummyDbContext.cs" />
     <Compile Include="DummyPermission.cs" />
     <Compile Include="RepositoryExtensions.cs" />
+    <Compile Include="SyncProviderExtensions.cs" />
     <Compile Include="TestForm.cs">
       <SubType>Form</SubType>
     </Compile>

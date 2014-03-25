@@ -21,10 +21,7 @@ namespace Ardex.Sync
                 var replicaIdBytes = new byte[4];
 
                 // Least significant byte first: don't need to reverse.
-                for (var i = 0; i < replicaIdBytes.Length; i++)
-                {
-                    replicaIdBytes[i] = guidBytes[i];
-                }
+                Array.Copy(guidBytes, replicaIdBytes, replicaIdBytes.Length);
 
                 return BitConverter.ToInt32(replicaIdBytes, 0);
             }
@@ -45,10 +42,7 @@ namespace Ardex.Sync
                 var articleIdBytes = new byte[2];
 
                 // Least significant byte first: don't need to reverse.
-                for (var i = 0; i < articleIdBytes.Length; i++)
-                {
-                    articleIdBytes[i] = guidBytes[i + 6];
-                }
+                Array.Copy(guidBytes, 6, articleIdBytes, 0, articleIdBytes.Length);
 
                 return BitConverter.ToInt16(articleIdBytes, 0);
             }

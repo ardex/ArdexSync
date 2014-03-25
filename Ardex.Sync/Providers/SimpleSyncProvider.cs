@@ -5,6 +5,7 @@ using Ardex.Sync.EntityMapping;
 namespace Ardex.Sync.Providers
 {
     public abstract class SimpleSyncProvider<TEntity, TKey, TVersion> : SyncProvider<TEntity, TKey, TVersion>
+        where TEntity : class
     {
         public override SyncConflictStrategy ConflictStrategy
         {

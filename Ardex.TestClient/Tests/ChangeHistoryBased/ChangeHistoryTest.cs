@@ -14,9 +14,9 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
     public class ChangeHistoryTest : IDisposable
     {
         // Sync providers.
-        public ChangeHistorySyncProvider<Dummy, IChangeHistory> Server { get; private set; }
-        public ChangeHistorySyncProvider<Dummy, IChangeHistory> Client1 { get; private set; }
-        public ChangeHistorySyncProvider<Dummy, IChangeHistory> Client2 { get; private set; }
+        public ChangeHistorySyncProvider<Dummy, ChangeHistory> Server { get; private set; }
+        public ChangeHistorySyncProvider<Dummy, ChangeHistory> Client1 { get; private set; }
+        public ChangeHistorySyncProvider<Dummy, ChangeHistory> Client2 { get; private set; }
 
         // Sync operations.
         public SyncOperation Client1Sync { get; private set; }
@@ -34,14 +34,14 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
             var client2Info = new SyncReplicaInfo(2, "Client 2");
 
             // Sync providers / in-memory storage.
-            this.Server = new ChangeHistorySyncProvider<Dummy, IChangeHistory>(
-                serverInfo, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid, () => new ChangeHistory());
+            this.Server = new ChangeHistorySyncProvider<Dummy, ChangeHistory>(
+                serverInfo, new SyncRepository<Dummy>(), new SyncRepository<ChangeHistory>(), d => d.EntityGuid);
 
-            this.Client1 = new ChangeHistorySyncProvider<Dummy, IChangeHistory>(
-                client1Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid, () => new ChangeHistory());
+            this.Client1 = new ChangeHistorySyncProvider<Dummy, ChangeHistory>(
+                client1Info, new SyncRepository<Dummy>(), new SyncRepository<ChangeHistory>(), d => d.EntityGuid);
 
-            this.Client2 = new ChangeHistorySyncProvider<Dummy, IChangeHistory>(
-                client2Info, new SyncRepository<Dummy>(), new SyncRepository<IChangeHistory>(), d => d.EntityGuid, () => new ChangeHistory());
+            this.Client2 = new ChangeHistorySyncProvider<Dummy, ChangeHistory>(
+                client2Info, new SyncRepository<Dummy>(), new SyncRepository<ChangeHistory>(), d => d.EntityGuid);
 
             // Change tracking and conflict config.
             this.Server.CleanUpMetadata = false;
