@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Ardex.Collections.Generic
 {
@@ -24,5 +25,19 @@ namespace Ardex.Collections.Generic
         /// key, or the default value for type.
         /// </summary>
         bool TryFind(TKey key, out TEntity entity);
+
+        /// <summary>
+        /// Performs an inner join between the given
+        /// items and the entities in this repository.
+        /// </summary>
+        IEnumerable<TResult> Join<TInner, TResult>(
+            IEnumerable<TInner> items, Func<TInner, TKey> keySelector, Func<TEntity, TInner, TResult> resultSelector);
+
+        /// <summary>
+        /// Performs an outer join between the given
+        /// items and the entities in this repository.
+        /// </summary>
+        IEnumerable<TResult> OuterJoin<TInner, TResult>(
+            IEnumerable<TInner> items, Func<TInner, TKey> keySelector, Func<TEntity, TInner, TResult> resultSelector);
     }
 }

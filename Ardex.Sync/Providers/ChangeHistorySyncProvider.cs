@@ -179,9 +179,8 @@ namespace Ardex.Sync.Providers
                         #endif
                     }
 
-                    var myChanges = changes
-                        .Select(ch => SyncEntityVersion.Create(this.Repository.Find(ch.EntityGuid), ch))
-                        .Where(v => v.Entity != null) // Inner join.
+                    var myChanges = this.Repository
+                        .Join(changes, c => c.EntityGuid, (entity, changeHistory) => SyncEntityVersion.Create(entity, changeHistory))
                         .OrderBy(c => c.Version, this.VersionComparer) // Ensure that the oldest changes for each replica are synchronised first.
                         .ToList();
 

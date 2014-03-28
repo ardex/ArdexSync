@@ -134,9 +134,6 @@ namespace Ardex.Sync
                     var updates = new List<TEntity>();
                     var deletes = new List<TEntity>();
 
-                // Materialise repository entities, but only if necessary.
-                var existingEntities = new Lazy<List<TEntity>>(this.Repository.ToList);
-
                 // We need to ensure that all changes are processed in such
                 // an order that if we fail, we'll be able to resume later.
                 foreach (var change in remoteDelta.Changes.OrderBy(c => c.Version, this.VersionComparer))
@@ -150,21 +147,9 @@ namespace Ardex.Sync
                         );
                     }
 
-                    var existingEntity = this.Repository.Find(changeKey);
+                    var existingEntity = default(TEntity);
 
-                    if (existingEntity == null)
-                    {
-                        // Not found.
-                        if (this.PreInsertProcessing != null)
-                        {
-                            this.PreInsertProcessing(change.Entity);
-                        }
-
-                        this.Repository.UntrackedInsert(change.Entity);
-                        existingEntities.Value.Add(change.Entity);
-                        inserts.Add(change.Entity);
-                    }
-                    else
+                    if (this.Repository.TryFind(changeKey, out existingEntity))
                     {
                         // Found.
                         var changeCount = this.EntityTypeMapping.CopyValues(change.Entity, existingEntity);
@@ -174,6 +159,17 @@ namespace Ardex.Sync
                             this.Repository.UntrackedUpdate(existingEntity);
                             updates.Add(existingEntity);
                         }
+                    }
+                    else
+                    {
+                        // Not found.
+                        if (this.PreInsertProcessing != null)
+                        {
+                            this.PreInsertProcessing(change.Entity);
+                        }
+
+                        this.Repository.UntrackedInsert(change.Entity);
+                        inserts.Add(change.Entity);
                     }
 
                     // Write remote change history entry to local change history.
