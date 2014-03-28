@@ -7,7 +7,7 @@ namespace Ardex.Sync
     /// <summary>
     /// IRepository which supports locking (used in sync operations).
     /// </summary>
-    public interface ISyncRepository<TKey, TEntity> : IDictionaryRepository<TKey, TEntity>
+    public interface ISyncRepository<TKey, TEntity> : IKeyRepository<TKey, TEntity>
     {
         /// <summary>
         /// Lock used to protect read and write

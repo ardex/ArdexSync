@@ -10,7 +10,7 @@ namespace Ardex.Collections.Generic
     /// Fully supports adding, updating and deleting entities and raises
     /// events when the underlying collection is modified.
     /// </summary>
-    public class DictionaryRepository<TKey, TEntity> : IDictionaryRepository<TKey, TEntity>
+    public class KeyRepository<TKey, TEntity> : IKeyRepository<TKey, TEntity>
     {
         /// <summary>
         /// Underlying dictionary of entities.
@@ -51,7 +51,7 @@ namespace Ardex.Collections.Generic
         /// <summary>
         /// Delegate used to extract unique keys from collection elements.
         /// </summary>
-        Func<TEntity, TKey> IDictionaryRepository<TKey, TEntity>.KeySelector
+        Func<TEntity, TKey> IKeyRepository<TKey, TEntity>.KeySelector
         {
             get { return this.KeySelector; }
         }
@@ -74,7 +74,7 @@ namespace Ardex.Collections.Generic
         /// <summary>
         /// Initializes a new instance of the <see cref="Ardex.Collections.DictionaryRepository`1"/> class.
         /// </summary>
-        public DictionaryRepository(Func<TEntity, TKey> keySelector)
+        public KeyRepository(Func<TEntity, TKey> keySelector)
         {
             __entities = new Dictionary<TKey, TEntity>();
             
@@ -90,7 +90,7 @@ namespace Ardex.Collections.Generic
         /// <exception cref='ArgumentNullException'>
         /// Is thrown when an argument passed to a method is invalid because it is <see langword="null" /> .
         /// </exception>
-        public DictionaryRepository(IEnumerable<TEntity> entities, Func<TEntity, TKey> keySelector)
+        public KeyRepository(IEnumerable<TEntity> entities, Func<TEntity, TKey> keySelector)
         {
             if (entities == null)
                 throw new ArgumentNullException("entities");
@@ -153,6 +153,8 @@ namespace Ardex.Collections.Generic
             this.OnEntityDeleted(entity);
         }
 
+        #region KeyRepository goodies
+
         /// <summary>
         /// Returns the element with the specified
         /// key, or the default value for type.
@@ -161,10 +163,65 @@ namespace Ardex.Collections.Generic
         {
             var entity = default(TEntity);
 
-            this.Entities.TryGetValue(key, out entity);
+            this.TryFind(key, out entity);
 
             return entity;
         }
+
+        /// <summary>
+        /// Returns the element with the specified
+        /// key, or the default value for type.
+        /// </summary>
+        public virtual bool TryFind(TKey key, out TEntity entity)
+        {
+            return this.Entities.TryGetValue(key, out entity);
+        }
+
+        /// <summary>
+        /// Performs an inner join between the given
+        /// items and the entities in this repository.
+        /// </summary>
+        public virtual IEnumerable<TResult> Join<TInner, TResult>(
+            IEnumerable<TInner> items, Func<TInner, TKey> keySelector, Func<TEntity, TInner, TResult> resultSelector)
+        {
+            foreach (var item in items)
+            {
+                // Resolve item's foreign key value.
+                var keyValue = keySelector(item);
+
+                // Matching entity or default(TEntity).
+                var matchingEntity = default(TEntity);
+
+                if (this.TryFind(keyValue, out matchingEntity))
+                {
+                    var result = resultSelector(matchingEntity, item);
+
+                    yield return result;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Performs an outer join between the given
+        /// items and the entities in this repository.
+        /// </summary>
+        public virtual IEnumerable<TResult> OuterJoin<TInner, TResult>(
+            IEnumerable<TInner> items, Func<TInner, TKey> keySelector, Func<TEntity, TInner, TResult> resultSelector)
+        {
+            foreach (var item in items)
+            {
+                // Resolve item's foreign key value.
+                var keyValue = keySelector(item);
+
+                // Matching entity or default(TEntity).
+                var matchingEntity = this.Find(keyValue);
+                var result = resultSelector(matchingEntity, item);
+
+                yield return result;
+            }
+        }
+
+        #endregion
 
         #region IEnumerable implementation
 
@@ -254,7 +311,7 @@ namespace Ardex.Collections.Generic
         /// <summary>
         /// Destructor.
         /// </summary>
-        ~DictionaryRepository()
+        ~KeyRepository()
         {
             this.Dispose(false);
         }

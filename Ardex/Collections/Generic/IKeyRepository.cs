@@ -6,7 +6,7 @@ namespace Ardex.Collections.Generic
     /// Operation contract for a common container
     /// with elements identified by their unique keys.
     /// </summary>
-    public interface IDictionaryRepository<TKey, TEntity> : IRepository<TEntity>
+    public interface IKeyRepository<TKey, TEntity> : IRepository<TEntity>
     {
         /// <summary>
         /// Delegate used to extract unique keys from collection elements.
@@ -18,5 +18,11 @@ namespace Ardex.Collections.Generic
         /// key, or the default value for type.
         /// </summary>
         TEntity Find(TKey key);
+
+        /// <summary>
+        /// Returns the element with the specified
+        /// key, or the default value for type.
+        /// </summary>
+        bool TryFind(TKey key, out TEntity entity);
     }
 }

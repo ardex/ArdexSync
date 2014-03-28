@@ -10,9 +10,9 @@ using Ardex.Sync.SyncLocks;
 namespace Ardex.Sync
 {
     /// <summary>
-    /// ProxyRepository implementation which supports locking (used in sync operations).
+    /// IRepository implementation which supports locking (used in sync operations).
     /// </summary>
-    public class SyncRepository<TKey, TEntity> : DictionaryRepository<TKey, TEntity>, ISyncRepository<TKey, TEntity>
+    public class SyncRepository<TKey, TEntity> : KeyRepository<TKey, TEntity>, ISyncRepository<TKey, TEntity>
     {
         /// <summary>
         /// Backing field for Lock.

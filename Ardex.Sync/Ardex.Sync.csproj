@@ -78,6 +78,7 @@
     <Compile Include="SyncProvider.cs" />
     <Compile Include="SyncReplicaInfo.cs" />
     <Compile Include="SyncRepository.cs" />
+    <Compile Include="SyncRepository2.cs" />
     <Compile Include="SyncRepositoryExtensions.cs" />
     <Compile Include="SyncResult.cs" />
     <Compile Include="Timestamp.cs" />
