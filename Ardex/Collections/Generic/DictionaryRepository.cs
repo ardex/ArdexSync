@@ -10,7 +10,7 @@ namespace Ardex.Collections.Generic
     /// Fully supports adding, updating and deleting entities and raises
     /// events when the underlying collection is modified.
     /// </summary>
-    public class DictionaryRepository<TKey, TEntity> : IRepository<TEntity>
+    public class DictionaryRepository<TKey, TEntity> : IDictionaryRepository<TKey, TEntity>
     {
         /// <summary>
         /// Underlying dictionary of entities.
@@ -31,6 +31,11 @@ namespace Ardex.Collections.Generic
         }
 
         /// <summary>
+        /// Delegate used to extract unique keys from collection elements.
+        /// </summary>
+        protected Func<TEntity, TKey> KeySelector { get; private set; }
+
+        /// <summary>
         /// Gets the number of entities in the repository.
         /// </summary>
         public virtual int Count
@@ -46,7 +51,10 @@ namespace Ardex.Collections.Generic
         /// <summary>
         /// Delegate used to extract unique keys from collection elements.
         /// </summary>
-        public Func<TEntity, TKey> KeySelector { get; private set; }
+        Func<TEntity, TKey> IDictionaryRepository<TKey, TEntity>.KeySelector
+        {
+            get { return this.KeySelector; }
+        }
 
         /// <summary>
         /// Occurs when entity is inserted.
@@ -69,7 +77,7 @@ namespace Ardex.Collections.Generic
         public DictionaryRepository(Func<TEntity, TKey> keySelector)
         {
             __entities = new Dictionary<TKey, TEntity>();
-
+            
             this.KeySelector = keySelector;
         }
 
@@ -88,7 +96,7 @@ namespace Ardex.Collections.Generic
                 throw new ArgumentNullException("entities");
 
             __entities = entities.ToDictionary(keySelector);
-
+            
             this.KeySelector = keySelector;
         }
 
