@@ -10,6 +10,11 @@ namespace Ardex.Sync.ChangeTracking
     public class ChangeHistory : IChangeHistory
     {
         /// <summary>
+        /// Backing field for Timestamp.
+        /// </summary>
+        private Timestamp _timestamp;
+
+        /// <summary>
         /// Local ID (primary key).
         /// </summary>
         public int ChangeHistoryID { get; set; }
@@ -33,7 +38,19 @@ namespace Ardex.Sync.ChangeTracking
         /// <summary>
         /// Replica-generated timestamp for the change.
         /// </summary>
-        public string Timestamp { get; set; }
+        public string Timestamp
+        {
+            get
+            {
+                var t = _timestamp;
+
+                return t == null ? null : t.ToString();
+            }
+            set
+            {
+                _timestamp = (value == null ? null : new Timestamp(value));
+            }
+        }
 
         /// <summary>
         /// Type of change.
@@ -63,16 +80,11 @@ namespace Ardex.Sync.ChangeTracking
         {
             get
             {
-                if (string.IsNullOrEmpty(this.Timestamp))
-                {
-                    return null;
-                }
-
-                return new Timestamp(this.Timestamp);
+                return _timestamp;
             }
             set
             {
-                this.Timestamp = (value == null ? null : value.ToString());
+                _timestamp = value;
             }
         }
 
@@ -100,7 +112,7 @@ namespace Ardex.Sync.ChangeTracking
         /// </summary>
         public ChangeHistory()
         {
-
+            
         }
 
         /// <summary>

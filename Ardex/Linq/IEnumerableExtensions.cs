@@ -38,6 +38,16 @@ namespace Ardex.Linq
 
             return -1;
         }
+
+        public static ISet<T> ToSet<T>(this IEnumerable<T> collection)
+        {
+            return new HashSet<T>(collection);
+        }
+
+        public static ISet<T> ToSet<T>(this IEnumerable<T> collection, IEqualityComparer<T> comparer)
+        {
+            return new HashSet<T>(collection, comparer);
+        }
     }
 }
 

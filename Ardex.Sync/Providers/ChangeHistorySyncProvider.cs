@@ -142,6 +142,38 @@ namespace Ardex.Sync.Providers
 
             try
             {
+                //// We need locks on both repositories,
+                //// but we don't want to hold it for too long.
+                //var changeHistory = default(IReadOnlyList<TChangeHistory>);
+                //var entities = default(Dictionary<Guid, TEntity>);
+                //var myAnchor = default(SyncAnchor<TChangeHistory>);
+
+                //using (this.Repository.SyncLock.ReadLock())
+                //using (this.ChangeHistory.SyncLock.ReadLock())
+                //{
+                //    changeHistory = this.FilteredChangeHistory
+                //        .Where(ch =>
+                //        {
+                //            TChangeHistory version;
+
+                //            return
+                //                !remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
+                //                this.VersionComparer.Compare(ch, version) > 0;
+                //        })
+                //        .ToList();
+
+                //    entities = this.Repository.ToDictionary(e => this.EntityKeyMapping(e));
+                //    myAnchor = this.LastAnchor();
+                //}
+
+                //var myChanges = changeHistory
+                //    .Select(ch => SyncEntityVersion.Create(entities[ch.EntityGuid], ch))
+                //    // Ensure that the oldest changes for each replica are synchronised first.
+                //    .OrderBy(c => c.Version, this.VersionComparer)
+                //    .ToList();
+
+                //return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
+
                 // We need locks on both repositories,
                 // but we don't want to hold it for too long.
                 var changeHistory = default(IReadOnlyList<TChangeHistory>);
@@ -154,7 +186,7 @@ namespace Ardex.Sync.Providers
                     changeHistory = this.FilteredChangeHistory
                         .Where(ch =>
                         {
-                            var version = default(TChangeHistory);
+                            TChangeHistory version;
 
                             return
                                 !remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
@@ -179,34 +211,6 @@ namespace Ardex.Sync.Providers
                     .ToList();
 
                 return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
-
-                //// We need locks on both repositories.
-                //using (this.Repository.ReadLock())
-                //using (this.ChangeHistory.ReadLock())
-                //{
-                //    var myAnchor = this.LastAnchor();
-
-                //    var myChanges = this.FilteredChangeHistory
-                //        .Where(ch =>
-                //        {
-                //            var version = default(TChangeHistory);
-
-                //            return
-                //                !remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
-                //                this.VersionComparer.Compare(ch, version) > 0;
-                //        })
-                //        .ToList()
-                //        .Join(
-                //            this.Repository.ToList(),
-                //            ch => ch.EntityGuid,
-                //            ch => this.EntityKeyMapping(ch),
-                //            (ch, entity) => SyncEntityVersion.Create(entity, ch))
-                //        // Ensure that the oldest changes for each replica are sync first.
-                //        .OrderBy(c => c.Version, this.VersionComparer)
-                //        .AsEnumerable();
-
-                //    return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
-                //}
             }
             finally
             {

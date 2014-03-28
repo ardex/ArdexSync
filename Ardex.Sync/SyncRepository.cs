@@ -42,22 +42,8 @@ namespace Ardex.Sync
             get
             {
                 using (__syncLock.ReadLock())
-            {
-                    return base.Count;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets the entity at the specified index.
-        /// </summary>
-        public override TEntity this[int index]
-        {
-            get
-            {
-                using (__syncLock.ReadLock())
                 {
-                    return base[index];
+                    return base.Count;
                 }
             }
         }
@@ -191,7 +177,7 @@ namespace Ardex.Sync
                     var list = this.Entities.ToList();
 
                     if (list.Count == this.Entities.Count)
-            {
+                    {
                         return list;
                     }
                 }

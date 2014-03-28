@@ -58,20 +58,6 @@ namespace Ardex.Collections.Generic
         }
 
         /// <summary>
-        /// Gets the <see cref="Ardex.Collections.ListRepository`1"/> at the specified index.
-        /// </summary>
-        /// <param name='index'>
-        /// Index.
-        /// </param>
-        public virtual TEntity this[int index]
-        {
-            get
-            {
-                return this.Entities[index];
-            }
-        }
-
-        /// <summary>
 		/// Occurs when entity is inserted.
 		/// </summary>
 		public event Action<TEntity> EntityInserted;

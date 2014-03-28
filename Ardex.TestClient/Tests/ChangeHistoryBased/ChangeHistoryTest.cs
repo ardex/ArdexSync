@@ -94,7 +94,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
         public async Task RunAsync()
         {
-            const int NUM_ITERATIONS = 200;
+            const int NUM_ITERATIONS = 500;
 
             for (var iterations = 0; iterations < NUM_ITERATIONS; iterations++)
             {
