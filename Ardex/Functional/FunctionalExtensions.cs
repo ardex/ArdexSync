@@ -12,9 +12,11 @@ namespace Ardex.Functional
         /// <summary>
         /// Enables simple inline operations on objects of any type.
         /// </summary>
-        public static void Apply<T>(this T input, Action<T> action)
+        public static T Apply<T>(this T input, Action<T> action)
         {
             action(input);
+
+            return input;
         }
 
         /// <summary>

@@ -1,135 +1,222 @@
-﻿using System;
-using System.Threading;
+﻿//using System;
 
-#if PERF_DIAGNOSTICS
-    using System.Diagnostics;
-#endif
+//#if DEBUG
 
-namespace Ardex.Sync
-{
-    /// <summary>
-    /// Commonly used extensions on ISyncRepository{T}.
-    /// </summary>
-    public static class SyncRepositoryExtensions
-    {
-        //private static readonly ReaderWriterLockSlim Lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+//using System.Collections.Generic;
+//    using System.Diagnostics;
+//using System.Linq;
+//using System.Runtime.CompilerServices;
+//using System.Threading;
+//using System.Threading.Tasks;
 
-        /// <summary>
-        /// Attempts to take out a read lock on the
-        /// repository and throws a SyncDeadlockException
-        /// if the lock cannot be obtained in the time
-        /// period defined by SyncConstants.DeadlockTimeout.
-        /// Returns an object which releases the lock when disposed.
-        /// </summary>
-        public static IDisposable ReadLock<T>(this ISyncRepository<T> repository)
-        {
-            return repository.ReadLock(1);
-        }
+//#endif
 
-        /// <summary>
-        /// Attempts to take out a read lock on the
-        /// repository and throws a SyncDeadlockException
-        /// if the lock cannot be obtained in the time
-        /// period defined by SyncConstants.DeadlockTimeout.
-        /// Returns an object which releases the lock when disposed.
-        /// </summary>
-        public static IDisposable ReadLock<T>(this ISyncRepository<T> repository, int allowedAttempts)
-        {
-            if (allowedAttempts < 1) throw new ArgumentException("Allowed attempt count must be greater than zero.");
+//namespace Ardex.Sync
+//{
+//    /// <summary>
+//    /// Commonly used extensions on ISyncRepository{T}.
+//    /// </summary>
+//    public static class SyncRepositoryExtensions
+//    {
+//        #if DEBUG
+//        private static readonly List<float> ReadLockDurations = new List<float>();
+//        private static readonly List<float> WriteLockDurations = new List<float>();
+//        #endif
 
-            return new DisposableActor(() => { });
+//        #if DEBUG
 
-            #if PERF_DIAGNOSTICS
-                var stopwatch = Stopwatch.StartNew();
-            #endif
+//        /// <summary>
+//        /// Attempts to take out a read lock on the
+//        /// repository and throws a SyncDeadlockException
+//        /// if the lock cannot be obtained in the time
+//        /// period defined by SyncConstants.DeadlockTimeout.
+//        /// Returns an object which releases the lock when disposed.
+//        /// </summary>
+//        public static IDisposable ReadLock<T>(this ISyncRepository<T> repository, [CallerMemberName] string caller = null)
+//        {
+//            var sw = Stopwatch.StartNew();
 
-            for (var i = 0; i < allowedAttempts; i++)
-            {
-                if (repository.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
-                {
-                    /*
-                    #if PERF_DIAGNOSTICS
-                        Debug.WriteLine(
-                            "ISyncRepository<{0}>.ReadLock taken after {1} attempts and {2:0.###} s.",
-                            typeof(T).Name,
-                            i + 1,
-                            (float)stopwatch.ElapsedMilliseconds / 1000
-                        );
-                    #endif
-                    */
+//            try
+//            {
+//                if (repository.SyncLock.IsReadLockHeld || repository.SyncLock.IsWriteLockHeld)
+//                {
+//                    return Disposables.Null;
+//                }
 
-                    return new DisposableActor(repository.Lock.ExitReadLock);
-                }
-            }
+//                if (repository.SyncLock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
+//                {
+//                    return Disposables.Once(() =>
+//                    {
+//                        repository.SyncLock.ExitReadLock();
 
-            #if PERF_DIAGNOSTICS
-                Debug.WriteLine(
-                    "ISyncRepository<{0}>.ReadLock FAILED after {1} attempts and {2:0.###} s.",
-                    typeof(T).Name,
-                    allowedAttempts,
-                    (float)stopwatch.ElapsedMilliseconds / 1000
-                );
-            #endif
+//                        var lockDuration = (float)sw.ElapsedMilliseconds / 1000;
 
-            throw new SyncDeadlockException();
-        }
+//                        Debug.WriteLine(
+//                            "ISyncRepository<{0}>.ReadLock() released after being held for {1:0.###} seconds. Caller: {2}",
+//                            typeof(T).Name,
+//                            lockDuration,
+//                            caller
+//                        );
 
-        /// <summary>
-        /// Attempts to take out a write lock on the
-        /// repository and throws a SyncDeadlockException
-        /// if the lock cannot be obtained in the time
-        /// period defined by SyncConstants.DeadlockTimeout.
-        /// Returns an object which releases the lock when disposed.
-        /// </summary>
-        public static IDisposable WriteLock<T>(this ISyncRepository<T> repository)
-        {
-            return repository.WriteLock(1);
-        }
+//                        lock (ReadLockDurations)
+//        {
+//                            ReadLockDurations.Add(lockDuration);
+//                            Debug.WriteLine("Average read lock duration: {0:0.###} seconds.", ReadLockDurations.Average());
+//                        }
+//                    });
+//                }
 
-        /// <summary>
-        /// Attempts to take out a write lock on the
-        /// repository and throws a SyncDeadlockException
-        /// if the lock cannot be obtained in the time
-        /// period defined by SyncConstants.DeadlockTimeout.
-        /// Returns an object which releases the lock when disposed.
-        /// </summary>
-        public static IDisposable WriteLock<T>(this ISyncRepository<T> repository, int allowedAttempts)
-        {
-            if (allowedAttempts < 1) throw new ArgumentException("Allowed attempt count must be greater than zero.");
+//                throw new SyncDeadlockException();
+//            }
+//            finally
+//            {
+//                Debug.WriteLine(
+//                    "ISyncRepository<{0}>.ReadLock() acquisition took {1:0.###} seconds. Caller: {2}",
+//                    typeof(T).Name,
+//                    (float)sw.ElapsedMilliseconds / 1000,
+//                    caller
+//                );
+//            }
+//        }
 
-            #if PERF_DIAGNOSTICS
-                var stopwatch = Stopwatch.StartNew();
-            #endif
+//        /// <summary>
+//        /// Attempts to take out a write lock on the
+//        /// repository and throws a SyncDeadlockException
+//        /// if the lock cannot be obtained in the time
+//        /// period defined by SyncConstants.DeadlockTimeout.
+//        /// Returns an object which releases the lock when disposed.
+//        /// </summary>
+//        public static IDisposable WriteLock<T>(this ISyncRepository<T> repository, [CallerMemberName] string caller = null)
+//        {
+//            var sw = Stopwatch.StartNew();
 
-            for (var i = 0; i < allowedAttempts; i++)
-            {
-                if (repository.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
-                {
-                    /*
-                    #if PERF_DIAGNOSTICS
-                        Debug.WriteLine(
-                            "ISyncRepository<{0}>.WriteLock taken after {1} attempts and {2:0.###} s.",
-                            typeof(T).Name,
-                            i + 1,
-                            (float)stopwatch.ElapsedMilliseconds / 1000
-                        );
-                    #endif
-                    */
+//            try
+//            {
+//                if (repository.SyncLock.IsWriteLockHeld)
+//                {
+//                    return Disposables.Null;
+//                }
 
-                    return new DisposableActor(repository.Lock.ExitWriteLock);
-                }
-            }
+//                if (repository.SyncLock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+//            {
+//                    return Disposables.Once(() =>
+//                {
+//                        repository.SyncLock.ExitWriteLock();
 
-            #if PERF_DIAGNOSTICS
-                Debug.WriteLine(
-                    "ISyncRepository<{0}>.WriteLock FAILED after {1} attempts and {2:0.###} s.",
-                    typeof(T).Name,
-                    allowedAttempts,
-                    (float)stopwatch.ElapsedMilliseconds / 1000
-                );
-            #endif
+//                        var lockDuration = (float)sw.ElapsedMilliseconds / 1000;
 
-            throw new SyncDeadlockException();
-        }
-    }
-}
+//                        Debug.WriteLine(
+//                            "ISyncRepository<{0}>.WriteLock() released after being held for {1:0.###} seconds. Caller: {2}",
+//                            typeof(T).Name,
+//                            lockDuration,
+//                            caller
+//                        );
+
+//                        lock (WriteLockDurations)
+//                        {
+//                            WriteLockDurations.Add(lockDuration);
+//                            Debug.WriteLine("Average write lock duration: {0:0.###} seconds.", WriteLockDurations.Average());
+//                }
+//                    });
+//            }
+
+//                throw new SyncDeadlockException();
+//            }
+//            finally
+//            {
+//                Debug.WriteLine(
+//                    "ISyncRepository<{0}>.WriteLock() acquisition took {1:0.###} seconds. Caller: {2}",
+//                    typeof(T).Name,
+//                    (float)sw.ElapsedMilliseconds / 1000,
+//                    caller
+//                );
+//            }
+//        }
+
+//        public static async void ReaderWriterLockTest(int degreeOfParallelisation, Action sleepAction)
+//        {
+//            using (var syncLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion))
+//            {
+//                var readStopwatch = Stopwatch.StartNew();
+
+//                var readTasks = Enumerable
+//                    .Range(0, degreeOfParallelisation)
+//                    .Select(_ => Task.Run(() =>
+//                    {
+//                        syncLock.EnterReadLock();
+//                        sleepAction();
+//                        syncLock.ExitReadLock();
+//                    }))
+//                    .ToArray();
+
+//                await Task.WhenAll(readTasks);
+
+//                Debug.WriteLine("ReadTasks completed in {0:0.###} seconds.", (float)readStopwatch.ElapsedMilliseconds / 1000);
+
+//                var writeStopwatch = Stopwatch.StartNew();
+
+//                var writeTasks = Enumerable
+//                    .Range(0, degreeOfParallelisation)
+//                    .Select(_ => Task.Run(() =>
+//                    {
+//                        syncLock.EnterWriteLock();
+//                        sleepAction();
+//                        syncLock.ExitWriteLock();
+//                    }))
+//                    .ToArray();
+
+//                await Task.WhenAll(writeTasks);
+
+//                Debug.WriteLine("WriteTasks completed in {0:0.###} seconds.", (float)writeStopwatch.ElapsedMilliseconds / 1000);
+//            }
+//        }
+
+//        #else
+
+//        /// <summary>
+//        /// Attempts to take out a read lock on the
+//        /// repository and throws a SyncDeadlockException
+//        /// if the lock cannot be obtained in the time
+//        /// period defined by SyncConstants.DeadlockTimeout.
+//        /// Returns an object which releases the lock when disposed.
+//        /// </summary>
+//        public static IDisposable ReadLock<T>(this ISyncRepository<T> repository)
+//        {
+//            if (repository.SyncLock.IsReadLockHeld || repository.SyncLock.IsWriteLockHeld)
+//            {
+//                return Disposables.Null;
+//            }
+
+//            if (repository.SyncLock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
+//            {
+//                return new DisposableActor(repository.SyncLock.ExitReadLock);
+//            }
+
+//            throw new SyncDeadlockException();
+//        }
+
+//        /// <summary>
+//        /// Attempts to take out a write lock on the
+//        /// repository and throws a SyncDeadlockException
+//        /// if the lock cannot be obtained in the time
+//        /// period defined by SyncConstants.DeadlockTimeout.
+//        /// Returns an object which releases the lock when disposed.
+//        /// </summary>
+//        public static IDisposable WriteLock<T>(this ISyncRepository<T> repository)
+//        {
+//            if (repository.SyncLock.IsWriteLockHeld)
+//                {
+//                return Disposables.Null;
+//            }
+
+//            if (repository.SyncLock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+//            {
+//                return new DisposableActor(repository.SyncLock.ExitWriteLock);
+//            }
+
+//            throw new SyncDeadlockException();
+//        }
+
+//        #endif
+//    }
+//}

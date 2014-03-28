@@ -18,7 +18,12 @@ namespace Ardex.Sync
         /// </summary>
         static SyncConstants()
         {
+            #if DEBUG
             SyncConstants.DeadlockTimeout = TimeSpan.FromSeconds(15);
+            #else
+            SyncConstants.DeadlockTimeout = TimeSpan.FromSeconds(30);
+            #endif
+
         }
     }
 }

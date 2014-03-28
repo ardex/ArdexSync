@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 
 namespace Ardex.Threading.Async
 {
-    /*
     /// <summary>
     /// Provides support for asynchronous lazy initialisation.
     /// This type is fully thread-safe.
@@ -16,13 +15,19 @@ namespace Ardex.Threading.Async
         /// Creates a new instance of the class.
         /// </summary>
         /// <param name="valueFactory">The delegate that is invoked on a background thread to produce the value when it is needed.</param>
-        public AsyncLazy(Func<T> valueFactory) : base(() => Task.Run(valueFactory)) { }
+        public AsyncLazy(Func<T> valueFactory) : base(() => Task.Run(valueFactory))
+        {
+
+        }
 
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
         /// <param name="taskFactory">The asynchronous delegate that is invoked on a background thread to produce the value when it is needed.</param> 
-        public AsyncLazy(Func<Task<T>> taskFactory) : base(() => Task.Run(taskFactory)) { }
+        public AsyncLazy(Func<Task<T>> taskFactory) : base(() => Task.Run(taskFactory))
+        {
+
+        }
 
         /// <summary>
         /// Gets the awaiter (thus making this type awaitable).
@@ -41,6 +46,5 @@ namespace Ardex.Threading.Async
             var _ = this.Value;
         }
     }
-    */
 }
 

@@ -1,46 +1,38 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
 using Ardex.Collections.Generic;
+using Ardex.Sync.SyncLocks;
 
 namespace Ardex.Sync
 {
     /// <summary>
     /// ProxyRepository implementation which supports locking (used in sync operations).
     /// </summary>
-    public class SyncRepository<TEntity> : ProxyRepository<TEntity>, ISyncRepository<TEntity>
+    public class SyncRepository<TEntity> : ListRepository<TEntity>, ISyncRepository<TEntity>
     {
         /// <summary>
         /// Backing field for Lock.
-        /// </summary>
-        private readonly ReaderWriterLockSlim __lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        /// </summary>s
+        private readonly ISyncLock __syncLock;
 
         /// <summary>
         /// Lock used to protect read and write
         /// operations in this repository.
         /// </summary>
-        ReaderWriterLockSlim ISyncRepository<TEntity>.Lock
+        ISyncLock ISyncRepository<TEntity>.SyncLock
         {
-            get { return __lock; }
+            get { return __syncLock; }
         }
 
         /// <summary>
-        /// Overridden to always return False.
-        /// Event forwarding is not supported.
+        /// Flag indicating that this instance
+        /// owns (i.e. disposes of) the sync lock.
         /// </summary>
-        public override bool ForwardEvents
-        {
-            get
-            {
-                return false;
-            }
-            set
-            {
-                throw new NotSupportedException("Event forwarding is not supported by SyncRepository.");
-            }
-        }
+        private bool OwnsLock { get; set; }
 
         /// <summary>
         /// Gets the number of entities in the respository.
@@ -49,9 +41,23 @@ namespace Ardex.Sync
         {
             get
             {
-                using (this.ReadLock())
-                {
+                using (__syncLock.ReadLock())
+            {
                     return base.Count;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the entity at the specified index.
+        /// </summary>
+        public override TEntity this[int index]
+        {
+            get
+            {
+                using (__syncLock.ReadLock())
+                {
+                    return base[index];
                 }
             }
         }
@@ -59,17 +65,45 @@ namespace Ardex.Sync
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public SyncRepository() { }
-
-        /// <summary>
-        /// Initialises a new instance wrapping the given repository.
-        /// </summary>
-        public SyncRepository(IRepository<TEntity> repository) : base(repository) { }
+        public SyncRepository()
+            : this(new ReaderWriterSyncLock())
+        {
+            this.OwnsLock = true;
+        }
 
         /// <summary>
         /// Initialises a new instance pre-populated with the given entities.
         /// </summary>
-        public SyncRepository(IEnumerable<TEntity> entities) : base(entities) { }
+        public SyncRepository(IEnumerable<TEntity> entities)
+            : this(entities, new ReaderWriterSyncLock())
+        {
+            this.OwnsLock = true;
+        }
+
+        /// <summary>
+        /// Initialises a new instance using the given lock object.
+        /// </summary>
+        public SyncRepository(ISyncLock syncLock)
+        {
+            if (syncLock == null) throw new ArgumentNullException("syncLock");
+
+            __syncLock = syncLock;
+
+            this.OwnsLock = false;
+        }
+
+        /// <summary>
+        /// Initialises a new instance pre-populated
+        /// with the given entities and lock object.
+        /// </summary>
+        public SyncRepository(IEnumerable<TEntity> entities, ISyncLock syncLock) : base(entities)
+        {
+            if (syncLock == null) throw new ArgumentNullException("syncLock");
+
+            __syncLock = syncLock;
+
+            this.OwnsLock = false;
+        }
 
         /// <summary>
         /// Raised after a tracked insert, update or delete.
@@ -82,14 +116,18 @@ namespace Ardex.Sync
         public event Action<TEntity, SyncEntityChangeAction> UntrackedChange;
 
         /// <summary>
-        /// Inserts the specified entity.
+        /// Insert the specified entity.
         /// </summary>
         public override void Insert(TEntity entity)
         {
-            using (this.WriteLock())
+            this.ThrowIfDisposed();
+
+            using (__syncLock.WriteLock())
             {
-                base.Insert(entity);
+                this.Entities.Add(entity);
             }
+
+            this.OnEntityInserted(entity);
 
             if (this.TrackedChange != null)
             {
@@ -98,14 +136,21 @@ namespace Ardex.Sync
         }
 
         /// <summary>
-        /// Updates the specified entity.
+        /// Update the specified entity.
         /// </summary>
         public override void Update(TEntity entity)
         {
-            using (this.WriteLock())
+            this.ThrowIfDisposed();
+
+            // We're not doing anything
+            // to the collection, but
+            // still need an exclusive lock.
+            using (__syncLock.WriteLock())
             {
-                base.Update(entity);
+
             }
+
+            this.OnEntityUpdated(entity);
 
             if (this.TrackedChange != null)
             {
@@ -114,18 +159,68 @@ namespace Ardex.Sync
         }
 
         /// <summary>
-        /// Deletes the specified entity.
+        /// Delete the specified entity.
         /// </summary>
         public override void Delete(TEntity entity)
         {
-            using (this.WriteLock())
+            this.ThrowIfDisposed();
+
+            using (__syncLock.WriteLock())
             {
-                base.Delete(entity);
+                this.Entities.Remove(entity);
             }
+
+            this.OnEntityDeleted(entity);
 
             if (this.TrackedChange != null)
             {
                 this.TrackedChange(entity, SyncEntityChangeAction.Delete);
+            }
+        }
+
+        /// <summary>
+        /// Returns a snapshot of the respository
+        /// avoiding SyncDeadlockExceptions.
+        /// </summary>
+        protected List<TEntity> Snapshot()
+        {
+            while (true)
+            {
+                try
+                {
+                    var list = this.Entities.ToList();
+
+                    if (list.Count == this.Entities.Count)
+            {
+                        return list;
+                    }
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Collection was modified.
+                    if (ex.Message != null &&
+                        ex.Message.StartsWith("Collection was modified", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Debug.WriteLine("SyncRepository<{0}>.Snapshot(): InvalidOperationException caught: {1}", typeof(TEntity).Name, ex.Message);
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                catch (ArgumentException ex)
+                {
+                    // Collection was modified.
+                    if (ex.Message != null &&
+                        ex.Message.StartsWith("Destination array was not long enough.", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Debug.WriteLine("SyncRepository<{0}>.Snapshot(): ArgumentException caught: {1}", typeof(TEntity).Name, ex.Message);
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
             }
         }
 
@@ -140,10 +235,10 @@ namespace Ardex.Sync
         /// </summary>
         public override IEnumerator<TEntity> GetEnumerator()
         {
-            using (this.ReadLock())
+            //using (this.ReadLock())
             {
                 // We'll create a clone.
-                var snapshot = this.InnerRepository.ToList();
+                var snapshot = this.Snapshot();
 
                 return snapshot.GetEnumerator();
             }
@@ -152,7 +247,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Inserts the specified entity.
         /// </summary>
-        public void UntrackedInsert(TEntity entity)
+        void ISyncRepository<TEntity>.UntrackedInsert(TEntity entity)
         {
             base.Insert(entity);
 
@@ -165,7 +260,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Updates the specified entity.
         /// </summary>
-        public void UntrackedUpdate(TEntity entity)
+        void ISyncRepository<TEntity>.UntrackedUpdate(TEntity entity)
         {
             base.Update(entity);
 
@@ -178,7 +273,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Deletes the specified entity.
         /// </summary>
-        public void UntrackedDelete(TEntity entity)
+        void ISyncRepository<TEntity>.UntrackedDelete(TEntity entity)
         {
             base.Delete(entity);
 
@@ -200,7 +295,10 @@ namespace Ardex.Sync
                 this.TrackedChange = null;
                 this.UntrackedChange = null;
 
-                __lock.Dispose();
+                if (this.OwnsLock)
+                {
+                    __syncLock.Dispose();
+                }
             }
 
             base.Dispose(disposing);

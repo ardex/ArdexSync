@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 
 using Ardex.Collections.Generic;
 
@@ -14,7 +13,7 @@ namespace Ardex.Sync
         /// Lock used to protect read and write
         /// operations in this repository.
         /// </summary>
-        ReaderWriterLockSlim Lock { get; }
+        ISyncLock SyncLock { get; }
 
         /// <summary>
         /// Raised after a tracked insert, update or delete.

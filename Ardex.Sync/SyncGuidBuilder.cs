@@ -19,9 +19,20 @@ namespace Ardex.Sync
             {
                 var guidBytes = this.Guid.ToByteArray();
                 var replicaIdBytes = new byte[4];
+                var replicaIdBytesBenchmark = new byte[4];
 
                 // Least significant byte first: don't need to reverse.
                 Array.Copy(guidBytes, replicaIdBytes, replicaIdBytes.Length);
+
+                for (var i = 0; i < replicaIdBytesBenchmark.Length; i++)
+                {
+                    replicaIdBytesBenchmark[i] = guidBytes[i];
+                }
+
+                if (!replicaIdBytes.SequenceEqual(replicaIdBytesBenchmark))
+                {
+                    throw new InvalidOperationException("Test failed.");
+                }
 
                 return BitConverter.ToInt32(replicaIdBytes, 0);
             }
@@ -40,9 +51,20 @@ namespace Ardex.Sync
             {
                 var guidBytes = this.Guid.ToByteArray();
                 var articleIdBytes = new byte[2];
+                var articleIdBytesBenchmark = new byte[2];
 
                 // Least significant byte first: don't need to reverse.
                 Array.Copy(guidBytes, 6, articleIdBytes, 0, articleIdBytes.Length);
+
+                for (var i = 0; i < articleIdBytesBenchmark.Length; i++)
+                {
+                    articleIdBytesBenchmark[i] = guidBytes[i + 6];
+                }
+
+                if (!articleIdBytes.SequenceEqual(articleIdBytesBenchmark))
+                {
+                    throw new InvalidOperationException("Test failed.");
+                }
 
                 return BitConverter.ToInt16(articleIdBytes, 0);
             }

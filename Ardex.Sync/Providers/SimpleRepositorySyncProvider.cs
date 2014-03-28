@@ -59,7 +59,7 @@ namespace Ardex.Sync.Providers
 
         public override SyncDelta<TEntity, TVersion> ResolveDelta(SyncAnchor<TVersion> remoteAnchor)
         {
-            using (this.Repository.ReadLock())
+            using (this.Repository.SyncLock.ReadLock())
             {
                 var myAnchor = this.LastAnchor();
                 var myChanges = new List<SyncEntityVersion<TEntity, TVersion>>();

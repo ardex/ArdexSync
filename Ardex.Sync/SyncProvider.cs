@@ -111,6 +111,10 @@ namespace Ardex.Sync
         /// </summary>
         public SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta)
         {
+            var sw = Stopwatch.StartNew();
+
+            try
+            {
             if (this.Repository == null)
             {
                 throw new NotSupportedException(
@@ -128,14 +132,14 @@ namespace Ardex.Sync
             }
 
             // Critical region: protected with exclusive lock.
-            using (this.Repository.WriteLock())
+            using (this.Repository.SyncLock.WriteLock())
             {
                 remoteDelta = this.ResolveConflicts(remoteDelta);
 
                 var type = typeof(TEntity);
-                var inserts = new List<object>();
-                var updates = new List<object>();
-                var deletes = new List<object>();
+                    var inserts = new List<TEntity>();
+                    var updates = new List<TEntity>();
+                    var deletes = new List<TEntity>();
 
                 // Materialise repository entities, but only if necessary.
                 var existingEntities = new Lazy<List<TEntity>>(this.Repository.ToList);
@@ -196,6 +200,11 @@ namespace Ardex.Sync
                 }
 
                 return result;
+                }
+            }
+            finally
+            {
+                Debug.WriteLine("{0}.AcceptChanges() completed in {1:0.###} seconds.", this.GetType().Name, (float)sw.ElapsedMilliseconds / 1000);
             }
         }
 

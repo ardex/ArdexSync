@@ -135,6 +135,11 @@ namespace Ardex
         {
             var hexString = this.ToString().Replace("-", string.Empty);
 
+            if (string.IsNullOrEmpty(hexString))
+            {
+                return 0;
+            }
+
             return Convert.ToInt32(hexString, 16);
         }
 
@@ -144,6 +149,11 @@ namespace Ardex
         public uint ToUInt32()
         {
             var hexString = this.ToString().Replace("-", string.Empty);
+
+            if (string.IsNullOrEmpty(hexString))
+            {
+                return 0;
+            }
 
             return Convert.ToUInt32(hexString, 16);
         }
@@ -155,6 +165,11 @@ namespace Ardex
         {
             var hexString = this.ToString().Replace("-", string.Empty);
 
+            if (string.IsNullOrEmpty(hexString))
+            {
+                return 0;
+            }
+
             return Convert.ToInt64(hexString, 16);
         }
 
@@ -164,6 +179,11 @@ namespace Ardex
         public ulong ToUInt64()
         {
             var hexString = this.ToString().Replace("-", string.Empty);
+
+            if (string.IsNullOrEmpty(hexString))
+            {
+                return 0;
+            }
 
             return Convert.ToUInt64(hexString, 16);
         }

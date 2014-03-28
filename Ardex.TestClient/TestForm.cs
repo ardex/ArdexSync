@@ -37,13 +37,15 @@ namespace Ardex.TestClient
                     MessageBox.Show(string.Format("Done. Seconds elapsed: {0:0.#}.", sw.Elapsed.TotalSeconds));
 
                     MessageBox.Show(string.Format(
-                        "Sync complete. Repo 1 and 2 equal = {0}, Repo 2 and 3 equal = {1}.",
+                        "Sync complete. Repo 1 and 2 equal = {0}, Repo 2 and 3 equal = {1}. Server count = {2}.",
                         test.Server.Repository
                             .OrderBy(p => p.EntityGuid)
                             .SequenceEqual(test.Client1.Repository.OrderBy(p => p.EntityGuid), test.EntityMapping.EqualityComparer),
                         test.Server.Repository
                             .OrderBy(p => p.EntityGuid)
-                            .SequenceEqual(test.Client2.Repository.OrderBy(p => p.EntityGuid), test.EntityMapping.EqualityComparer)));
+                            .SequenceEqual(test.Client2.Repository.OrderBy(p => p.EntityGuid), test.EntityMapping.EqualityComparer),
+                        test.Server.Repository.Count)
+                    );
                 }
             }
             finally

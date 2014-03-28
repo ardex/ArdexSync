@@ -37,7 +37,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ByteArray.cs" />
+    <Compile Include="Diagnostics\PerfMonitor.cs" />
     <Compile Include="DisposableActor.cs" />
+    <Compile Include="Disposables.cs" />
     <Compile Include="Linq\Expressions\ExpressionUtil.cs" />
     <Compile Include="Reflection\EntityConversions\EntityConversion.cs" />
     <Compile Include="Reflection\EntityConversions\IEnumerableConversionSource.cs" />
@@ -57,6 +59,7 @@
     <Compile Include="Threading\Async\AsyncLazy.cs" />
     <Compile Include="Threading\CtsUtil.cs" />
     <Compile Include="Threading\Progress.cs" />
+    <Compile Include="Threading\Tasks\TaskEx.cs" />
     <Compile Include="Util\Dates.cs" />
     <Compile Include="Util\StringLogicalComparer.cs" />
     <Compile Include="Util\Text.cs" />

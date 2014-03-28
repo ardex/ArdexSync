@@ -8,6 +8,7 @@ using Ardex.Reflection;
 using Ardex.Sync;
 using Ardex.Sync.ChangeTracking;
 using Ardex.Sync.Providers;
+using Ardex.Sync.SyncLocks;
 
 namespace Ardex.TestClient.Tests.ChangeHistoryBased
 {
@@ -34,14 +35,19 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
             var client2Info = new SyncReplicaInfo(2, "Client 2");
 
             // Sync providers / in-memory storage.
-            this.Server = new ChangeHistorySyncProvider<Dummy, ChangeHistory>(
-                serverInfo, new SyncRepository<Dummy>(), new SyncRepository<ChangeHistory>(), d => d.EntityGuid);
+            //var changeHistory = new SyncRepository<ChangeHistory>(new ReaderWriterSyncLock());
 
-            this.Client1 = new ChangeHistorySyncProvider<Dummy, ChangeHistory>(
-                client1Info, new SyncRepository<Dummy>(), new SyncRepository<ChangeHistory>(), d => d.EntityGuid);
+            this.Server = new CachingChangeHistorySyncProviderV2<Dummy, ChangeHistory>(
+                serverInfo, new SyncRepository<Dummy>(new ReaderWriterSyncLock()), new SyncRepository<ChangeHistory>(new ReaderWriterSyncLock()), d => d.EntityGuid
+            );
 
-            this.Client2 = new ChangeHistorySyncProvider<Dummy, ChangeHistory>(
-                client2Info, new SyncRepository<Dummy>(), new SyncRepository<ChangeHistory>(), d => d.EntityGuid);
+            this.Client1 = new CachingChangeHistorySyncProviderV2<Dummy, ChangeHistory>(
+                client1Info, new SyncRepository<Dummy>(new ReaderWriterSyncLock()), new SyncRepository<ChangeHistory>(new ReaderWriterSyncLock()), d => d.EntityGuid
+            );
+
+            this.Client2 = new CachingChangeHistorySyncProviderV2<Dummy, ChangeHistory>(
+                client2Info, new SyncRepository<Dummy>(new ReaderWriterSyncLock()), new SyncRepository<ChangeHistory>(new ReaderWriterSyncLock()), d => d.EntityGuid
+            );
 
             // Change tracking and conflict config.
             this.Server.CleanUpMetadata = false;
@@ -56,7 +62,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
             // Tell the sync to ignore the local PK 
             // and teach it how to generate them.
             this.EntityMapping = new TypeMapping<Dummy>().Without(d => d.DummyID);
-
+            
             this.Server.EntityTypeMapping = this.EntityMapping;
             this.Server.PreInsertProcessing = dummy => dummy.DummyID = this.Server.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
 
@@ -67,10 +73,10 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
             this.Client2.PreInsertProcessing = dummy =>
             {
-                if (new Random().Next(1, 10) == 5)
-                {
-                    throw new Exception("Test");
-                }
+                //if (new Random().Next(1, 10) == 5)
+                //{
+                //    throw new Exception("Test");
+                //}
 
                 dummy.DummyID = this.Client2.Repository.Select(d => d.DummyID).DefaultIfEmpty().Max() + 1;
             };
@@ -88,7 +94,7 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
         public async Task RunAsync()
         {
-            const int NUM_ITERATIONS = 100;
+            const int NUM_ITERATIONS = 200;
 
             for (var iterations = 0; iterations < NUM_ITERATIONS; iterations++)
             {
@@ -166,19 +172,13 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                     var t3 = Task.Run(() =>
                     {
-                        this.Client2.Repository.Lock.EnterWriteLock();
-
-                        try
+                        using (this.Client2.Repository.SyncLock.WriteLock())
                         {
                             var repo3Dummy3 = this.Client2.Repository.Single(d => d.EntityGuid == dummy2.EntityGuid);
 
                             repo3Dummy3.Text = "Dodgy concurrent update";
 
                             this.Client2.Repository.Update(repo3Dummy3);
-                        }
-                        finally
-                        {
-                            this.Client2.Repository.Lock.ExitWriteLock();
                         }
                     });
 

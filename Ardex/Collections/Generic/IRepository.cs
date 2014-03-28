@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Ardex.Collections.Generic
 {
@@ -15,8 +14,8 @@ namespace Ardex.Collections.Generic
         /// The number of items in the respository.
         /// </summary>
         int Count { get; }
-		
-		/// <summary>
+
+        /// <summary>
 		/// Inserts the specified entity.
 		/// </summary>
 		void Insert(TEntity entity);

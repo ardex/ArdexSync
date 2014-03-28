@@ -24,7 +24,7 @@ namespace Ardex.Collections.Generic
     /// Fully supports adding, updating and deleting entities and raises
     /// events when the underlying collection is modified.
     /// </summary>
-    public class ListRepository<TEntity> : IRepository<TEntity>
+    public class ListRepository<TEntity> : IRepository<TEntity> //, IReadOnlyList<TEntity>
     {
 		/// <summary>
 		/// Underlying list of entities.
@@ -35,6 +35,27 @@ namespace Ardex.Collections.Generic
 		/// Used to detect redundant calls to Dispose().
 		/// </summary>
 		private bool _disposed;
+
+        /// <summary>
+        /// Gets the underlying collection of entities.
+        /// </summary>
+        protected List<TEntity> Entities
+        {
+            get { return __entities; }
+        }
+
+        /// <summary>
+        /// Gets the number of entities in the repository.
+        /// </summary>
+        public virtual int Count
+        {
+            get
+            {
+                this.ThrowIfDisposed();
+
+                return this.Entities.Count;
+            }   
+        }
 
         /// <summary>
         /// Gets the <see cref="Ardex.Collections.ListRepository`1"/> at the specified index.
@@ -51,14 +72,6 @@ namespace Ardex.Collections.Generic
         }
 
         /// <summary>
-        /// Gets the underlying collection of entities.
-        /// </summary>
-        private List<TEntity> Entities
-        {
-            get { return __entities; }
-        }
-		
-		/// <summary>
 		/// Occurs when entity is inserted.
 		/// </summary>
 		public event Action<TEntity> EntityInserted;
@@ -115,16 +128,27 @@ namespace Ardex.Collections.Generic
             __entities = entities.ToList();
         }
         
-		/// <summary>
-		/// Gets the number of entities in the repository.
-		/// </summary>
-        public virtual int Count
+        protected void OnEntityInserted(TEntity entity)
         {
-            get
+            if (this.EntityInserted != null)
 			{
-				this.ThrowIfDisposed();
+                this.EntityInserted(entity);
+            }
+        }
 				
-				return this.Entities.Count;
+        protected void OnEntityUpdated(TEntity entity)
+        {
+            if (this.EntityUpdated != null)
+            {
+                this.EntityUpdated(entity);
+            }
+        }
+
+        protected void OnEntityDeleted(TEntity entity)
+        {
+            if (this.EntityDeleted != null)
+            {
+                this.EntityDeleted(entity);
 			}   
         }
 		
@@ -135,11 +159,7 @@ namespace Ardex.Collections.Generic
 		{
 			this.ThrowIfDisposed();
 			this.Entities.Add(entity);
-			
-			if (this.EntityInserted != null)
-            {
-                this.EntityInserted(entity);
-            }
+            this.OnEntityInserted(entity);
 		}
 
 		/// <summary>
@@ -148,11 +168,7 @@ namespace Ardex.Collections.Generic
 		public virtual void Update(TEntity entity)
 		{
 			this.ThrowIfDisposed();
-			
-			if (this.EntityUpdated != null)
-            {
-                this.EntityUpdated(entity);
-            }
+            this.OnEntityUpdated(entity);
 		}
 		
 		/// <summary>
@@ -161,13 +177,8 @@ namespace Ardex.Collections.Generic
 		public virtual void Delete(TEntity entity)
 		{
 			this.ThrowIfDisposed();
-			
 			this.Entities.Remove(entity);
-			
-			if (this.EntityDeleted != null)
-            {
-                this.EntityDeleted(entity);
-            }
+            this.OnEntityDeleted(entity);
 		}
 
         #region IEnumerable implementation

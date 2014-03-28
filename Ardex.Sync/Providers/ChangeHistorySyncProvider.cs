@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using Ardex.Sync.ChangeTracking;
@@ -23,10 +24,10 @@ namespace Ardex.Sync.Providers
         public short ArticleID { get; set; }
 
         /// <summary>
-        /// Gets the factory function used to create new instances
-        /// of the concrete IChangeHistory implementations.
+        /// Gets or sets the factory function used to create new 
+        /// instances of the concrete IChangeHistory implementations.
         /// </summary>
-        public Func<TChangeHistory> ChangeHistoryFactory { get; private set; }
+        public Func<TChangeHistory> CustomChangeHistoryFactory { get; set; }
 
         protected override IComparer<TChangeHistory> VersionComparer
         {
@@ -55,22 +56,11 @@ namespace Ardex.Sync.Providers
             SyncReplicaInfo replicaInfo,
             ISyncRepository<TEntity> repository,
             ISyncRepository<TChangeHistory> changeHistory,
-            SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping
-        ) : this(replicaInfo, repository, changeHistory, entityKeyMapping, () => new TChangeHistory())
-        {
-
-        }
-
-        public ChangeHistorySyncProvider(
-            SyncReplicaInfo replicaInfo,
-            ISyncRepository<TEntity> repository,
-            ISyncRepository<TChangeHistory> changeHistory,
-            SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping,
-            Func<TChangeHistory> changeHistoryFactory)
+            SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping) 
             : base(replicaInfo, repository, entityKeyMapping)
         {
+            // Parameters.
             this.ChangeHistory = changeHistory;
-            this.ChangeHistoryFactory = changeHistoryFactory;
 
             // Set up change tracking.
             this.Repository.TrackedChange += this.HandleTrackedChange;
@@ -78,29 +68,35 @@ namespace Ardex.Sync.Providers
     
         private void HandleTrackedChange(TEntity entity, SyncEntityChangeAction action)
         {
-            using (this.ChangeHistory.WriteLock())
+            using (this.ChangeHistory.SyncLock.WriteLock())
             {
-                var ch = this.ChangeHistoryFactory();
+                // Resolve pk and version.
+                var changeHistoryID = 0;
+                var timestamp = new Timestamp(0);
 
-                // Resolve pk.
-                ch.ChangeHistoryID = this.ChangeHistory
-                    .Select(c => c.ChangeHistoryID)
-                    .DefaultIfEmpty()
-                    .Max() + 1;
+                foreach (var c in this.ChangeHistory)
+                {
+                    if (c.ChangeHistoryID > changeHistoryID)
+                        changeHistoryID = c.ChangeHistoryID;
 
+                    if (c.Timestamp != null &&
+                        c.Timestamp.CompareTo(timestamp) > 0)
+                    {
+                        timestamp = c.Timestamp;
+                    }
+                }
+
+                var ch =
+                    this.CustomChangeHistoryFactory != null ?
+                    this.CustomChangeHistoryFactory() :
+                    new TChangeHistory();
+
+                ch.ChangeHistoryID = changeHistoryID + 1;
                 ch.Action = action;
                 ch.ArticleID = this.ArticleID;
                 ch.ReplicaID = this.ReplicaInfo.ReplicaID;
                 ch.EntityGuid = this.EntityKeyMapping(entity);
-
-                // Resolve version.
-                var timestamp = this.ChangeHistory
-                    .Where(c => c.ReplicaID == this.ReplicaInfo.ReplicaID)
-                    .Select(c => c.Timestamp)
-                    .DefaultIfEmpty()
-                    .Max();
-
-                ch.Timestamp = (timestamp == null ? new Timestamp(1) : ++timestamp);
+                ch.Timestamp = ++timestamp;
 
                 this.ChangeHistory.Insert(ch);
             }
@@ -112,9 +108,12 @@ namespace Ardex.Sync.Providers
         /// </summary>
         protected override void WriteRemoteVersion(SyncEntityVersion<TEntity, TChangeHistory> versionInfo)
         {
-            using (this.ChangeHistory.WriteLock())
+            using (this.ChangeHistory.SyncLock.WriteLock())
             {
-                var ch = this.ChangeHistoryFactory();
+                var ch =
+                    this.CustomChangeHistoryFactory != null ?
+                    this.CustomChangeHistoryFactory() :
+                    new TChangeHistory();
 
                 // Resolve pk.
                 ch.ChangeHistoryID = this.ChangeHistory
@@ -139,13 +138,20 @@ namespace Ardex.Sync.Providers
 
         public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor)
         {
-            // We need locks on both repositories.
-            using (this.Repository.ReadLock())
-            using (this.ChangeHistory.ReadLock())
-                {
-                    var myAnchor = this.LastAnchor();
+            var sw = Stopwatch.StartNew();
 
-                    var myChanges = this.FilteredChangeHistory
+            try
+            {
+                // We need locks on both repositories,
+                // but we don't want to hold it for too long.
+                var changeHistory = default(IReadOnlyList<TChangeHistory>);
+                var entities = default(IReadOnlyList<TEntity>);
+                var myAnchor = default(SyncAnchor<TChangeHistory>);
+
+                using (this.Repository.SyncLock.ReadLock())
+                using (this.ChangeHistory.SyncLock.ReadLock())
+                {
+                    changeHistory = this.FilteredChangeHistory
                         .Where(ch =>
                         {
                             var version = default(TChangeHistory);
@@ -154,17 +160,58 @@ namespace Ardex.Sync.Providers
                                 !remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
                                 this.VersionComparer.Compare(ch, version) > 0;
                         })
-                        .Join(
-                            this.Repository.AsEnumerable(),
-                            ch => ch.EntityGuid,
-                            ch => this.EntityKeyMapping(ch),
-                            (ch, entity) => SyncEntityVersion.Create(entity, ch))
-                        // Ensure that the oldest changes for each replica are sync first.
-                        .OrderBy(c => c.Version, this.VersionComparer)
-                        .AsEnumerable();
+                        .ToList();
 
-                    return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
+                    entities = this.Repository.ToList();
+                    myAnchor = this.LastAnchor();
                 }
+
+                // Now that the locks are released,
+                // it's time for some heavy lifting.
+                var myChanges = changeHistory
+                    .Join(
+                        entities,
+                        ch => ch.EntityGuid,
+                        ch => this.EntityKeyMapping(ch),
+                        (ch, entity) => SyncEntityVersion.Create(entity, ch))
+                    // Ensure that the oldest changes for each replica are synchronised first.
+                    .OrderBy(c => c.Version, this.VersionComparer)
+                    .ToList();
+
+                return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
+
+                //// We need locks on both repositories.
+                //using (this.Repository.ReadLock())
+                //using (this.ChangeHistory.ReadLock())
+                //{
+                //    var myAnchor = this.LastAnchor();
+
+                //    var myChanges = this.FilteredChangeHistory
+                //        .Where(ch =>
+                //        {
+                //            var version = default(TChangeHistory);
+
+                //            return
+                //                !remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
+                //                this.VersionComparer.Compare(ch, version) > 0;
+                //        })
+                //        .ToList()
+                //        .Join(
+                //            this.Repository.ToList(),
+                //            ch => ch.EntityGuid,
+                //            ch => this.EntityKeyMapping(ch),
+                //            (ch, entity) => SyncEntityVersion.Create(entity, ch))
+                //        // Ensure that the oldest changes for each replica are sync first.
+                //        .OrderBy(c => c.Version, this.VersionComparer)
+                //        .AsEnumerable();
+
+                //    return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
+                //}
+            }
+            finally
+            {
+                Debug.WriteLine("{0}.ResolveDelta() completed in {1:0.###} seconds.", this.GetType().Name, (float)sw.ElapsedMilliseconds / 1000);
+            }
         }
 
         /// <summary>
@@ -177,14 +224,14 @@ namespace Ardex.Sync.Providers
             var appliedDelta = appliedChanges.ToList();
 
             if (appliedDelta.Count == 0)
-        {
+            {
                 // Common case optimisation: avoid taking lock.
                 return;
             }
 
             // We need exclusive access to change
             // history during the cleanup operation.
-            using (this.ChangeHistory.WriteLock(3))
+            using (this.ChangeHistory.SyncLock.WriteLock())
             {
                 var lastKnownVersionByReplica = this.LastKnownVersionByReplica(appliedDelta.Select(v => v.Version));
 
@@ -232,11 +279,14 @@ namespace Ardex.Sync.Providers
             if (_disposed)
                 return;
 
-            // Unhook events to help the GC do its job.
-            this.Repository.TrackedChange -= this.HandleTrackedChange;
+            if (disposing)
+            {
+                // Unhook events to help the GC do its job.
+                this.Repository.TrackedChange -= this.HandleTrackedChange;
 
-            // Release refs.
-            this.ChangeHistory = null;
+                // Release refs.
+                this.ChangeHistory = null;
+            }
 
             base.Dispose(disposing);
 
