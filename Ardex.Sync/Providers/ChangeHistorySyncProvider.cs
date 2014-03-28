@@ -1,7 +1,10 @@
-﻿using System;
+﻿#define PARALLEL
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Ardex.Sync.ChangeTracking;
 using Ardex.Sync.EntityMapping;
@@ -15,7 +18,7 @@ namespace Ardex.Sync.Providers
         /// <summary>
         /// Gets the change history repository associated with this provider.
         /// </summary>
-        public ISyncRepository<TChangeHistory> ChangeHistory { get; private set; }
+        public ISyncRepository<int, TChangeHistory> ChangeHistory { get; private set; }
 
         /// <summary>
         /// Gets or sets the unique article ID which is used to
@@ -54,10 +57,9 @@ namespace Ardex.Sync.Providers
 
         public ChangeHistorySyncProvider(
             SyncReplicaInfo replicaInfo,
-            ISyncRepository<TEntity> repository,
-            ISyncRepository<TChangeHistory> changeHistory,
-            SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping) 
-            : base(replicaInfo, repository, entityKeyMapping)
+            ISyncRepository<Guid, TEntity> repository,
+            ISyncRepository<int, TChangeHistory> changeHistory) 
+            : base(replicaInfo, repository)
         {
             // Parameters.
             this.ChangeHistory = changeHistory;
@@ -95,7 +97,7 @@ namespace Ardex.Sync.Providers
                 ch.Action = action;
                 ch.ArticleID = this.ArticleID;
                 ch.ReplicaID = this.ReplicaInfo.ReplicaID;
-                ch.EntityGuid = this.EntityKeyMapping(entity);
+                ch.EntityGuid = this.Repository.KeySelector(entity);
                 ch.Timestamp = ++timestamp;
 
                 this.ChangeHistory.Insert(ch);
@@ -142,75 +144,49 @@ namespace Ardex.Sync.Providers
 
             try
             {
-                //// We need locks on both repositories,
-                //// but we don't want to hold it for too long.
-                //var changeHistory = default(IReadOnlyList<TChangeHistory>);
-                //var entities = default(Dictionary<Guid, TEntity>);
-                //var myAnchor = default(SyncAnchor<TChangeHistory>);
-
-                //using (this.Repository.SyncLock.ReadLock())
-                //using (this.ChangeHistory.SyncLock.ReadLock())
-                //{
-                //    changeHistory = this.FilteredChangeHistory
-                //        .Where(ch =>
-                //        {
-                //            TChangeHistory version;
-
-                //            return
-                //                !remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
-                //                this.VersionComparer.Compare(ch, version) > 0;
-                //        })
-                //        .ToList();
-
-                //    entities = this.Repository.ToDictionary(e => this.EntityKeyMapping(e));
-                //    myAnchor = this.LastAnchor();
-                //}
-
-                //var myChanges = changeHistory
-                //    .Select(ch => SyncEntityVersion.Create(entities[ch.EntityGuid], ch))
-                //    // Ensure that the oldest changes for each replica are synchronised first.
-                //    .OrderBy(c => c.Version, this.VersionComparer)
-                //    .ToList();
-
-                //return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
-
                 // We need locks on both repositories,
-                // but we don't want to hold it for too long.
-                var changeHistory = default(IReadOnlyList<TChangeHistory>);
-                var entities = default(IReadOnlyList<TEntity>);
+                // but we don't want to hold them for too long.
+                var changes = new List<TChangeHistory>();
                 var myAnchor = default(SyncAnchor<TChangeHistory>);
 
                 using (this.Repository.SyncLock.ReadLock())
-                using (this.ChangeHistory.SyncLock.ReadLock())
                 {
-                    changeHistory = this.FilteredChangeHistory
-                        .Where(ch =>
+                    using (this.ChangeHistory.SyncLock.ReadLock())
+                    {
+                        #if PARALLEL
+                        // Parallel, woo-hoo!
+                        var resolveChangesTask = Task.Run(() =>
                         {
-                            TChangeHistory version;
+                        #endif
+                            foreach (var ch in this.FilteredChangeHistory)
+                            {
+                                TChangeHistory version;
 
-                            return
-                                !remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
-                                this.VersionComparer.Compare(ch, version) > 0;
-                        })
+                                if (!remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
+                                    this.VersionComparer.Compare(ch, version) > 0)
+                                {
+                                    changes.Add(ch);
+                                }
+                            }
+                        #if PARALLEL
+                        });
+                        #endif
+
+                        myAnchor = this.LastAnchor();
+
+                        #if PARALLEL
+                        resolveChangesTask.Wait();
+                        #endif
+                    }
+
+                    var myChanges = changes
+                        .Select(ch => SyncEntityVersion.Create(this.Repository.Find(ch.EntityGuid), ch))
+                        .Where(v => v.Entity != null) // Inner join.
+                        .OrderBy(c => c.Version, this.VersionComparer) // Ensure that the oldest changes for each replica are synchronised first.
                         .ToList();
 
-                    entities = this.Repository.ToList();
-                    myAnchor = this.LastAnchor();
+                    return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
                 }
-
-                // Now that the locks are released,
-                // it's time for some heavy lifting.
-                var myChanges = changeHistory
-                    .Join(
-                        entities,
-                        ch => ch.EntityGuid,
-                        ch => this.EntityKeyMapping(ch),
-                        (ch, entity) => SyncEntityVersion.Create(entity, ch))
-                    // Ensure that the oldest changes for each replica are synchronised first.
-                    .OrderBy(c => c.Version, this.VersionComparer)
-                    .ToList();
-
-                return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
             }
             finally
             {

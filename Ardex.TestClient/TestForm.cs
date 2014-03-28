@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 using Ardex.TestClient.Tests.ChangeHistoryBased;
 using Ardex.TestClient.Tests.Filtered;
-using Ardex.TestClient.Tests.TimestampBased;
+//using Ardex.TestClient.Tests.TimestampBased;
 
 namespace Ardex.TestClient
 {
@@ -57,16 +57,16 @@ namespace Ardex.TestClient
 
         private async void button2_Click(object sender, EventArgs e)
         {
-            this.button2.Enabled = false;
+            //this.button2.Enabled = false;
 
-            try
-            {
-                await new TimestampTest().RunAsync();
-            }
-            finally
-            {
-                this.button2.Enabled = true;
-            }
+            //try
+            //{
+            //    await new TimestampTest().RunAsync();
+            //}
+            //finally
+            //{
+            //    this.button2.Enabled = true;
+            //}
         }
 
         private async void button3_Click(object sender, EventArgs e)
@@ -76,19 +76,19 @@ namespace Ardex.TestClient
 
         private async void button4_Click(object sender, EventArgs e)
         {
-            this.button4.Enabled = false;
+            //this.button4.Enabled = false;
 
-            try
-            {
-                using (var test = new FilteredTest())
-                {
-                    await test.RunAsync();
-                }
-            }
-            finally
-            {
-                this.button4.Enabled = true;
-            }
+            //try
+            //{
+            //    using (var test = new FilteredTest())
+            //    {
+            //        await test.RunAsync();
+            //    }
+            //}
+            //finally
+            //{
+            //    this.button4.Enabled = true;
+            //}
         }
     }
 }

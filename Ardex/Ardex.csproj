@@ -39,6 +39,7 @@
     <Compile Include="ByteArray.cs" />
     <Compile Include="Collections\Generic\DictionaryRepository.cs" />
     <Compile Include="Collections\Generic\SetRepository.cs" />
+    <Compile Include="Collections\Generic\IDictionaryRepository.cs" />
     <Compile Include="Diagnostics\PerfMonitor.cs" />
     <Compile Include="DisposableActor.cs" />
     <Compile Include="Disposables.cs" />

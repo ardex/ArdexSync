@@ -21,12 +21,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Repository which is being synchronised.
         /// </summary>
-        public ISyncRepository<TEntity> Repository { get; private set; }
-
-        /// <summary>
-        /// Entity primary key / unique identifier mapping.
-        /// </summary>
-        public SyncEntityKeyMapping<TEntity, TKey> EntityKeyMapping { get; private set; }
+        public ISyncRepository<TKey, TEntity> Repository { get; private set; }
 
         /// <summary>
         /// Gets or sets the entity change reconciler used
@@ -65,12 +60,10 @@ namespace Ardex.Sync
         /// </summary>
         protected SyncProvider(
             SyncReplicaInfo replicaInfo,
-            ISyncRepository<TEntity> repository,
-            SyncEntityKeyMapping<TEntity, TKey> entityKeyMapping)
+            ISyncRepository<TKey, TEntity> repository)
         {
             this.ReplicaInfo = replicaInfo;
             this.Repository = repository;
-            this.EntityKeyMapping = entityKeyMapping;
 
             // Defaults.
             this.EntityTypeMapping = new TypeMapping<TEntity>();
@@ -148,7 +141,7 @@ namespace Ardex.Sync
                 // an order that if we fail, we'll be able to resume later.
                 foreach (var change in remoteDelta.Changes.OrderBy(c => c.Version, this.VersionComparer))
                 {
-                    var changeKey = this.EntityKeyMapping(change.Entity);
+                    var changeKey = this.Repository.KeySelector(change.Entity);
 
                     if (object.Equals(changeKey, default(TKey)))
                     {
@@ -157,7 +150,7 @@ namespace Ardex.Sync
                         );
                     }
 
-                    var existingEntity = existingEntities.Value.FirstOrDefault(e => object.Equals(changeKey, this.EntityKeyMapping(e)));
+                    var existingEntity = this.Repository.Find(changeKey);
 
                     if (existingEntity == null)
                     {
@@ -221,8 +214,8 @@ namespace Ardex.Sync
 
             var conflicts = myDelta.Changes.Join(
                 remoteDelta.Changes,
-                c => this.EntityKeyMapping(c.Entity),
-                c => this.EntityKeyMapping(c.Entity),
+                c => this.Repository.KeySelector(c.Entity),
+                c => this.Repository.KeySelector(c.Entity),
                 (local, remote) => new SyncConflict<TEntity, TVersion>(local, remote)
             );
 
@@ -276,7 +269,6 @@ namespace Ardex.Sync
 
             if (disposing)
             {
-                this.EntityKeyMapping = null;
                 this.Repository = null;
             }
 

@@ -23,12 +23,11 @@ namespace Ardex.Sync.Providers
 
         public SimpleRepositorySyncProvider(
             SyncReplicaInfo replicaInfo,
-            ISyncRepository<TEntity> repository,
-            SyncEntityKeyMapping<TEntity, TKey> entityKeyMapping,
+            ISyncRepository<TKey, TEntity> repository,
             SyncEntityVersionMapping<TEntity, TVersion> entityVersionMapping,
             IComparer<TVersion> versionComparer,
             SyncEntityOwnerMapping<TEntity> ownerReplicaIdMapping = null)
-            : base(replicaInfo, repository, entityKeyMapping)
+            : base(replicaInfo, repository)
         {
             this.EntityVersionMapping = entityVersionMapping;
             this.OwnerReplicaIdMapping = ownerReplicaIdMapping;

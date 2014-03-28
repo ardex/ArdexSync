@@ -14,10 +14,9 @@ namespace Ardex.Sync.Providers
 
         public CachingChangeHistorySyncProvider(
             SyncReplicaInfo replicaInfo,
-            ISyncRepository<TEntity> repository,
-            ISyncRepository<TChangeHistory> changeHistory,
-            SyncEntityKeyMapping<TEntity, Guid> entityKeyMapping) 
-            : base(replicaInfo, repository, changeHistory, entityKeyMapping)
+            ISyncRepository<Guid, TEntity> repository,
+            ISyncRepository<int, TChangeHistory> changeHistory) 
+            : base(replicaInfo, repository, changeHistory)
         {
             // Anchor cache.
             this.LastAnchorCache = new LazyCache<SyncAnchor<TChangeHistory>>(base.LastAnchor);

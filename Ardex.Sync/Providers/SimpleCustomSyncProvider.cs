@@ -17,7 +17,7 @@ namespace Ardex.Sync.Providers
         public SimpleCustomSyncProvider(
             SyncReplicaInfo replicaInfo,
             Func<SyncAnchor<TVersion>> lastAnchorFunc,
-            Func<SyncAnchor<TVersion>, SyncDelta<TEntity, TVersion>> resolveDeltaFunc) : base(replicaInfo, null, null)
+            Func<SyncAnchor<TVersion>, SyncDelta<TEntity, TVersion>> resolveDeltaFunc) : base(replicaInfo, null)
         {
             __lastAnchorFunc = lastAnchorFunc;
             __resolveDeltaFunc = resolveDeltaFunc;

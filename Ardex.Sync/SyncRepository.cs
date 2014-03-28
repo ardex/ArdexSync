@@ -12,7 +12,7 @@ namespace Ardex.Sync
     /// <summary>
     /// ProxyRepository implementation which supports locking (used in sync operations).
     /// </summary>
-    public class SyncRepository<TEntity> : ListRepository<TEntity>, ISyncRepository<TEntity>
+    public class SyncRepository<TKey, TEntity> : DictionaryRepository<TKey, TEntity>, ISyncRepository<TKey, TEntity>
     {
         /// <summary>
         /// Backing field for Lock.
@@ -23,7 +23,7 @@ namespace Ardex.Sync
         /// Lock used to protect read and write
         /// operations in this repository.
         /// </summary>
-        ISyncLock ISyncRepository<TEntity>.SyncLock
+        ISyncLock ISyncRepository<TKey, TEntity>.SyncLock
         {
             get { return __syncLock; }
         }
@@ -51,8 +51,8 @@ namespace Ardex.Sync
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public SyncRepository()
-            : this(new ReaderWriterSyncLock())
+        public SyncRepository(Func<TEntity, TKey> keySelector)
+            : this(keySelector, new ReaderWriterSyncLock())
         {
             this.OwnsLock = true;
         }
@@ -60,8 +60,8 @@ namespace Ardex.Sync
         /// <summary>
         /// Initialises a new instance pre-populated with the given entities.
         /// </summary>
-        public SyncRepository(IEnumerable<TEntity> entities)
-            : this(entities, new ReaderWriterSyncLock())
+        public SyncRepository(IEnumerable<TEntity> entities, Func<TEntity, TKey> keySelector)
+            : this(entities, keySelector, new ReaderWriterSyncLock())
         {
             this.OwnsLock = true;
         }
@@ -69,7 +69,8 @@ namespace Ardex.Sync
         /// <summary>
         /// Initialises a new instance using the given lock object.
         /// </summary>
-        public SyncRepository(ISyncLock syncLock)
+        public SyncRepository(Func<TEntity, TKey> keySelector, ISyncLock syncLock)
+            : base(keySelector)
         {
             if (syncLock == null) throw new ArgumentNullException("syncLock");
 
@@ -82,7 +83,8 @@ namespace Ardex.Sync
         /// Initialises a new instance pre-populated
         /// with the given entities and lock object.
         /// </summary>
-        public SyncRepository(IEnumerable<TEntity> entities, ISyncLock syncLock) : base(entities)
+        public SyncRepository(IEnumerable<TEntity> entities, Func<TEntity, TKey> keySelector, ISyncLock syncLock)
+            : base(entities, keySelector)
         {
             if (syncLock == null) throw new ArgumentNullException("syncLock");
 
@@ -110,7 +112,7 @@ namespace Ardex.Sync
 
             using (__syncLock.WriteLock())
             {
-                this.Entities.Add(entity);
+                this.Entities.Add(this.KeySelector(entity), entity);
             }
 
             this.OnEntityInserted(entity);
@@ -133,7 +135,7 @@ namespace Ardex.Sync
             // still need an exclusive lock.
             using (__syncLock.WriteLock())
             {
-
+                // Key validation?
             }
 
             this.OnEntityUpdated(entity);
@@ -153,7 +155,7 @@ namespace Ardex.Sync
 
             using (__syncLock.WriteLock())
             {
-                this.Entities.Remove(entity);
+                this.Entities.Remove(this.KeySelector(entity));
             }
 
             this.OnEntityDeleted(entity);
@@ -174,7 +176,9 @@ namespace Ardex.Sync
             {
                 try
                 {
-                    var list = this.Entities.ToList();
+                    var list = this.Entities
+                        .Select(kvp => kvp.Value)
+                        .ToList();
 
                     if (list.Count == this.Entities.Count)
                     {
@@ -233,7 +237,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Inserts the specified entity.
         /// </summary>
-        void ISyncRepository<TEntity>.UntrackedInsert(TEntity entity)
+        void ISyncRepository<TKey, TEntity>.UntrackedInsert(TEntity entity)
         {
             base.Insert(entity);
 
@@ -246,7 +250,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Updates the specified entity.
         /// </summary>
-        void ISyncRepository<TEntity>.UntrackedUpdate(TEntity entity)
+        void ISyncRepository<TKey, TEntity>.UntrackedUpdate(TEntity entity)
         {
             base.Update(entity);
 
@@ -259,7 +263,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Deletes the specified entity.
         /// </summary>
-        void ISyncRepository<TEntity>.UntrackedDelete(TEntity entity)
+        void ISyncRepository<TKey, TEntity>.UntrackedDelete(TEntity entity)
         {
             base.Delete(entity);
 

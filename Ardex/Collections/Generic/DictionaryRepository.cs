@@ -43,20 +43,9 @@ namespace Ardex.Collections.Generic
             }
         }
 
-        ///// <summary>
-        ///// Gets the <see cref="Ardex.Collections.DictionaryRepository`1"/> at the specified index.
-        ///// </summary>
-        ///// <param name='index'>
-        ///// Index.
-        ///// </param>
-        //public virtual TEntity this[int index]
-        //{
-        //    get
-        //    {
-        //        return this.Entities[index];
-        //    }
-        //}
-
+        /// <summary>
+        /// Delegate used to extract unique keys from collection elements.
+        /// </summary>
         public Func<TEntity, TKey> KeySelector { get; private set; }
 
         /// <summary>
@@ -154,6 +143,19 @@ namespace Ardex.Collections.Generic
             this.ThrowIfDisposed();
             this.Entities.Remove(this.KeySelector(entity));
             this.OnEntityDeleted(entity);
+        }
+
+        /// <summary>
+        /// Returns the element with the specified
+        /// key, or the default value for type.
+        /// </summary>
+        public virtual TEntity Find(TKey key)
+        {
+            var entity = default(TEntity);
+
+            this.Entities.TryGetValue(key, out entity);
+
+            return entity;
         }
 
         #region IEnumerable implementation
