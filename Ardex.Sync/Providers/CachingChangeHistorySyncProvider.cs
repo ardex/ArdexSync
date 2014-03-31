@@ -11,6 +11,10 @@ using System.Diagnostics;
 using System.Threading;
 #endif
 
+#if CACHE_ANCHOR
+using Ardex.Caching;
+#endif
+
 using Ardex.Sync.ChangeTracking;
 using Ardex.Threading;
 
@@ -124,35 +128,23 @@ namespace Ardex.Sync.Providers
 
         private bool AnchorsEqual(SyncAnchor<TChangeHistory> anchor1, SyncAnchor<TChangeHistory> anchor2)
         {
-            if (anchor1.Count != anchor2.Count)
+            var entries1 = anchor1.Entries;
+            var entries2 = anchor2.Entries;
+
+            if (entries1.Length != entries1.Length)
             {
                 return false;
             }
 
-            using (var enumerator1 = anchor1.GetEnumerator())
-            using (var enumerator2 = anchor2.GetEnumerator())
+            for (var i = 0; i < entries1.Length; i++)
             {
-                while (enumerator1.MoveNext())
+                var entry1 = entries1[i];
+                var entry2 = entries2[i];
+
+                if (entry1.ReplicaID != entry2.ReplicaID ||
+                    this.VersionComparer.Compare(entry1.MaxVersion, entry2.MaxVersion) != 0)
                 {
-                    if (!enumerator2.MoveNext())
-                    {
-                        throw new InvalidOperationException("Number of entities does not match.");
-                    }
-
-                    // Compare keys and values.
-                    var kvp1 = enumerator1.Current;
-                    var kvp2 = enumerator2.Current;
-
-                    if (kvp1.Key != kvp2.Key ||
-                        this.VersionComparer.Compare(kvp1.Value, kvp2.Value) != 0)
-                    {
-                        return false;
-                    }
-                }
-
-                if (enumerator2.MoveNext())
-                {
-                    throw new InvalidOperationException("Number of entities does not match.");
+                    return false;
                 }
             }
 

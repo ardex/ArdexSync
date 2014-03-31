@@ -37,16 +37,22 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
             // Sync providers / in-memory storage.
             //var changeHistory = new SyncRepository<ChangeHistory>(new ReaderWriterSyncLock());
 
-            this.Server = new ChangeHistorySyncProvider<Dummy, ChangeHistory>(
-                serverInfo, new SyncRepository<Guid, Dummy>(d => d.EntityGuid), new SyncRepository<int, ChangeHistory>(ch => ch.ChangeHistoryID)
+            this.Server = new CachingChangeHistorySyncProvider<Dummy, ChangeHistory>(
+                serverInfo,
+                new SyncRepository<Guid, Dummy>(d => d.EntityGuid),
+                new SyncRepository<int, ChangeHistory>(ch => ch.ChangeHistoryID)
             );
 
-            this.Client1 = new ChangeHistorySyncProvider<Dummy, ChangeHistory>(
-                client1Info, new SyncRepository<Guid, Dummy>(d => d.EntityGuid), new SyncRepository<int, ChangeHistory>(ch => ch.ChangeHistoryID)
+            this.Client1 = new CachingChangeHistorySyncProvider<Dummy, ChangeHistory>(
+                client1Info,
+                new SyncRepository<Guid, Dummy>(d => d.EntityGuid),
+                new SyncRepository<int, ChangeHistory>(ch => ch.ChangeHistoryID)
             );
 
-            this.Client2 = new ChangeHistorySyncProvider<Dummy, ChangeHistory>(
-                client2Info, new SyncRepository<Guid, Dummy>(d => d.EntityGuid), new SyncRepository<int, ChangeHistory>(ch => ch.ChangeHistoryID)
+            this.Client2 = new CachingChangeHistorySyncProvider<Dummy, ChangeHistory>(
+                client2Info,
+                new SyncRepository<Guid, Dummy>(d => d.EntityGuid),
+                new SyncRepository<int, ChangeHistory>(ch => ch.ChangeHistoryID)
             );
 
             // Change tracking and conflict config.

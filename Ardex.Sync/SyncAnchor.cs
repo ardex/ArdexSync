@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 
@@ -40,6 +41,11 @@ namespace Ardex.Sync
             private set
             {
                 // Required for serialization to work.
+                if (this.Dictionary != null)
+                {
+                    throw new InvalidOperationException("Entries have already been initialised.");
+                }
+
                 this.Dictionary = value.ToDictionary(kvp => kvp.ReplicaID, kvp => kvp.MaxVersion);
             }
         }
@@ -47,15 +53,15 @@ namespace Ardex.Sync
         /// <summary>
         /// Gets the version with the given sync replica ID.
         /// </summary>
-        public TVersion this[int key]
+        public TVersion this[int replicaID]
         {
             get
             { 
-                return this.Dictionary[key];
+                return this.Dictionary[replicaID];
             }
             set
             {
-                this.Dictionary[key] = value;
+                this.Dictionary[replicaID] = value;
             }
         }
 
@@ -72,17 +78,17 @@ namespace Ardex.Sync
         /// <summary>
         /// Adds the specified key and value to the underlying dictionary.
         /// </summary>
-        public void Add(int syncReplicaID, TVersion version)
+        public void Add(int replicaID, TVersion maxVersion)
         {
-            this.Dictionary.Add(syncReplicaID, version);
+            this.Dictionary.Add(replicaID, maxVersion);
         }
 
         /// <summary>
         /// Gets the max known version for the given sync replica ID.
         /// </summary>
-        public bool TryGetValue(int syncReplicaID, out TVersion version)
+        public bool TryGetValue(int replicaID, out TVersion maxVersion)
         {
-            return this.Dictionary.TryGetValue(syncReplicaID, out version);
+            return this.Dictionary.TryGetValue(replicaID, out maxVersion);
         }
     }
 }
