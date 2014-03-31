@@ -18,26 +18,21 @@ namespace Ardex.Sync
         /// <summary>
         /// Raised after a tracked insert, update or delete.
         /// </summary>
-        event Action<TEntity, SyncEntityChangeAction> TrackedChange;
-
-        /// <summary>
-        /// Raised after an untracked insert, update or delete.
-        /// </summary>
-        event Action<TEntity, SyncEntityChangeAction> UntrackedChange;
+        event SyncRepositoryChangeEventHandler<TEntity> Changed;
 
         /// <summary>
         /// Inserts the specified entity.
         /// </summary>
-        void UntrackedInsert(TEntity entity);
+        void Insert(TEntity entity, SyncRepositoryChangeMode changeMode);
 
         /// <summary>
         /// Updates the specified entity.
         /// </summary>
-        void UntrackedUpdate(TEntity entity);
+        void Update(TEntity entity, SyncRepositoryChangeMode changeMode);
         
         /// <summary>
         /// Deletes the specified entity.
         /// </summary>
-        void UntrackedDelete(TEntity entity);
+        void Delete(TEntity entity, SyncRepositoryChangeMode changeMode);
     }
 }

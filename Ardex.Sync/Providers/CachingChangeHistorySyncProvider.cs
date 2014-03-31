@@ -46,12 +46,11 @@ namespace Ardex.Sync.Providers
             this.LastAnchorCache = new LazyCache<SyncAnchor<TChangeHistory>>(base.LastAnchor);
             #endif
 
-            this.Repository.TrackedChange += this.EntityChanged;
-            this.ChangeHistory.TrackedChange += this.ChangeHistoryChanged;
-            this.ChangeHistory.UntrackedChange += this.ChangeHistoryChanged;
+            this.Repository.Changed += this.EntityChanged;
+            this.ChangeHistory.Changed += this.ChangeHistoryChanged;
         }
 
-        private void EntityChanged(TEntity entity, SyncEntityChangeAction changeAction)
+        private void EntityChanged(object sender, SyncRepositoryChangeEventArgs<TEntity> e)
         {
             #if CACHE_ANCHOR
             this.LastAnchorCache.Invalidate();
@@ -62,20 +61,20 @@ namespace Ardex.Sync.Providers
             #endif
         }
 
-        private void ChangeHistoryChanged(TChangeHistory changeHistory, SyncEntityChangeAction changeAction)
+        private void ChangeHistoryChanged(object sender, SyncRepositoryChangeEventArgs<TChangeHistory> e)
         {
-            if (changeAction == SyncEntityChangeAction.Insert)
+            if (e.ChangeAction == SyncEntityChangeAction.Insert)
             {
                 // Choose greater value.
                 Atomic.Transform(
                     ref this.LastChangeHistoryID,
-                    changeHistory.ChangeHistoryID,
+                    e.Entity.ChangeHistoryID,
                     Math.Max
                 );
 
                 Atomic.Transform(
                     ref this.LastTimestamp,
-                    changeHistory.Timestamp,
+                    e.Entity.Timestamp,
                     (old, nu) => old == null || nu.CompareTo(old) > 0 ? nu : old
                 );
             }
@@ -182,9 +181,8 @@ namespace Ardex.Sync.Providers
             if (disposing)
             {
                 // Unhook events to help the GC do its job.
-                this.Repository.TrackedChange -= this.EntityChanged;
-                this.ChangeHistory.TrackedChange -= this.ChangeHistoryChanged;
-                this.ChangeHistory.UntrackedChange -= this.ChangeHistoryChanged;
+                this.Repository.Changed -= this.EntityChanged;
+                this.ChangeHistory.Changed -= this.ChangeHistoryChanged;
 
                 // Release refs.
                 #if CACHE_ANCHOR

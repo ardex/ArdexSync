@@ -99,24 +99,61 @@ namespace Ardex.Sync
         }
 
         /// <summary>
-        /// Raised after a tracked insert, update or delete.
+        /// Raised after an insert, update or delete.
         /// </summary>
-        public event Action<TEntity, SyncEntityChangeAction> TrackedChange;
+        public event SyncRepositoryChangeEventHandler<TEntity> Changed;
 
         /// <summary>
-        /// Raised after an untracked insert, update or delete.
+        /// Raises the Changed event.
         /// </summary>
-        public event Action<TEntity, SyncEntityChangeAction> UntrackedChange;
+        public virtual void OnChanged(TEntity entity, SyncEntityChangeAction changeAction, SyncRepositoryChangeMode changeMode)
+        {
+            if (this.Changed != null)
+            {
+                var args = new SyncRepositoryChangeEventArgs<TEntity>(entity, changeAction, changeMode);
+
+                this.Changed(this, args);
+            }
+        }
 
         /// <summary>
-        /// Insert the specified entity.
+        /// Inserts the specified entity.
         /// </summary>
-        public override void Insert(TEntity entity)
+        public sealed override void Insert(TEntity entity)
+        {
+            this.Insert(entity, SyncRepositoryChangeMode.Tracked);
+        }
+
+        /// <summary>
+        /// Updates the specified entity.
+        /// </summary>
+        public sealed override void Update(TEntity entity)
+        {
+            this.Update(entity, SyncRepositoryChangeMode.Tracked);
+        }
+
+        /// <summary>
+        /// Deletes the specified entity.
+        /// </summary>
+        public sealed override void Delete(TEntity entity)
+        {
+            this.Delete(entity, SyncRepositoryChangeMode.Tracked);
+        }
+
+        /// <summary>
+        /// Inserts the specified entity.
+        /// </summary>
+        public virtual void Insert(TEntity entity, SyncRepositoryChangeMode changeMode)
         {
             this.ThrowIfDisposed();
 
-            using (__syncLock.WriteLock())
+            // No need for the lock for untracked changes.
+            using (changeMode == SyncRepositoryChangeMode.Untracked ? null : __syncLock.WriteLock())
             {
+                // No validation required for insert.
+                // The dictionary will ensure 
+                // that the key is unique.
+
                 lock (this.Entities)
                 {
                     this.Entities.Add(this.KeySelector(entity), entity);
@@ -125,56 +162,50 @@ namespace Ardex.Sync
 
             // Invalidate snapshot.
             this.CachedSnapshot.Invalidate();
-            this.OnEntityInserted(entity);
 
-            if (this.TrackedChange != null)
-            {
-                this.TrackedChange(entity, SyncEntityChangeAction.Insert);
-            }
+            // Raise events.
+            this.OnEntityInserted(entity);
+            this.OnChanged(entity, SyncEntityChangeAction.Insert, changeMode);
         }
 
         /// <summary>
-        /// Update the specified entity.
+        /// Updates the specified entity.
         /// </summary>
-        public override void Update(TEntity entity)
+        public virtual void Update(TEntity entity, SyncRepositoryChangeMode changeMode)
         {
             this.ThrowIfDisposed();
 
-            // We're not doing anything
-            // to the collection, but
-            // still need an exclusive lock.
-            using (__syncLock.WriteLock())
-            {
-                // Entity key validation.
-                // Fail if the entity key has changed.
-                var entityKey = this.KeySelector(entity);
+            // We're not doing anything to the collection, but
+            // still want an exclusive lock on the repository.
 
-                if (entity != this.Find(entityKey))
-                {
-                    throw new InvalidOperationException("Illegal entity key change detected.");
-                }
+            // No need for the lock for untracked changes.
+            using (changeMode == SyncRepositoryChangeMode.Untracked ? null : __syncLock.WriteLock())
+            {
+                // Additional validation.
+                this.ValidateUpdate(entity);
             }
 
             // No need to invalidate snapshot
             // as the collection has not changed.
 
+            // Raise events.
             this.OnEntityUpdated(entity);
-
-            if (this.TrackedChange != null)
-            {
-                this.TrackedChange(entity, SyncEntityChangeAction.Update);
-            }
+            this.OnChanged(entity, SyncEntityChangeAction.Update, changeMode);
         }
 
         /// <summary>
-        /// Delete the specified entity.
+        /// Deletes the specified entity.
         /// </summary>
-        public override void Delete(TEntity entity)
+        public virtual void Delete(TEntity entity, SyncRepositoryChangeMode changeMode)
         {
             this.ThrowIfDisposed();
 
-            using (__syncLock.WriteLock())
+            // No need for the lock for untracked changes.
+            using (changeMode == SyncRepositoryChangeMode.Untracked ? null : __syncLock.WriteLock())
             {
+                // Additional validation.
+                this.ValidateDelete(entity);
+
                 lock (this.Entities)
                 {
                     this.Entities.Remove(this.KeySelector(entity));
@@ -183,11 +214,55 @@ namespace Ardex.Sync
 
             // Invalidate snapshot.
             this.CachedSnapshot.Invalidate();
-            this.OnEntityDeleted(entity);
 
-            if (this.TrackedChange != null)
+            // Raise events.
+            this.OnEntityDeleted(entity);
+            this.OnChanged(entity, SyncEntityChangeAction.Delete, changeMode);
+        }
+
+        /// <summary>
+        /// Pre-update validation.
+        /// </summary>
+        protected virtual void ValidateUpdate(TEntity entity)
+        {
+            var key = this.KeySelector(entity);
+            var entityAtKey = this.Find(key);
+
+            if (entityAtKey == null)
             {
-                this.TrackedChange(entity, SyncEntityChangeAction.Delete);
+                throw new InvalidOperationException(
+                    "Update validation failed: entity with the matching key was not found in the repository."
+                );
+            }
+
+            if (entity != entityAtKey)
+            {
+                throw new InvalidOperationException(
+                    "Update validation failed: there is another entity with the given key."
+                );
+            }
+        }
+
+        /// <summary>
+        /// Pre-delete validation.
+        /// </summary>
+        protected virtual void ValidateDelete(TEntity entity)
+        {
+            var key = this.KeySelector(entity);
+            var entityAtKey = this.Find(key);
+
+            if (entityAtKey == null)
+            {
+                throw new InvalidOperationException(
+                    "Delete validation failed: entity with the matching key was not found in the repository."
+                );
+            }
+
+            if (entity != this.Find(key))
+            {
+                throw new InvalidOperationException(
+                    "Delete validation failed: there is another entity with the given key."
+                );
             }
         }
 
@@ -204,77 +279,6 @@ namespace Ardex.Sync
         {
             // Enumerator over cached clone.
             return this.CachedSnapshot.Value.GetEnumerator();
-        }
-
-        /// <summary>
-        /// Inserts the specified entity.
-        /// </summary>
-        void ISyncRepository<TKey, TEntity>.UntrackedInsert(TEntity entity)
-        {
-            this.ThrowIfDisposed();
-
-            lock (this.Entities)
-            {
-                this.Entities.Add(this.KeySelector(entity), entity);
-            }
-
-            // Invalidate snapshot.
-            this.CachedSnapshot.Invalidate();
-            this.OnEntityInserted(entity);
-
-            if (this.UntrackedChange != null)
-            {
-                this.UntrackedChange(entity, SyncEntityChangeAction.Insert);
-            }
-        }
-
-        /// <summary>
-        /// Updates the specified entity.
-        /// </summary>
-        void ISyncRepository<TKey, TEntity>.UntrackedUpdate(TEntity entity)
-        {
-            this.ThrowIfDisposed();
-
-            // Entity key validation.
-            // Fail if the entity key has changed.
-            var entityKey = this.KeySelector(entity);
-
-            if (entity != this.Find(entityKey))
-            {
-                throw new InvalidOperationException("Illegal entity key change detected.");
-            }
-
-            // No need to invalidate snapshot
-            // as the collection has not changed.
-
-            this.OnEntityUpdated(entity);
-
-            if (this.UntrackedChange != null)
-            {
-                this.UntrackedChange(entity, SyncEntityChangeAction.Update);
-            }
-        }
-
-        /// <summary>
-        /// Deletes the specified entity.
-        /// </summary>
-        void ISyncRepository<TKey, TEntity>.UntrackedDelete(TEntity entity)
-        {
-            this.ThrowIfDisposed();
-
-            lock (this.Entities)
-            {
-                this.Entities.Remove(this.KeySelector(entity));
-            }
-
-            // Invalidate snapshot.
-            this.CachedSnapshot.Invalidate();
-            this.OnEntityDeleted(entity);
-
-            if (this.UntrackedChange != null)
-            {
-                this.UntrackedChange(entity, SyncEntityChangeAction.Delete);
-            }
         }
 
         /// <summary>
@@ -314,8 +318,7 @@ namespace Ardex.Sync
         {
             if (disposing)
             {
-                this.TrackedChange = null;
-                this.UntrackedChange = null;
+                this.Changed = null;
 
                 if (this.OwnsLock)
                 {

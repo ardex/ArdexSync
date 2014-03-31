@@ -72,13 +72,15 @@
     <Compile Include="SyncLocks\MonitorSyncLock.cs" />
     <Compile Include="SyncLocks\NullSyncLock.cs" />
     <Compile Include="SyncLocks\ReaderWriterSyncLock.cs" />
+    <Compile Include="SyncLocks\WriteOnlySyncLock.cs" />
     <Compile Include="SyncOperation.cs" />
     <Compile Include="SyncOperations\BasicSyncOperation.cs" />
     <Compile Include="SyncOperations\FilteredSyncOperation.cs" />
     <Compile Include="SyncProvider.cs" />
     <Compile Include="SyncReplicaInfo.cs" />
     <Compile Include="SyncRepository.cs" />
-    <Compile Include="SyncRepository2.cs" />
+    <Compile Include="SyncRepositoryChangeEventArgs.cs" />
+    <Compile Include="SyncRepositoryChangeMode.cs" />
     <Compile Include="SyncRepositoryExtensions.cs" />
     <Compile Include="SyncResult.cs" />
     <Compile Include="Timestamp.cs" />

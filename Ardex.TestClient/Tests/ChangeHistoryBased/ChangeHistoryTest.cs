@@ -39,19 +39,19 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
             this.Server = new CachingChangeHistorySyncProvider<Dummy, ChangeHistory>(
                 serverInfo,
-                new SyncRepository<Guid, Dummy>(d => d.EntityGuid),
+                new SyncRepository<Guid, Dummy>(d => d.EntityGuid, new NullSyncLock()),
                 new SyncRepository<int, ChangeHistory>(ch => ch.ChangeHistoryID)
             );
 
             this.Client1 = new CachingChangeHistorySyncProvider<Dummy, ChangeHistory>(
                 client1Info,
-                new SyncRepository<Guid, Dummy>(d => d.EntityGuid),
+                new SyncRepository<Guid, Dummy>(d => d.EntityGuid, new NullSyncLock()),
                 new SyncRepository<int, ChangeHistory>(ch => ch.ChangeHistoryID)
             );
 
             this.Client2 = new CachingChangeHistorySyncProvider<Dummy, ChangeHistory>(
                 client2Info,
-                new SyncRepository<Guid, Dummy>(d => d.EntityGuid),
+                new SyncRepository<Guid, Dummy>(d => d.EntityGuid, new NullSyncLock()),
                 new SyncRepository<int, ChangeHistory>(ch => ch.ChangeHistoryID)
             );
 
@@ -178,9 +178,9 @@ namespace Ardex.TestClient.Tests.ChangeHistoryBased
 
                     var t3 = Task.Run(() =>
                     {
-                        using (this.Client2.Repository.SyncLock.WriteLock())
+                        //using (this.Client2.Repository.SyncLock.WriteLock())
                         {
-                            var repo3Dummy3 = this.Client2.Repository.Single(d => d.EntityGuid == dummy2.EntityGuid);
+                            var repo3Dummy3 = this.Client2.Repository.Find(dummy2.EntityGuid);
 
                             repo3Dummy3.Text = "Dodgy concurrent update";
 

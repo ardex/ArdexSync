@@ -101,93 +101,93 @@ namespace Ardex.Sync
         /// <summary>
         /// Accepts the changes as reported by the given node.
         /// </summary>
-        public SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta)
+        public virtual SyncResult AcceptChanges(SyncDelta<TEntity, TVersion> remoteDelta)
         {
             var sw = Stopwatch.StartNew();
 
             try
             {
-            if (this.Repository == null)
-            {
-                throw new NotSupportedException(
-                    "AcceptChanges cannot be called on a SyncProvider which is not backed by a repository.");
-            }
+                if (this.Repository == null)
+                {
+                    throw new NotSupportedException(
+                        "AcceptChanges cannot be called on a SyncProvider which is not backed by a repository.");
+                }
 
-            if (remoteDelta.Changes.Length == 0)
-            {
-                // No changes needed to be synchronised.
-                #if PERF_DIAGNOSTICS
-                    Debug.WriteLine("SyncProvider<{0}>.AcceptChanges: no changes needed to accept.", typeof(TEntity).Name);
-                #endif
+                if (remoteDelta.Changes.Length == 0)
+                {
+                    // No changes needed to be synchronised.
+                    #if PERF_DIAGNOSTICS
+                        Debug.WriteLine("SyncProvider<{0}>.AcceptChanges: no changes needed to accept.", typeof(TEntity).Name);
+                    #endif
 
-                return new SyncResult();
-            }
+                    return new SyncResult();
+                }
 
-            // Critical region: protected with exclusive lock.
-            using (this.Repository.SyncLock.WriteLock())
-            {
-                remoteDelta = this.ResolveConflicts(remoteDelta);
+                // Critical region: protected with exclusive lock.
+                using (this.Repository.SyncLock.WriteLock())
+                {
+                    remoteDelta = this.ResolveConflicts(remoteDelta);
 
-                var type = typeof(TEntity);
+                    var type = typeof(TEntity);
                     var inserts = new List<TEntity>();
                     var updates = new List<TEntity>();
                     var deletes = new List<TEntity>();
 
-                // We need to ensure that all changes are processed in such
-                // an order that if we fail, we'll be able to resume later.
-                foreach (var change in remoteDelta.Changes.OrderBy(c => c.Version, this.VersionComparer))
-                {
-                    var changeKey = this.Repository.KeySelector(change.Entity);
-
-                    if (object.Equals(changeKey, default(TKey)))
+                    // We need to ensure that all changes are processed in such
+                    // an order that if we fail, we'll be able to resume later.
+                    foreach (var change in remoteDelta.Changes.OrderBy(c => c.Version, this.VersionComparer))
                     {
-                        throw new InvalidOperationException(
-                            "ChangeKey cannot be equal to the default value of TKey."
-                        );
-                    }
+                        var changeKey = this.Repository.KeySelector(change.Entity);
 
-                    var existingEntity = default(TEntity);
-
-                    if (this.Repository.TryFind(changeKey, out existingEntity))
-                    {
-                        // Found.
-                        var changeCount = this.EntityTypeMapping.CopyValues(change.Entity, existingEntity);
-
-                        if (changeCount != 0)
+                        if (object.Equals(changeKey, default(TKey)))
                         {
-                            this.Repository.UntrackedUpdate(existingEntity);
-                            updates.Add(existingEntity);
-                        }
-                    }
-                    else
-                    {
-                        // Not found.
-                        if (this.PreInsertProcessing != null)
-                        {
-                            this.PreInsertProcessing(change.Entity);
+                            throw new InvalidOperationException(
+                                "ChangeKey cannot be equal to the default value of TKey."
+                            );
                         }
 
-                        this.Repository.UntrackedInsert(change.Entity);
-                        inserts.Add(change.Entity);
+                        var existingEntity = default(TEntity);
+
+                        if (this.Repository.TryFind(changeKey, out existingEntity))
+                        {
+                            // Found.
+                            var changeCount = this.EntityTypeMapping.CopyValues(change.Entity, existingEntity);
+
+                            if (changeCount != 0)
+                            {
+                                this.Repository.Update(existingEntity, SyncRepositoryChangeMode.Untracked);
+                                updates.Add(existingEntity);
+                            }
+                        }
+                        else
+                        {
+                            // Not found.
+                            if (this.PreInsertProcessing != null)
+                            {
+                                this.PreInsertProcessing(change.Entity);
+                            }
+
+                            this.Repository.Insert(change.Entity, SyncRepositoryChangeMode.Untracked);
+                            inserts.Add(change.Entity);
+                        }
+
+                        // Write remote change history entry to local change history.
+                        this.WriteRemoteVersion(change);
                     }
 
-                    // Write remote change history entry to local change history.
-                    this.WriteRemoteVersion(change);
-                }
+                    Debug.WriteLine("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaInfo, inserts.Count, type.Name, remoteDelta.ReplicaInfo);
+                    Debug.WriteLine("{0} applied {1} {2} updates originating at {3}.", this.ReplicaInfo, updates.Count, type.Name, remoteDelta.ReplicaInfo);
+                    Debug.WriteLine("{0} applied {1} {2} deletes originating at {3}.", this.ReplicaInfo, deletes.Count, type.Name, remoteDelta.ReplicaInfo);
 
-                Debug.WriteLine("{0} applied {1} {2} inserts originating at {3}.", this.ReplicaInfo, inserts.Count, type.Name, remoteDelta.ReplicaInfo);
-                Debug.WriteLine("{0} applied {1} {2} updates originating at {3}.", this.ReplicaInfo, updates.Count, type.Name, remoteDelta.ReplicaInfo);
-                Debug.WriteLine("{0} applied {1} {2} deletes originating at {3}.", this.ReplicaInfo, deletes.Count, type.Name, remoteDelta.ReplicaInfo);
+                    // Perform metadata cleanup.
+                    if (this.CleanUpMetadata)
+                    {
+                        this.CleanUpSyncMetadata(remoteDelta.Changes);
+                    }
 
-                var result = new SyncResult(inserts, updates, deletes);
+                    var result = new SyncResult(inserts, updates, deletes);
 
-                // Perform metadata cleanup.
-                if (this.CleanUpMetadata)
-                {
-                    this.CleanUpSyncMetadata(remoteDelta.Changes);
-                }
-
-                return result;
+                    return result;
                 }
             }
             finally

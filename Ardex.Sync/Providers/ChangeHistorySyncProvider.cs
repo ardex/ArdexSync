@@ -64,26 +64,34 @@ namespace Ardex.Sync.Providers
             this.ChangeHistory = changeHistory;
 
             // Set up change tracking.
-            this.Repository.TrackedChange += this.HandleTrackedChange;
+            this.Repository.Changed += this.HandleChange;
         }
     
-        private void HandleTrackedChange(TEntity entity, SyncEntityChangeAction action)
+        /// <summary>
+        /// Creates necessary change history entries in
+        /// response to a tracked change in the repository.
+        /// </summary>
+        private void HandleChange(object sender, SyncRepositoryChangeEventArgs<TEntity> e)
         {
-            using (this.ChangeHistory.SyncLock.WriteLock())
+            // Untracked changes write their own change history entries.
+            if (e.ChangeMode == SyncRepositoryChangeMode.Tracked)
             {
-                var ch =
-                    this.CustomChangeHistoryFactory != null ?
-                    this.CustomChangeHistoryFactory() :
-                    new TChangeHistory();
+                using (this.ChangeHistory.SyncLock.WriteLock())
+                {
+                    var ch =
+                        this.CustomChangeHistoryFactory != null ?
+                        this.CustomChangeHistoryFactory() :
+                        new TChangeHistory();
 
-                ch.ChangeHistoryID = this.NextChangeHistoryID();
-                ch.Action = action;
-                ch.ArticleID = this.ArticleID;
-                ch.ReplicaID = this.ReplicaInfo.ReplicaID;
-                ch.EntityGuid = this.Repository.KeySelector(entity);
-                ch.Timestamp = this.NextTimestamp();
+                    ch.ChangeHistoryID = this.NextChangeHistoryID();
+                    ch.Action = e.ChangeAction;
+                    ch.ArticleID = this.ArticleID;
+                    ch.ReplicaID = this.ReplicaInfo.ReplicaID;
+                    ch.EntityGuid = this.Repository.KeySelector(e.Entity);
+                    ch.Timestamp = this.NextTimestamp();
 
-                this.ChangeHistory.Insert(ch);
+                    this.ChangeHistory.Insert(ch);
+                }
             }
         }
 
@@ -136,62 +144,65 @@ namespace Ardex.Sync.Providers
             return this.LastKnownVersionByReplica(this.FilteredChangeHistory);
         }
 
-        public /*sealed*/ override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor)
+        public sealed override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor)
         {
             var sw = Stopwatch.StartNew();
 
             try
             {
-                using (this.Repository.SyncLock.ReadLock())
+                // There is no need for locks on either repository or change history.
+                // The reason is as follows: new change history entries are materialised at
+                // the start of the operation, and are then joined on to the latest version
+                // of the repository at the end. If the entities have been updated between
+                // those points, the client will receive the most up-to-date entity version.
+                // This will not work with deletes, but we don't have to worry about that just yet.
+                var filteredChangeHistory = this.FilteredChangeHistory.ToList();
+
+#if PARALLEL
+                // Parallel, woo-hoo!
+                var resolveChangesTask = Task.Factory.StartNew(state =>
                 {
-                    // We're not taking a lock on change history.
-                    var filteredChangeHistory = this.FilteredChangeHistory.ToList();
-
-#if PARALLEL
-                    // Parallel, woo-hoo!
-                    var resolveChangesTask = Task.Factory.StartNew(state =>
-                    {
-                        // Micro-optimisation.
-                        var changeHistory = (IEnumerable<TChangeHistory>)state;
+                    // Micro-optimisation.
+                    var changeHistory = (IEnumerable<TChangeHistory>)state;
 #else
-                        var changeHistory = filteredChangeHistory;
+                    var changeHistory = filteredChangeHistory;
 #endif
-                        var changes = new List<TChangeHistory>();
+                    var changes = new List<TChangeHistory>();
 
-                        foreach (var ch in changeHistory)
+                    foreach (var ch in changeHistory)
+                    {
+                        TChangeHistory version;
+
+                        if (!remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
+                            this.VersionComparer.Compare(ch, version) > 0)
                         {
-                            TChangeHistory version;
-
-                            if (!remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
-                                this.VersionComparer.Compare(ch, version) > 0)
-                            {
-                                changes.Add(ch);
-                            }
+                            changes.Add(ch);
                         }
+                    }
 
 #if PARALLEL
-                        return changes;
-                    },
-                    filteredChangeHistory);
+                    return changes;
+                },
+                filteredChangeHistory);
 #endif
 
-                    // Realistically we should be calling LastAnchor().
-                    // This optimisation is the reason this method has been sealed.
-                    var myAnchor = this.LastKnownVersionByReplica(this.FilteredChangeHistory);
+                // Realistically we should be calling LastAnchor(), but since
+                // we're not using any locks on change history, we can't.
+                // This optimisation is the reason this method has been sealed.
+                var myAnchor = this.LastKnownVersionByReplica(filteredChangeHistory);
 
-                    #if PARALLEL
-                    var changesSinceRemoteAnchor = resolveChangesTask.Result;
-                    #else
-                    var changesSinceRemoteAnchor = changes;
-                    #endif
+                #if PARALLEL
+                var changesSinceRemoteAnchor = resolveChangesTask.Result;
+                #else
+                var changesSinceRemoteAnchor = changes;
+                #endif
 
-                    var myChanges = this.Repository
-                        .Join(changesSinceRemoteAnchor, c => c.EntityGuid, (entity, ch) => SyncEntityVersion.Create(entity, ch))
-                        .OrderBy(c => c.Version, this.VersionComparer) // Ensure that the oldest changes for each replica are synchronised first.
-                        .ToList();
+                var myChanges = this.Repository
+                    .Join(changesSinceRemoteAnchor, c => c.EntityGuid, (entity, ch) => SyncEntityVersion.Create(entity, ch))
+                    .OrderBy(c => c.Version, this.VersionComparer) // Ensure that the oldest changes for each replica are synchronised first.
+                    .ToList();
 
-                    return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
-                }
+                return SyncDelta.Create(this.ReplicaInfo, myAnchor, myChanges);
             }
             finally
             {
@@ -270,7 +281,7 @@ namespace Ardex.Sync.Providers
             if (disposing)
             {
                 // Unhook events to help the GC do its job.
-                this.Repository.TrackedChange -= this.HandleTrackedChange;
+                this.Repository.Changed -= this.HandleChange;
 
                 // Release refs.
                 this.ChangeHistory = null;

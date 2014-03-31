@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 
@@ -13,12 +12,7 @@ namespace Ardex.Sync
     [DataContract]
     public class SyncAnchor<TVersion>
     {
-        /// <summary>
-        /// Internal dictionary where the key
-        /// is the unique ID of the replica
-        /// described by the anchor entry.
-        /// </summary>
-        private Dictionary<int, TVersion> Dictionary;
+        #region Serialization contract
 
         /// <summary>
         /// Source replica info specified when this instance was created.
@@ -41,14 +35,23 @@ namespace Ardex.Sync
             private set
             {
                 // Required for serialization to work.
-                if (this.Dictionary != null)
-                {
-                    throw new InvalidOperationException("Entries have already been initialised.");
-                }
-
-                this.Dictionary = value.ToDictionary(kvp => kvp.ReplicaID, kvp => kvp.MaxVersion);
+                this.Dictionary = value.ToDictionary(
+                    kvp => kvp.ReplicaID,
+                    kvp => kvp.MaxVersion
+                );
             }
         }
+
+        #endregion
+
+        #region Functional implementation
+
+        /// <summary>
+        /// Internal dictionary where the key
+        /// is the unique ID of the replica
+        /// described by the anchor entry.
+        /// </summary>
+        private Dictionary<int, TVersion> Dictionary;
 
         /// <summary>
         /// Gets the version with the given sync replica ID.
@@ -90,5 +93,7 @@ namespace Ardex.Sync
         {
             return this.Dictionary.TryGetValue(replicaID, out maxVersion);
         }
+
+        #endregion
     }
 }
