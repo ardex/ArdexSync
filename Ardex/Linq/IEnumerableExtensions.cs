@@ -39,15 +39,41 @@ namespace Ardex.Linq
             return -1;
         }
 
-        public static ISet<T> ToSet<T>(this IEnumerable<T> collection)
+        /// <summary>
+        /// Breaks up the given sequence into smaller
+        /// materialised sequences of the given size.
+        /// </summary>
+        public static IEnumerable<IList<TSource>> Chunkify<TSource>(this IEnumerable<TSource> collection, int chunkSize)
         {
-            return new HashSet<T>(collection);
-        }
+            if (collection == null) throw new ArgumentNullException("collection");
+            if (chunkSize < 1) throw new ArgumentException("chunkSize");
 
-        public static ISet<T> ToSet<T>(this IEnumerable<T> collection, IEqualityComparer<T> comparer)
-        {
-            return new HashSet<T>(collection, comparer);
+            var chunk = default(List<TSource>);
+
+            using (var enumerator = collection.GetEnumerator())
+            {
+                while (enumerator.MoveNext())
+                {
+                    if (chunk == null)
+                    {
+                        chunk = new List<TSource>(chunkSize);
+                    }
+
+                    chunk.Add(enumerator.Current);
+
+                    if (chunk.Count == chunkSize)
+                    {
+                        yield return chunk;
+
+                        chunk = null;
+                    }
+                }
+            }
+
+            if (chunk != null)
+            {
+                yield return chunk;
+            }
         }
     }
 }
-

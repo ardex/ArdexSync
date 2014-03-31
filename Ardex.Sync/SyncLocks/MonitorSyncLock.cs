@@ -11,14 +11,14 @@ namespace Ardex.Sync.SyncLocks
         {
             Monitor.Enter(this.SyncObject);
 
-            return Disposables.Once(() => Monitor.Exit(this.SyncObject));
+            return Disposables.Once(this.SyncObject, Monitor.Exit);
         }
 
         public IDisposable WriteLock()
         {
             Monitor.Enter(this.SyncObject);
 
-            return Disposables.Once(() => Monitor.Exit(this.SyncObject));
+            return Disposables.Once(this.SyncObject, Monitor.Exit);
         }
 
         public void Dispose()

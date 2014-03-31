@@ -37,11 +37,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ByteArray.cs" />
+    <Compile Include="Caching\ICache.cs" />
+    <Compile Include="Caching\InterlockedCache.cs" />
+    <Compile Include="Caching\LazyCache.cs" />
     <Compile Include="Collections\Generic\KeyRepository.cs" />
     <Compile Include="Collections\Generic\SetRepository.cs" />
     <Compile Include="Collections\Generic\IKeyRepository.cs" />
     <Compile Include="Diagnostics\PerfMonitor.cs" />
-    <Compile Include="DisposableActor.cs" />
     <Compile Include="Disposables.cs" />
     <Compile Include="Linq\Expressions\ExpressionUtil.cs" />
     <Compile Include="Reflection\EntityConversions\EntityConversion.cs" />
@@ -50,17 +52,21 @@
     <Compile Include="Reflection\EntityConversions\Implementation\SingleConversionSource.cs" />
     <Compile Include="Reflection\EntityConversions\ISingleConversionSource.cs" />
     <Compile Include="Functional\FunctionalExtensions.cs" />
-    <Compile Include="LazyCache.cs" />
     <Compile Include="Linq\IEnumerableExtensions.cs" />
     <Compile Include="Collections\Generic\IRepository.cs" />
     <Compile Include="Collections\Generic\ListRepository.cs" />
     <Compile Include="Collections\Generic\ProxyRepository.cs" />
-    <Compile Include="CustomComparer.cs" />
     <Compile Include="CustomEqualityComparer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Reflection\TypeMapping.cs" />
     <Compile Include="Threading\Async\AsyncLazy.cs" />
+    <Compile Include="Threading\Async\AsyncLockExtensions.cs" />
+    <Compile Include="Threading\Async\IAsyncLock.cs" />
+    <Compile Include="Threading\Async\MonitorAsyncLock.cs" />
+    <Compile Include="Threading\Async\SemaphoreAsyncLock.cs" />
+    <Compile Include="Threading\Atomic.cs" />
     <Compile Include="Threading\CtsUtil.cs" />
+    <Compile Include="Threading\LockTest.cs" />
     <Compile Include="Threading\Progress.cs" />
     <Compile Include="Threading\Tasks\TaskEx.cs" />
     <Compile Include="Util\Dates.cs" />

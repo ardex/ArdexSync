@@ -159,7 +159,7 @@ namespace Ardex.Collections.Generic
         /// Returns the element with the specified
         /// key, or the default value for type.
         /// </summary>
-        public virtual TEntity Find(TKey key)
+        public TEntity Find(TKey key)
         {
             var entity = default(TEntity);
 
@@ -232,9 +232,7 @@ namespace Ardex.Collections.Generic
         {
             this.ThrowIfDisposed();
 
-            return this.Entities
-                .Select(kvp => kvp.Value)
-                .GetEnumerator();
+            return this.Entities.Values.GetEnumerator();
         }
 
         /// <summary>
@@ -244,9 +242,7 @@ namespace Ardex.Collections.Generic
         {
             this.ThrowIfDisposed();
 
-            return this.Entities
-                .Select(kvp => kvp.Value)
-                .GetEnumerator();
+            return this.Entities.Values.GetEnumerator();
         }
 
         #endregion

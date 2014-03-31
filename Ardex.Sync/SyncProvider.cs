@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 
 using Ardex.Reflection;
-using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync
 {

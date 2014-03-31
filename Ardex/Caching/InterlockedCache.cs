@@ -1,11 +1,14 @@
-using System;
+﻿using System;
+using System.Threading;
 
-namespace Ardex
+using Ardex.Threading;
+
+namespace Ardex.Caching
 {
     /// <summary>
     /// Provides fast, lazy, thread-safe access to cached data.
     /// </summary>
-    public class LazyCache<T> where T : class
+    public class InterlockedCache<T> : ICache<T> where T : class
     {
         /// <summary>
         /// Factory method used to fully
@@ -13,33 +16,39 @@ namespace Ardex
         /// </summary>
         private readonly Func<T> ValueFactory;
 
-        /// <summary>
-        /// Current value.
-        /// </summary>
-        private volatile Lazy<T> _value;
+        private T _value;
 
         /// <summary>
-        /// Returns the inner cache initialising
-        /// it in the process if necessary.
-        /// Guaranteed to return a non-null value.
+        /// Returns the cached value initialising it
+        /// using the factory delegate if necessary.
+        /// Guaranteed to return the latest value
+        /// even if a call to Invalidate() is made
+        /// while the value is being generated.
         /// </summary>
         public T Value
         {
-            get { return _value.Value; }
+            get
+            {
+                return Atomic.Transform(
+                    ref _value,
+                    this.ValueFactory,
+                    (value, valueFactory) => value ?? valueFactory()
+                );
+            }
         }
 
         /// <summary>
-        /// Returns true if the cached data is current and ready to use.
+        /// Returns true if the cached value is current and ready to use.
         /// </summary>
         public bool IsValid
         {
-            get {  return _value.IsValueCreated; }
+            get { return _value != null; }
         }
 
         /// <summary>
         /// Creates a new instance of the class.
         /// </summary>
-        public LazyCache(Func<T> valueFactory)
+        public InterlockedCache(Func<T> valueFactory)
         {
             if (valueFactory == null) throw new ArgumentNullException("valueFactory");
 
@@ -54,8 +63,7 @@ namespace Ardex
         /// </summary>
         public void Invalidate()
         {
-            _value = new Lazy<T>(this.ValueFactory);
+            Interlocked.Exchange(ref _value, null);
         }
     }
 }
-

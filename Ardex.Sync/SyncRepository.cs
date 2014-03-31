@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
+using Ardex.Caching;
 using Ardex.Collections.Generic;
 using Ardex.Sync.SyncLocks;
 
@@ -12,12 +11,21 @@ namespace Ardex.Sync
     /// <summary>
     /// IRepository implementation which supports locking (used in sync operations).
     /// </summary>
-    public class SyncRepository<TKey, TEntity> : KeyRepository<TKey, TEntity>, ISyncRepository<TKey, TEntity>
+    public class SyncRepository<TKey, TEntity>
+        : KeyRepository<TKey, TEntity>
+        , ISyncRepository<TKey, TEntity>
+        where TEntity : class
     {
         /// <summary>
         /// Backing field for Lock.
-        /// </summary>s
+        /// </summary>
         private readonly ISyncLock __syncLock;
+
+        /// <summary>
+        /// Cached materialised collection of underlying values
+        /// used as an optimisation for GetEnumerator().
+        /// </summary>
+        private readonly ICache<IReadOnlyList<TEntity>> CachedSnapshot;
 
         /// <summary>
         /// Lock used to protect read and write
@@ -41,7 +49,7 @@ namespace Ardex.Sync
         {
             get
             {
-                using (__syncLock.ReadLock())
+                lock (this.Entities)
                 {
                     return base.Count;
                 }
@@ -70,12 +78,8 @@ namespace Ardex.Sync
         /// Initialises a new instance using the given lock object.
         /// </summary>
         public SyncRepository(Func<TEntity, TKey> keySelector, ISyncLock syncLock)
-            : base(keySelector)
+            : this(Enumerable.Empty<TEntity>(), keySelector, syncLock)
         {
-            if (syncLock == null) throw new ArgumentNullException("syncLock");
-
-            __syncLock = syncLock;
-
             this.OwnsLock = false;
         }
 
@@ -91,6 +95,7 @@ namespace Ardex.Sync
             __syncLock = syncLock;
 
             this.OwnsLock = false;
+            this.CachedSnapshot = new LazyCache<IReadOnlyList<TEntity>>(this.Snapshot);
         }
 
         /// <summary>
@@ -112,9 +117,14 @@ namespace Ardex.Sync
 
             using (__syncLock.WriteLock())
             {
-                this.Entities.Add(this.KeySelector(entity), entity);
+                lock (this.Entities)
+                {
+                    this.Entities.Add(this.KeySelector(entity), entity);
+                }
             }
 
+            // Invalidate snapshot.
+            this.CachedSnapshot.Invalidate();
             this.OnEntityInserted(entity);
 
             if (this.TrackedChange != null)
@@ -135,8 +145,18 @@ namespace Ardex.Sync
             // still need an exclusive lock.
             using (__syncLock.WriteLock())
             {
-                // Key validation?
+                // Entity key validation.
+                // Fail if the entity key has changed.
+                var entityKey = this.KeySelector(entity);
+
+                if (entity != this.Find(entityKey))
+                {
+                    throw new InvalidOperationException("Illegal entity key change detected.");
+                }
             }
+
+            // No need to invalidate snapshot
+            // as the collection has not changed.
 
             this.OnEntityUpdated(entity);
 
@@ -155,62 +175,19 @@ namespace Ardex.Sync
 
             using (__syncLock.WriteLock())
             {
-                this.Entities.Remove(this.KeySelector(entity));
+                lock (this.Entities)
+                {
+                    this.Entities.Remove(this.KeySelector(entity));
+                }
             }
 
+            // Invalidate snapshot.
+            this.CachedSnapshot.Invalidate();
             this.OnEntityDeleted(entity);
 
             if (this.TrackedChange != null)
             {
                 this.TrackedChange(entity, SyncEntityChangeAction.Delete);
-            }
-        }
-
-        /// <summary>
-        /// Returns a snapshot of the respository
-        /// avoiding SyncDeadlockExceptions.
-        /// </summary>
-        protected List<TEntity> Snapshot()
-        {
-            while (true)
-            {
-                try
-                {
-                    var list = this.Entities
-                        .Select(kvp => kvp.Value)
-                        .ToList();
-
-                    if (list.Count == this.Entities.Count)
-                    {
-                        return list;
-                    }
-                }
-                catch (InvalidOperationException ex)
-                {
-                    // Collection was modified.
-                    if (ex.Message != null &&
-                        ex.Message.StartsWith("Collection was modified", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Debug.WriteLine("SyncRepository<{0}>.Snapshot(): InvalidOperationException caught: {1}", typeof(TEntity).Name, ex.Message);
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                catch (ArgumentException ex)
-                {
-                    // Collection was modified.
-                    if (ex.Message != null &&
-                        ex.Message.StartsWith("Destination array was not long enough.", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Debug.WriteLine("SyncRepository<{0}>.Snapshot(): ArgumentException caught: {1}", typeof(TEntity).Name, ex.Message);
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
             }
         }
 
@@ -225,13 +202,8 @@ namespace Ardex.Sync
         /// </summary>
         public override IEnumerator<TEntity> GetEnumerator()
         {
-            //using (this.ReadLock())
-            {
-                // We'll create a clone.
-                var snapshot = this.Snapshot();
-
-                return snapshot.GetEnumerator();
-            }
+            // Enumerator over cached clone.
+            return this.CachedSnapshot.Value.GetEnumerator();
         }
 
         /// <summary>
@@ -239,7 +211,16 @@ namespace Ardex.Sync
         /// </summary>
         void ISyncRepository<TKey, TEntity>.UntrackedInsert(TEntity entity)
         {
-            base.Insert(entity);
+            this.ThrowIfDisposed();
+
+            lock (this.Entities)
+            {
+                this.Entities.Add(this.KeySelector(entity), entity);
+            }
+
+            // Invalidate snapshot.
+            this.CachedSnapshot.Invalidate();
+            this.OnEntityInserted(entity);
 
             if (this.UntrackedChange != null)
             {
@@ -252,7 +233,21 @@ namespace Ardex.Sync
         /// </summary>
         void ISyncRepository<TKey, TEntity>.UntrackedUpdate(TEntity entity)
         {
-            base.Update(entity);
+            this.ThrowIfDisposed();
+
+            // Entity key validation.
+            // Fail if the entity key has changed.
+            var entityKey = this.KeySelector(entity);
+
+            if (entity != this.Find(entityKey))
+            {
+                throw new InvalidOperationException("Illegal entity key change detected.");
+            }
+
+            // No need to invalidate snapshot
+            // as the collection has not changed.
+
+            this.OnEntityUpdated(entity);
 
             if (this.UntrackedChange != null)
             {
@@ -265,13 +260,50 @@ namespace Ardex.Sync
         /// </summary>
         void ISyncRepository<TKey, TEntity>.UntrackedDelete(TEntity entity)
         {
-            base.Delete(entity);
+            this.ThrowIfDisposed();
+
+            lock (this.Entities)
+            {
+                this.Entities.Remove(this.KeySelector(entity));
+            }
+
+            // Invalidate snapshot.
+            this.CachedSnapshot.Invalidate();
+            this.OnEntityDeleted(entity);
 
             if (this.UntrackedChange != null)
             {
                 this.UntrackedChange(entity, SyncEntityChangeAction.Delete);
             }
         }
+
+        /// <summary>
+        /// Returns the element with the specified
+        /// key, or the default value for type.
+        /// </summary>
+        public override bool TryFind(TKey key, out TEntity entity)
+        {
+            lock (this.Entities)
+            {
+                return base.TryFind(key, out entity);
+            }
+        }
+
+        #region Snapshot
+
+        /// <summary>
+        /// Returns a snapshot of the respository
+        /// avoiding SyncDeadlockExceptions.
+        /// </summary>
+        protected virtual IReadOnlyList<TEntity> Snapshot()
+        {
+            lock (this.Entities)
+            {
+                return this.Entities.Values.ToList();
+            }
+        }
+
+        #endregion
 
         #region Cleanup
 

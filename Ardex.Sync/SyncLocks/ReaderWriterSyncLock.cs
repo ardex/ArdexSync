@@ -48,13 +48,16 @@ namespace Ardex.Sync.SyncLocks
         {
             // Common case optimisation.
             if (this.Lock.IsReadLockHeld || this.Lock.IsWriteLockHeld)
-            {
+        {
                 return Disposables.Null;
             }
 
-            this.Lock.EnterReadLock();
+            if (!this.Lock.TryEnterReadLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
+            }
 
-            return Disposables.Once(this.Lock.ExitReadLock);
+            return Disposables.Once(this.Lock, l => l.ExitReadLock());
         }
 
         /// <summary>
@@ -67,11 +70,14 @@ namespace Ardex.Sync.SyncLocks
             if (this.Lock.IsWriteLockHeld)
             {
                 return Disposables.Null;
+    }
+
+            if (!this.Lock.TryEnterWriteLock(SyncConstants.DeadlockTimeout))
+            {
+                throw new SyncDeadlockException();
             }
 
-            this.Lock.EnterWriteLock();
-
-            return Disposables.Once(this.Lock.ExitWriteLock);
+            return Disposables.Once(this.Lock, l => l.ExitWriteLock());
         }
 
         /// <summary>

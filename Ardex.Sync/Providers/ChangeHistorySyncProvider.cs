@@ -7,7 +7,6 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Ardex.Sync.ChangeTracking;
-using Ardex.Sync.EntityMapping;
 
 namespace Ardex.Sync.Providers
 {
@@ -72,33 +71,17 @@ namespace Ardex.Sync.Providers
         {
             using (this.ChangeHistory.SyncLock.WriteLock())
             {
-                // Resolve pk and version.
-                var changeHistoryID = 0;
-                var timestamp = new Timestamp(0);
-
-                foreach (var c in this.ChangeHistory)
-                {
-                    if (c.ChangeHistoryID > changeHistoryID)
-                        changeHistoryID = c.ChangeHistoryID;
-
-                    if (c.Timestamp != null &&
-                        c.Timestamp.CompareTo(timestamp) > 0)
-                    {
-                        timestamp = c.Timestamp;
-                    }
-                }
-
                 var ch =
                     this.CustomChangeHistoryFactory != null ?
                     this.CustomChangeHistoryFactory() :
                     new TChangeHistory();
 
-                ch.ChangeHistoryID = changeHistoryID + 1;
+                ch.ChangeHistoryID = this.NextChangeHistoryID();
                 ch.Action = action;
                 ch.ArticleID = this.ArticleID;
                 ch.ReplicaID = this.ReplicaInfo.ReplicaID;
                 ch.EntityGuid = this.Repository.KeySelector(entity);
-                ch.Timestamp = ++timestamp;
+                ch.Timestamp = this.NextTimestamp();
 
                 this.ChangeHistory.Insert(ch);
             }
@@ -118,10 +101,7 @@ namespace Ardex.Sync.Providers
                     new TChangeHistory();
 
                 // Resolve pk.
-                ch.ChangeHistoryID = this.ChangeHistory
-                    .Select(c => c.ChangeHistoryID)
-                    .DefaultIfEmpty()
-                    .Max() + 1;
+                ch.ChangeHistoryID = this.NextChangeHistoryID();
 
                 ch.Action = versionInfo.Version.Action;
                 ch.ArticleID = this.ArticleID;
@@ -133,54 +113,80 @@ namespace Ardex.Sync.Providers
             }
         }
 
+        protected virtual int NextChangeHistoryID()
+        {
+            return this.ChangeHistory
+                .Select(c => c.ChangeHistoryID)
+                .DefaultIfEmpty()
+                .Max() + 1;
+        }
+
+        protected virtual Timestamp NextTimestamp()
+        {
+            var maxTimestamp = this.ChangeHistory
+                .Select(c => c.Timestamp)
+                .DefaultIfEmpty()
+                .Max();
+
+            return maxTimestamp == null ? new Timestamp(1) : ++maxTimestamp;
+        }
+
         public override SyncAnchor<TChangeHistory> LastAnchor()
         {
             return this.LastKnownVersionByReplica(this.FilteredChangeHistory);
         }
 
-        public override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor)
+        public /*sealed*/ override SyncDelta<TEntity, TChangeHistory> ResolveDelta(SyncAnchor<TChangeHistory> remoteAnchor)
         {
             var sw = Stopwatch.StartNew();
 
             try
             {
-                // We need locks on both repositories,
-                // but we don't want to hold them for too long.
-                var changes = new List<TChangeHistory>();
-                var myAnchor = default(SyncAnchor<TChangeHistory>);
-
                 using (this.Repository.SyncLock.ReadLock())
                 {
-                    using (this.ChangeHistory.SyncLock.ReadLock())
+                    // We're not taking a lock on change history.
+                    var filteredChangeHistory = this.FilteredChangeHistory.ToList();
+
+#if PARALLEL
+                    // Parallel, woo-hoo!
+                    var resolveChangesTask = Task.Factory.StartNew(state =>
                     {
-                        #if PARALLEL
-                        // Parallel, woo-hoo!
-                        var resolveChangesTask = Task.Run(() =>
+                        // Micro-optimisation.
+                        var changeHistory = (IEnumerable<TChangeHistory>)state;
+#else
+                        var changeHistory = filteredChangeHistory;
+#endif
+                        var changes = new List<TChangeHistory>();
+
+                        foreach (var ch in changeHistory)
                         {
-                        #endif
-                            foreach (var ch in this.FilteredChangeHistory)
+                            TChangeHistory version;
+
+                            if (!remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
+                                this.VersionComparer.Compare(ch, version) > 0)
                             {
-                                TChangeHistory version;
-
-                                if (!remoteAnchor.TryGetValue(ch.ReplicaID, out version) ||
-                                    this.VersionComparer.Compare(ch, version) > 0)
-                                {
-                                    changes.Add(ch);
-                                }
+                                changes.Add(ch);
                             }
-                        #if PARALLEL
-                        });
-                        #endif
+                        }
 
-                        myAnchor = this.LastAnchor();
+#if PARALLEL
+                        return changes;
+                    },
+                    filteredChangeHistory);
+#endif
 
-                        #if PARALLEL
-                        resolveChangesTask.Wait();
-                        #endif
-                    }
+                    // Realistically we should be calling LastAnchor().
+                    // This optimisation is the reason this method has been sealed.
+                    var myAnchor = this.LastKnownVersionByReplica(this.FilteredChangeHistory);
+
+                    #if PARALLEL
+                    var changesSinceRemoteAnchor = resolveChangesTask.Result;
+                    #else
+                    var changesSinceRemoteAnchor = changes;
+                    #endif
 
                     var myChanges = this.Repository
-                        .Join(changes, c => c.EntityGuid, (entity, changeHistory) => SyncEntityVersion.Create(entity, changeHistory))
+                        .Join(changesSinceRemoteAnchor, c => c.EntityGuid, (entity, ch) => SyncEntityVersion.Create(entity, ch))
                         .OrderBy(c => c.Version, this.VersionComparer) // Ensure that the oldest changes for each replica are synchronised first.
                         .ToList();
 
@@ -189,7 +195,10 @@ namespace Ardex.Sync.Providers
             }
             finally
             {
-                Debug.WriteLine("{0}.ResolveDelta() completed in {1:0.###} seconds.", this.GetType().Name, (float)sw.ElapsedMilliseconds / 1000);
+                Debug.WriteLine(
+                    "{0}.ResolveDelta() completed in {1:0.###} seconds.",
+                    string.Format("{0}<{1}, {2}>", this.GetType().Name.Replace("`2", ""), typeof(TEntity).Name, typeof(TChangeHistory).Name),
+                    (float)sw.ElapsedMilliseconds / 1000);
             }
         }
 
@@ -233,7 +242,7 @@ namespace Ardex.Sync.Providers
         /// </summary>
         protected SyncAnchor<TChangeHistory> LastKnownVersionByReplica(IEnumerable<TChangeHistory> changeHistory)
         {
-            var dict = new SyncAnchor<TChangeHistory>();
+            var dict = new SyncAnchor<TChangeHistory>(this.ReplicaInfo);
 
             foreach (var ch in changeHistory)
             {

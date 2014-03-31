@@ -37,7 +37,7 @@ namespace Ardex.Sync.Providers
 
         public override SyncAnchor<TVersion> LastAnchor()
         {
-            var anchor = new SyncAnchor<TVersion>();
+            var anchor = new SyncAnchor<TVersion>(this.ReplicaInfo);
 
             // Lock taken by SyncRepository.GetEnumerator().
             foreach (var entity in this.Repository)

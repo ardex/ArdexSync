@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Ardex.Sync.SyncOperations;
+using Ardex.Threading.Async;
 
 namespace Ardex.Sync
 {
@@ -39,7 +40,7 @@ namespace Ardex.Sync
         /// <summary>
         /// Lock used to ensure that only one sync operation runs at any given time.
         /// </summary>
-        private readonly SemaphoreSlim SyncLock = new SemaphoreSlim(1, 1);
+        private readonly IAsyncLock SyncLock = new SemaphoreAsyncLock();
 
         /// <summary>
         /// Backing field for SyncTasksInProgress.
@@ -86,17 +87,11 @@ namespace Ardex.Sync
             {
                 // We want to wait for the semaphore inside the
                 // task - it's a legitimate part of the process.
-                await this.SyncLock.WaitAsync(ct).ConfigureAwait(false);
-
-                ct.ThrowIfCancellationRequested();
-
-                try
+                using (await this.SyncLock.LockAsync(ct).ConfigureAwait(false))
                 {
+                    ct.ThrowIfCancellationRequested();
+
                     return this.SynchroniseDiff(ct);
-                }
-                finally
-                {
-                    this.SyncLock.Release();
                 }
             }, ct);
 

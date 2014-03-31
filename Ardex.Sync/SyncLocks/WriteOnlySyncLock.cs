@@ -16,7 +16,7 @@ namespace Ardex.Sync.SyncLocks
         {
             Monitor.Enter(this.Lock);
 
-            return Disposables.Once(() => Monitor.Exit(this.Lock));
+            return Disposables.Once(this.Lock, Monitor.Exit);
         }
 
         public void Dispose()
